@@ -19,5 +19,6 @@
         - FAISS Index code can be found here : https://github.com/DataIntelligenceCrew/koios-semantic-search
 
 - **Algorithm and Complexity Analysis** : pseudocode for the algorithm and complexity analysis
-    - (Pranay)
-    - Write out the algorithm 
+    
+        - (Pranay)
+        - Write out the algorithm 
