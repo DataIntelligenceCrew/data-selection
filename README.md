@@ -9,8 +9,8 @@
 ## Plan for Week (1/8 - 1/15):
 
 - **ResNet and FAISS** : convert the image dataset, into vectors and build the FAISS Index over that
-    - (Jiwon & Rosie)
-
+    
+        - (Jiwon & Rosie)
         - Dataset (CIFAR-10) : https://www.cs.toronto.edu/~kriz/cifar.html
         - Download the dataset to /localdisk3/ on node 2x16a
         - Go through ResNet Code :  https://github.com/KaimingHe/deep-residual-networks
