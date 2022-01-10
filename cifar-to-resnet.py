@@ -1,6 +1,6 @@
 import _pickle as cPickle
 # pip install img2vec_pytorch
-#from img2vec_pytorch import Img2Vec
+from img2vec_pytorch import Img2Vec
 from PIL import Image
 import numpy as np
 
@@ -34,7 +34,7 @@ def get_pil_image(alldicts, index):
     pil_img = Image.fromarray(np_image, mode="RGB")
     return pil_img
 
-# Return an array of all 50,000 PIL images (only the training data)
+# Return a list of all 50,000 PIL images (only the training data)
 def get_all_pil_images(alldicts):
     all_images = []
     for i in range(50000):
@@ -43,7 +43,15 @@ def get_all_pil_images(alldicts):
 
 #TODO: the above functions for the test batch
 
+# Return a list of ResNet feature vectors given a list of all PIL images
+def get_all_resnet(all_images):
+    img2vec = Img2Vec(cuda=True, model='resnet-18')
+    vectors = img2vec.get_vec(all_images)
+    print(vectors.shape)
+    return vectors
+
 # Main function for testing
 if __name__ == "__main__":
     alldicts = unpickle_all()
-    get_all_pil_images(alldicts)
+    all_images = get_all_pil_images(alldicts)
+    resnet = get_all_resnet(all_images)
