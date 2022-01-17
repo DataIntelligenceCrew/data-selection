@@ -41,11 +41,30 @@ update_cost(p_list):
 
 // initialization:
     for each point d of D:
-        get it's top-m neighbours 
-        update posting list
+        update posting list --> get it's neighbours using threshold search with vicinity threshold
         update inverted index
         set cost(d) = k * posting_list(d).size()    
         insert into point_stream
+k = 2
+D = {1,2,3,4}
+1 = {2,3} c = 2
+2 = {1,3} c = 2
+3 = {3, 1, 2} c = 3
+4 = {4}  c = 2
+
+S = {3,}
+3 = {1, 2, 3}
+
+1 = {2,3} , c = 0
+2 = {1, 3} , c = 0
+4 = {4} , c = 2
+
+S = {3, 1, }
+
+4 = 
+2 = {1, 3} , c = 0
+
+
 
 // main-loop:
     while (point_stream.size() != 0 && k_coverage_criteria(not satisfied)):
@@ -54,6 +73,18 @@ update_cost(p_list):
         update k_coverage_counter(posting_list(p))
         update_cost(posting_list(p))
 
+?? Datastructure for point_stream ?? 
+?? think as of it overlap ??
+ordered_sets 
+|D|*|D - 1|*|D |
+
+// cost update based on posting_list
+// ?? approximate updates or more efficient utility function ?? 
+update_cost(p_list):
+    for each point e in p_list:
+        list_points_that_contain_e = inverted_index(e)
+        for each e1 in list_points_that_contain_e:
+            e1.cost--
 
 
 Balancing Stage:
