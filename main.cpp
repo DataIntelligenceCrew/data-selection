@@ -1,5 +1,11 @@
-#include<iostream>
-
+#include <iostream>
+#include <omp.h>
+#include <faiss/IndexFlat.h>
+#include <faiss/gpu/GpuIndexFlat.h>
+#include <faiss/gpu/StandardGpuResources.h>
+#include <faiss/utils/distances.h>
+#include <faiss/index_io.h>
+#include <stdlib.h>
 /*
 
 toDo : main algorithm
@@ -73,7 +79,7 @@ S = {3, 1, }
         update k_coverage_counter(posting_list(p))
         update_cost(posting_list(p))
 
-?? Datastructure for point_stream ?? 
+?? Datastructure for point_stream ?? some sort of trees, where on cost udpate delete from tree and then reinsert 
 ?? think as of it overlap ??
 ordered_sets 
 |D|*|D - 1|*|D |
@@ -92,10 +98,44 @@ Balancing Stage:
 
 */
 
-
+using idx_t = faiss::Index::idx_t;
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
+    // problem linking library
+    std::cout << "FAISS test" << std::endl;
+    int d = 32;
+    int nb = 1000;
+    int nq = 100;
+    float *xb = new float[d * nb];
+    float *xq = new float[d * nq];
+    for(int i = 0; i < nb; i++) {
+        for(int j = 0; j < d; j++) xb[d * i + j] = drand48();
+        xb[d * i] += i / 1000.;
+    }
+    for(int i = 0; i < nq; i++) {
+        for(int j = 0; j < d; j++) xq[d * i + j] = drand48();
+        xq[d * i] += i / 1000.;
+    }
+
+    faiss::IndexFlatL2 index(d);
+    printf("is_trained = %s\n", index.is_trained ? "true" : "false");
+    index.add(nb, xb);                     // add vectors to the index
+    printf("ntotal = %ld\n", index.ntotal);
+
+    int k = 10;
+    // sanity check: search 5 first vectors of xb
+    idx_t *I = new idx_t[k * 5];
+    float *D = new float[k * 5];
+    index.search(5, xb, k, D, I);
+    printf("I=\n");
+    for(int i = 0; i < 5; i++) {
+        for(int j = 0; j < k; j++) printf("%5ld ", I[i * k + j]);
+        printf("\n");
+    }
+    delete [] I;
+    delete [] D;
+
 
     return 0;
 }
