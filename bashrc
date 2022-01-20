@@ -6,8 +6,8 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # export path
-export PATH=$HOME/opt/cmake3.18.2/bin:$PATH
-export PATH=$HOME/.local/bin:$PATH
+# export PATH=$HOME/opt/cmake3.18.2/bin:$PATH
+# export PATH=$HOME/.local/bin:$PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/opt/usr/local/lib
 export LIBRARY_PATH=$LIBRARY_PATH:$HOME/opt/usr/local/lib
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$HOME/opt/usr/local/include
