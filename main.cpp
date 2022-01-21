@@ -286,13 +286,19 @@ S = {3, 1, }
         update k_coverage_counter(posting_list(p))
         update_cost(posting_list(p))
 
-?? Datastructure for point_stream ?? some sort of trees, where on cost udpate delete from tree and then reinsert 
-- maintain an array(costs) such that costs[i] = cost of point i
+?? Datastructure for point_stream ?? 
+
+- some sort of trees, where on cost update delete from tree and then reinsert 
+OR 
+- maintain an array(costs) such that costs[i] = cost of selecting point i
+- top - 5 elements x1 > x2 > x3 > x4 > x5 > ....>
+select x1 - {x2}
 - find the max of the array using binary search (O(logn))
 - so worst case the while loop would run for O(n*logn) 
 ?? think as of it overlap ??
 ordered_sets 
 |D|*|D - 1|*|D |
+tradeoff between number of updates v/s number of iterations for set cover
 
 // cost update based on posting_list
 // ?? approximate updates or more efficient utility function ?? 
