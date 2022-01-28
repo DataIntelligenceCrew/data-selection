@@ -1,5 +1,5 @@
 *.tar.gz
 *.o
-*.nfs*
+*.*
 cifar/*
 *~
