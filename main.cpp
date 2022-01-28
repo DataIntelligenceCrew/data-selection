@@ -366,7 +366,7 @@ int main(int argc, char const *argv[]) {
     //     // cout << value_ids[value_ids.size() - 1] << endl;
     //     break;
     // }
-    int k = 2;
+    int k = 10;
     set<int> final_solution = algorithm(k, posting_lists, inverted_index);
     tend = chrono::high_resolution_clock::now();
     total_elapsed = tend - tmiddle;
