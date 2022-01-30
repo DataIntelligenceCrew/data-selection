@@ -1,6 +1,6 @@
 import sqlite3
 from sqlite3 import Error
-import cifar
+from cifar import *
 import pickle
 
 def create_connection(db_file):
@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # Obtain labels, PIL images and Resnet vectors
     all_dicts = unpickle_all()
-    all_images = get_all_pil_images(alldicts)
+    all_images = get_all_pil_images(all_dicts)
     all_resnet = get_all_resnet(all_images)
 
     # Load the obtained information to SQLite database
