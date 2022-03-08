@@ -1,6 +1,6 @@
 import _pickle as cPickle
 # pip install img2vec_pytorch
-# from img2vec_pytorch import Img2Vec
+from img2vec_pytorch import Img2Vec
 from PIL import Image
 import numpy as np
 
@@ -25,7 +25,7 @@ def unpickle_all():
 # Given the dictionary returned from unpickle_all(), and the index of image
 # (from 0 to 49999), returns a Pillow image
 def get_pil_image(alldicts, index):
-    cifar_img = alldicts[index // 10000]["data"][index % 10000] # 1 x 3072 ndarray
+    cifar_img = alldicts[index // 10000][b'data'][index % 10000] # 1 x 3072 ndarray
     np_image = np.ndarray((32, 32, 3), dtype=np.uint8) # 32 x 32 x 3 ndarray
     for i in range(32):
         for j in range(32):

@@ -1,7 +1,12 @@
 import sqlite3
 from sqlite3 import Error
-import cifar
+from cifar import *
 import pickle
+
+def unpickle(file):
+    with open(file, 'rb') as fo:
+        mydict = pickle.load(fo, encoding='bytes')
+    return mydict
 
 def create_connection(db_file):
     """
@@ -39,11 +44,12 @@ def create_image(conn, image):
     :param image: (int, string, string) tuple consisting of image label, vector blob file location, and PIL pickle file location
     :return: returns id of the inserted row
     """
-    sql_command = """INSERT INTO images(label, vector, pil)
-                    VALUES(?,?,?)"""
+    sql_command = """INSERT INTO images(label, resnet, alexnet, pil)
+                    VALUES(?,?,?,?)"""
     cur = conn.cursor()
     cur.execute(sql_command, image)
     conn.commit
+    print("image inserted", i)
     return cur.lastrowid
 
 def save_as_pickle(obj, filename):
@@ -51,7 +57,7 @@ def save_as_pickle(obj, filename):
     Converts a python object image into a pickle file. 
     """
     with open(filename, 'wb') as f:
-        f.dump(obj, pickle)
+        pickle.dump(obj, f)
 
 def save_ndarray_as_blob(arr, filename):
     """
@@ -59,7 +65,7 @@ def save_ndarray_as_blob(arr, filename):
     """
     arr.tofile(filename)
 
-def list_to_sql_image(all_dicts, all_images, all_resnet, i):
+def list_to_sql_image(all_dicts, all_images, all_resnet, all_alexnet, i):
     """
     Creates a single (label, vector blob, pil blob) tuple for the given information. 
 
@@ -69,38 +75,59 @@ def list_to_sql_image(all_dicts, all_images, all_resnet, i):
     :param i: index of target image between 0 and 49999
     """
     save_as_pickle(all_images[i], 'tempimg.pickle')
-    save_ndarray_as_blob(all_resnet[i], 'temparr')
+    save_ndarray_as_blob(all_resnet[i], 'tempresnet')
+    save_ndarray_as_blob(all_alexnet[i], 'tempalexnet')
 
-    label = all_dicts[i // 10000]["labels"][i % 10000]
-    with open('temparr', 'rb') as arrfile:
-        vec_blob = arrfile.read()
+    label = all_dicts[i // 10000][b"labels"][i % 10000]
+    with open('tempresnet', 'rb') as resfile:
+        resnet_blob = resfile.read()
+    with open('tempalexnet', 'rb') as alexfile:
+        alexnet_blob = alexfile.read()
     with open('tempimg.pickle', 'rb') as imgfile:
-        pil_blob = imgfile.read()
-    return (label, vec_blob, pil_blob)
+       pil_blob = imgfile.read()
+    image = (label, resnet_blob, alexnet_blob, pil_blob)
+    print("image created", i)
+    return image
 
 """
 Obtains PIL images and vectors using cifar.py. 
 Then loads it onto a cifar.db SQLite3 database under an "images" table. 
 """
 if __name__ == '__main__':
+
     # Create database, establish connection, add images table
     database = r"cifar.db"
     sql_create_image_table = """CREATE TABLE IF NOT EXISTS images (
                                 id INTEGER PRIMARY KEY,
                                 label INTEGER NOT NULL,
-                                vector BLOB NOT NULL,
-                                pil BLOB NOT NULL
+                                resnet BLOB,
+                                alexnet BLOB,
+                                pil BLOB
                                 ); """
     conn = create_connection(database)
     execute_command(conn, sql_create_image_table)
 
+    # Verify that table has been created
+    #cursor = conn.cursor()
+    #cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    #print(cursor.fetchall())
+
     # Obtain labels, PIL images and Resnet vectors
     all_dicts = unpickle_all()
-    all_images = get_all_pil_images(alldicts)
-    all_resnet = get_all_resnet(all_images)
+    all_images = get_all_pil_images(all_dicts)
+    all_resnet = unpickle("cifar-10-vectors")
+    all_alexnet = unpickle("cifar-10-vectors-alexnet")
 
     # Load the obtained information to SQLite database
     for i in range(50000):
-        sql_img = list_to_sl_image(all_dicts, all_images, all_resnet, i)
+        sql_img = list_to_sql_image(all_dicts, all_images, all_resnet, all_alexnet, i)
         create_image(conn, sql_img)
+        conn.commit()
+        # Verify that row has been added
+        #cursor = conn.cursor()
+        #cursor.execute("SELECT * FROM images")
+        #print(cursor.fetchall())
+    
+    conn.commit()
+    conn.close()
 
