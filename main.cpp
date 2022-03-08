@@ -15,6 +15,8 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <random>
+#include <mutex>
 /*
     we have a SQL database with the following for an image : name/id, label, feature_vector
     create nameToID set
@@ -204,14 +206,15 @@ set<pair<int, int>, cmp_decreasing> update_pq(map<int, int> *id2cost, set<int> *
     std::set<pair<int, int>, cmp_decreasing> token_stream;
     for (auto it = id2cost->begin(); it != id2cost->end(); it++) {
         // it->first == set_id; it->second == cost 
-        if (result_set->find(it->first) == result_set->end()) {
+        if ((result_set->find(it->first) == result_set->end())) {
             token_stream.insert(make_pair(it->second, it->first));
         }
     }
     return token_stream;
 }
 
-std::set<int> algorithm(int k_coverage, map<int, vector<int>> posting_lists, map<int, vector<int>> inverted_index) {
+void algorithm(int k_coverage, map<int, vector<int>> posting_lists, 
+                        map<int, vector<int>> inverted_index, std::set<int> *global_solution, std::mutex *gmtx) {
     
     // data structures
     vector<int> k_coverage_counter(posting_lists.size(), k_coverage);
@@ -226,6 +229,12 @@ std::set<int> algorithm(int k_coverage, map<int, vector<int>> posting_lists, map
         int posting_list_size = static_cast<int>(it->second.size());
         token_stream.insert(make_pair(posting_list_size * k_coverage, set_id));
         id2cost[set_id] = posting_list_size * k_coverage;
+        // if (global_solution.find(set_id) == global_solution.end()) {
+        //     token_stream.insert(make_pair(posting_list_size * k_coverage, set_id));
+        //     id2cost[set_id] = posting_list_size * k_coverage;
+        // } else {
+        //     id2cost[set_id] = 0;
+        // }
     }
 
     // master loop
@@ -239,33 +248,83 @@ std::set<int> algorithm(int k_coverage, map<int, vector<int>> posting_lists, map
         token_stream.erase(it);
         int set_id = token.second;
         set_cover_solution.insert(set_id);
-        update_k_coverage_counter(&k_coverage_counter, posting_lists.at(set_id));
-        update_costs(&id2cost, posting_lists.at(set_id), &inverted_index);
-        token_stream = update_pq(&id2cost, &set_cover_solution);
+        update_k_coverage_counter(&k_coverage_counter, posting_lists.at(set_id)); // can be avoided
+        update_costs(&id2cost, posting_lists.at(set_id), &inverted_index); // extra bit
+        token_stream = update_pq(&id2cost, &set_cover_solution); // instead of rebuilding, just keep track of the token_id and if its -1 then break
     }
-
-    cout << "Set Cover Size: " << set_cover_solution.size() << " for k = " << k_coverage << endl;
-    float percent_of_total = (set_cover_solution.size() / posting_lists.size()) * 100;
-    cout << "Percent of Total Data: " << fixed << setprecision(4) << percent_of_total <<  endl;
-    return set_cover_solution;
+    // ofstream output;
+    // output.open("set_cover_solution_alexNet.txt");
+    // if (!output) {
+    //     for (auto i : set_cover_solution) {
+    //         cout << i << endl;
+    //     }
+    //     cerr << "Error : file couldn't be opened" << endl;
+    //     exit(1);
+    // }
+    // for (auto i : set_cover_solution) {
+    //     output << i  << endl;
+    // }
+    // output.close();
+    // cout << "Set Cover Size: " << set_cover_solution.size() << " for k = " << k_coverage << endl;
+    // float percent_of_total = (set_cover_solution.size() / posting_lists.size()) * 100;
+    // cout << "Percent of Total Data: " << percent_of_total <<  endl;
+    // return set_cover_solution;
+    gmtx->lock();
+    for (auto ls : set_cover_solution) {
+        global_solution->insert(ls);
+    }
+    gmtx->unlock();
 
 }
+
+
+// void algorithm_2(int k, map<int, vector<int>> posting_lists, map<int, vector<int>> inverted_index) {
+//     // datastructures
+//     std::set<int> global_set_cover;
+
+
+//     for (int i = 0; i < k; i++) {
+//         std::set<int> local_set_cover = algorithm(1, posting_lists, inverted_index, global_set_cover);
+//         global_set_cover.insert(local_set_cover.begin(), local_set_cover.end());
+//     }
+
+
+//     ofstream output;
+//     output.open("global_set_cover_alexNET.txt");
+//     if (!output) {
+//         for (auto i : global_set_cover) {
+//             cout << i << endl;
+//         }
+//         cerr << "Error : file couldn't be opened" << endl;
+//         exit(1);
+//     }
+//     for (auto i : global_set_cover) {
+//         output << i  << endl;
+//     }
+//     output.close();
+//     cout << "Set Cover Size: " << global_set_cover.size() << " for k = " << k << endl;
+
+// }
 
 
 /***************************
  * Generate Metadata from Files
 ****************************/
-vector<int> get_values(const string &s, char delim) {
+vector<int> get_values(const string &s, char delim, std::set<int> partition) {
     vector<int> tokens;
     string token;
     stringstream tokenStream(s);
     while (getline(tokenStream, token, delim)) {
-        tokens.push_back(stoi(token));
+        // check if token in the subset and then insert
+        if (partition.find(stoi(token)) != partition.end()) {
+            tokens.push_back(stoi(token));
+        }
+        // tokens.push_back(stoi(token));
     }
     return tokens;
 }
 
-map<int, vector<int>> get_metadata(string filepath) {
+map<int, vector<int>> get_metadata(string filepath, std::set<int> partition) {
     map<int, vector<int>> mymap;
     ifstream file_stream;
     file_stream.open(filepath);
@@ -278,8 +337,11 @@ map<int, vector<int>> get_metadata(string filepath) {
             string key = line.substr(0, line.find(delim));
             string value = line.substr(line.find(delim) + 2, line.size());
             value = value.substr(1, value.size() - 2);
-            value_ids = get_values(value, ',');
-            mymap.insert(pair<int, vector<int>>(stoi(key), value_ids));
+            value_ids = get_values(value, ',', partition);
+            if (partition.find(stoi(key)) != partition.end()) {
+                mymap.insert(pair<int, vector<int>>(stoi(key), value_ids));
+            }
+            // mymap.insert(pair<int, vector<int>>(stoi(key), value_ids));
         }
     }
     return mymap;
@@ -331,25 +393,81 @@ int main(int argc, char const *argv[]) {
     // // testing sqlite3
     // Database *ftdb = new Database("/localdisk1/sematic-overlap-cpp/ft.sqlite3");
 
+    // random partitioning for compasable algorithm
+    cout << "Starting partitioning" << endl;
+    int number_of_partitions = 5;
+    std::map<int, set<int>> partitions;
+    int DELTA_SIZE = 50000;
+    for (int i = 0; i < DELTA_SIZE; i++) {
+        int part_id = rand() % number_of_partitions;
+        if (partitions.find(part_id) == partitions.end()) {
+            std::set<int> s;
+            partitions.insert(make_pair(part_id, s));
+        }
+        partitions[part_id].insert(i);
+    }
+    cout << "Paritioning Done" << endl;
 
-    
 
-    string posting_file_location = "/localdisk3/data-selection/posting_list.txt";
-    string inverted_index_location = "/localdisk3/data-selection/inverted_index.txt";
+    std::set<int> global_solution;
+    std::mutex gmtx;
+    string posting_file_location = "/localdisk3/data-selection/posting_list_alexnet.txt";
+    string inverted_index_location = "/localdisk3/data-selection/inverted_index_alexnet.txt";
+
+    for (int j = 0; j < number_of_partitions; j++) {
+        chrono::time_point<chrono::high_resolution_clock> tstart, tmiddle, tend;
+        chrono::duration<double> elapsed, total_elapsed;
+        
+        tstart = chrono::high_resolution_clock::now();
+        
+        map<int, vector<int>> posting_lists = get_metadata(posting_file_location, partitions[j]);
+        map<int, vector<int>> inverted_index = get_metadata(inverted_index_location, partitions[j]);
+        
+        tmiddle = chrono::high_resolution_clock::now();
+        cout << posting_lists.size() << endl;
+        cout << inverted_index.size() << endl;
+        elapsed = tmiddle - tstart;
+        cout << "Time taken to load metadata: " << elapsed.count() << " for parition_number: " << j << endl;
+        
+        int k = 2;
+        cout << "Starting for parition_number" << j << endl;
+        algorithm(k, posting_lists, inverted_index, &global_solution, &gmtx);
+        tend = chrono::high_resolution_clock::now();
+        total_elapsed = tend - tmiddle;
+        cout << "Set Cover Time: " << total_elapsed.count() << endl;
+    }
     
-    chrono::time_point<chrono::high_resolution_clock> tstart, tmiddle, tend;
-    chrono::duration<double> elapsed, total_elapsed;
+    ofstream output;
+    output.open("global_set_cover_alexNET_composable.txt");
+    if (!output) {
+        for (auto i : global_solution) {
+            cout << i << endl;
+        }
+        cerr << "Error : file couldn't be opened" << endl;
+        exit(1);
+    }
+    for (auto i : global_solution) {
+        output << i  << endl;
+    }
+    output.close();
+    cout << "Set Cover Size: " << global_solution.size() << " for k = 2" << endl;
+
+    // string posting_file_location = "/localdisk3/data-selection/posting_list_alexnet.txt";
+    // string inverted_index_location = "/localdisk3/data-selection/inverted_index_alexnet.txt";
     
-    tstart = chrono::high_resolution_clock::now();
+    // chrono::time_point<chrono::high_resolution_clock> tstart, tmiddle, tend;
+    // chrono::duration<double> elapsed, total_elapsed;
     
-    map<int, vector<int>> posting_lists = get_metadata(posting_file_location);
-    map<int, vector<int>> inverted_index = get_metadata(inverted_index_location);
+    // tstart = chrono::high_resolution_clock::now();
     
-    tmiddle = chrono::high_resolution_clock::now();
-    cout << posting_lists.size() << endl;
-    cout << inverted_index.size() << endl;
-    elapsed = tmiddle - tstart;
-    cout << "Time taken to load metadata: " << elapsed.count() << endl;
+    // map<int, vector<int>> posting_lists = get_metadata(posting_file_location);
+    // map<int, vector<int>> inverted_index = get_metadata(inverted_index_location);
+    
+    // tmiddle = chrono::high_resolution_clock::now();
+    // cout << posting_lists.size() << endl;
+    // cout << inverted_index.size() << endl;
+    // elapsed = tmiddle - tstart;
+    // cout << "Time taken to load metadata: " << elapsed.count() << endl;
     // ifstream posting_file_stream;
     // posting_file_stream.open(posting_file_location);
     // string line;
@@ -366,11 +484,12 @@ int main(int argc, char const *argv[]) {
     //     // cout << value_ids[value_ids.size() - 1] << endl;
     //     break;
     // }
-    int k = 10;
-    set<int> final_solution = algorithm(k, posting_lists, inverted_index);
-    tend = chrono::high_resolution_clock::now();
-    total_elapsed = tend - tmiddle;
-    cout << "Set Cover Time: " << total_elapsed.count() << endl;
+    // int k = 2;
+    // // set<int> final_solution = algorithm(k, posting_lists, inverted_index);
+    // algorithm_2(k, posting_lists, inverted_index);
+    // tend = chrono::high_resolution_clock::now();
+    // total_elapsed = tend - tmiddle;
+    // cout << "Set Cover Time: " << total_elapsed.count() << endl;
     return 0;
 }
 

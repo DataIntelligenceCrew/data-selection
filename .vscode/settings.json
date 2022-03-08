@@ -62,5 +62,6 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "workbench.colorTheme": "Community Material Theme"
 }

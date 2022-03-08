@@ -46,7 +46,7 @@ class FaissSearch:
             self.batched_threshold_search(threshold)
             # limits, D, I = self.cpu_index.range_search(self.xb, threshold)
         for i in range(self.xb.shape[0]):
-            print("result_size for query {0} is {1}".format(i, len(self.posting_list[i])))
+            # print("result_size for query {0} is {1}".format(i, len(self.posting_list[i])))
             # self.posting_list[i] = set(I[limits[i] : limits[i+1]])
             # self.class_labels[i] = random.randint(1, 10)
             for e in self.posting_list[i]:
@@ -54,12 +54,12 @@ class FaissSearch:
                     self.inverted_index[e] = list()
                 self.inverted_index[e].append(i)
         print("Time taken to search and generate metadata: %s" % (time.time() - start_time))
-        posting_list_file = '/localdisk3/data-selection/posting_list.txt'
-        inverted_index_file = '/localdisk3/data-selection/inverted_index.txt'
-        class_label_file = '/localdisk3/data-selection/class_label.txt'
+        posting_list_file = '/localdisk3/data-selection/posting_list_alexnet.txt'
+        inverted_index_file = '/localdisk3/data-selection/inverted_index_alexnet.txt'
+        class_label_file = '/localdisk3/data-selection/class_label_alexnet.txt'
         self.write_to_file(self.posting_list, posting_list_file)
         self.write_to_file(self.inverted_index, inverted_index_file)
-        self.write_to_file(self.class_labels, class_label_file)
+        # self.write_to_file(self.class_labels, class_label_file)
     
     def batched_threshold_search(self, threshold):
         batch_size = 1000
@@ -170,7 +170,7 @@ def create_dataset(args):
     inverted_index = {}
     class_label = {}
     for i in range(xb.shape[0]):
-        print("result_size for query {0} is {1}".format(i, len(I[limits[i] : limits[i+1]])))
+        # print("result_size for query {0} is {1}".format(i, len(I[limits[i] : limits[i+1]])))
         posting_list[i] = set(I[limits[i] : limits[i+1]])
         class_label[i] = random.randint(1, args.groups)
         for e in posting_list[i]:
@@ -205,7 +205,7 @@ def scatter_plot_vectors(xb):
     t = reduced.transpose()
     plt.scatter(t[0], t[1])
     plt.show()
-    plt.savefig('./scatter_vectors.png')
+    plt.savefig('./scatter_vectors_alexnet.png')
     plt.cla()
     plt.clf()
 
@@ -218,7 +218,7 @@ if __name__=="__main__":
     # parser.add_argument('--groups', type=int, required=True)
     # args = parser.parse_args()
     # create_dataset(args)
-    X = pickle.load(open("/localdisk3/data-selection/cifar-10-vectors", "rb"))
-    # faiss_index = FaissSearch(X)
-    # faiss_index.threshold_search(0.9)
+    X = pickle.load(open("/localdisk3/data-selection/cifar-10-vectors-alexnet", "rb"))
+    faiss_index = FaissSearch(X)
+    faiss_index.threshold_search(0.9)
     scatter_plot_vectors(X)

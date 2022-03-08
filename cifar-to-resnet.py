@@ -35,19 +35,25 @@ def get_pil_image(alldicts, index):
     pil_img = Image.fromarray(np_image, mode="RGB")
     return pil_img
 
+
+def get_pil_image_label(alldicts, index):
+    return alldicts[index // 10000][str.encode('labels')][index % 10000]
+
 # Return a list of all 50,000 PIL images (only the training data)
 def get_all_pil_images(alldicts):
     all_images = []
+    all_labels = []
     for i in range(50000):
-        all_images.append(get_pil_image(alldicts, i))
-    return all_images
+        # all_images.append(get_pil_image(alldicts, i))
+        all_labels.append(get_pil_image_label(alldicts, i))
+    return all_images, all_labels
 
 # TODO: the above functions for the test batch
 # TODO: function to get the class_label for each image
 
 # Return a list of ResNet feature vectors given a list of all PIL images
 def get_all_resnet(all_images):
-    img2vec = Img2Vec(cuda=True, model='resnet-18')
+    img2vec = Img2Vec(cuda=True, model='alexnet')
     vectors = img2vec.get_vec(all_images)
     # print(vectors.shape)
     return vectors
@@ -55,17 +61,21 @@ def get_all_resnet(all_images):
 # Main function for testing
 if __name__ == "__main__":
     alldicts = unpickle_all()
-    all_images = get_all_pil_images(alldicts)
+    all_images, all_labels = get_all_pil_images(alldicts)
+    f = open('/localdisk3/data-selection/class_labels_alexnet.txt', 'w')
+    for i,j in enumerate(all_labels):
+        f.write(str(i) + ' : ' + str(j) + "\n")
+    f.close()
     # batch computing feature vectors
-    batch_size = 32
-    resnet_vectors = np.ones((len(all_images),512))
-    for i in range(0, len(all_images), batch_size):
-        resnet_vectors[i : i + batch_size] = get_all_resnet(all_images[i : i + batch_size])
+    # batch_size = 32
+    # resnet_vectors = np.ones((len(all_images),4096))
+    # for i in range(0, len(all_images), batch_size):
+    #     resnet_vectors[i : i + batch_size] = get_all_resnet(all_images[i : i + batch_size])
     
     
     # resnet = np.array(resnet_vectors)
-    print(resnet_vectors.shape)
-    f = open('/localdisk3/data-selection/cifar-10-vectors', 'wb')
-    pickle.dump(resnet_vectors, f)
-    f.close()
+    # print(resnet_vectors.shape)
+    # f = open('/localdisk3/data-selection/cifar-10-vectors-alexnet', 'wb')
+    # pickle.dump(resnet_vectors, f)
+    # f.close()
     # benchmark_data_generator.create_dataset
