@@ -7,8 +7,7 @@ import shutil
 
 RUNS_DIR = '../runs/'
 CIFAR2PNG_LOC = '/localdisk3/data-selection/cifar_png/train/'
-INPUT_ROOT_DIR = '/localdisk3/data-selection/model-data/sampled_0.1/full_data/'
-TRAIN_IMG_DIR = INPUT_ROOT_DIR + 'train/'
+
 
 def getfilename(id, size=10000):
     # total of 5 batches each with 10,000 images
@@ -18,11 +17,32 @@ def getfilename(id, size=10000):
     return "data_batch_" + str(batch_id) + "_index_" + str(index_id) + ".png" 
 
 
+def copy_images(tp, point_files, classes_files, class_names):
+    INPUT_ROOT_DIR = '/localdisk3/data-selection/model-data/sampled_' + str(sp) + tp
+    TRAIN_IMG_DIR = INPUT_ROOT_DIR + 'train/'
+    os.makedirs(INPUT_ROOT_DIR, exist_ok=True)
+    os.makedirs(TRAIN_IMG_DIR, exist_ok=True)
+
+    for name in class_names:
+        os.makedirs(join(TRAIN_IMG_DIR, name), exist_ok=True)
+
+    
+    for f in point_files:
+        for key, value in classes_files.items():
+            if f in value:
+                src_path = join(CIFAR2PNG_LOC, key)
+                src_path = join(src_path, f)
+                dest_path = join(TRAIN_IMG_DIR, key)
+                dest_path = join(dest_path, f)
+                shutil.copy(src_path, dest_path)
+
+
 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--coreset_solution', type=str, required=True)
+    parser.add_argument('--sample_weight', type=float, required=True)
     args = parser.parse_args()
 
 
@@ -37,7 +57,7 @@ if __name__=="__main__":
 
 
     # move the sampled points to the full_data directory
-    sp = 0.1
+    sp = args.sample_weight
     location = "/localdisk3/data-selection/partitioned_data/" + str(sp) + "/"
     delta = set()
     for part_id in range(10):
@@ -62,21 +82,7 @@ if __name__=="__main__":
     coreset_point_files = [getfilename(x) for x in coreset]
     delta_point_files = [getfilename(x) for x in delta]
     
-    os.makedirs(INPUT_ROOT_DIR, exist_ok=True)
-    os.makedirs(TRAIN_IMG_DIR, exist_ok=True)
 
-    for name in class_names:
-        os.makedirs(join(TRAIN_IMG_DIR, name), exist_ok=True)
-
-    
-    for f in delta_point_files:
-        for key, value in classes_files.items():
-            # print(f)
-            if f in value:
-                print('here')
-                src_path = join(CIFAR2PNG_LOC, key)
-                src_path = join(src_path, f)
-                dest_path = join(TRAIN_IMG_DIR, key)
-                dest_path = join(dest_path, f)
-                shutil.copy(src_path, dest_path)
+    copy_images('full_data', delta_point_files, classes_files, class_names)
+    copy_images('coreset', coreset_point_files, classes_files, class_names)
 
