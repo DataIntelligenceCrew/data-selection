@@ -28,7 +28,7 @@ def copy_images(tp, point_files, classes_files, class_names, args):
         INPUT_ROOT_DIR += str(args.distribution_req) + "/" + tp
     else:
         INPUT_ROOT_DIR += tp
-    TRAIN_IMG_DIR = INPUT_ROOT_DIR + '/train/'
+    TRAIN_IMG_DIR = INPUT_ROOT_DIR + str(args.composable) + '/train/'
     os.makedirs(INPUT_ROOT_DIR, exist_ok=True)
     os.makedirs(TRAIN_IMG_DIR, exist_ok=True)
 
@@ -95,5 +95,5 @@ if __name__=="__main__":
     
 
     copy_images('full_data', delta_point_files, classes_files, class_names, args)
-    copy_images('coreset', coreset_point_files, classes_files, class_names, args)
+    # copy_images('coreset', coreset_point_files, classes_files, class_names, args)
 

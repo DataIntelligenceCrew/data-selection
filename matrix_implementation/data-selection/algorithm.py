@@ -83,7 +83,7 @@ def composable_algorithm(part_id, coverage_factor, distribution_req, sp, q):
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
     # main loop
-    while (not check_for_zeros(CC)) and len(solution) < delta_size and (not check_for_zeros(GC)):
+    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):
@@ -158,11 +158,11 @@ def algorithm(coverage_factor, distribution_req, sp):
             labels_dict[key] = arr
     
     CC = np.empty(delta_size) # coverage tracker
-    CC.fill(coverage_factor)
+    CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
     # main loop
-    while (not check_for_zeros(CC)) and len(solution) < delta_size and (not check_for_zeros(GC)):
+    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):

@@ -4,3 +4,5 @@ Coverage Score: 123931.0
 Time Taken: 26.74154043197632
 Distribution Requirement: 10
 Coverage Factor: 30
+Time Taken to Train AlexNet Model: 306.054016828537
+Test Accuracy AlexNet Model: 0.45753205128205127

@@ -2,4 +2,4 @@
 
 
 python3 ../plots/plot.py --coverage_factor 30 \
-                         --sample_weight 0.1
+                         --sample_weight 1

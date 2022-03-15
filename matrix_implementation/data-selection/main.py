@@ -2,6 +2,7 @@
 Main Driver code that handles data generation as well as solving the set cover
 """
 
+import math
 import data_generator
 import os
 from os.path import isfile, join
@@ -33,11 +34,12 @@ def main(args):
         generator.generate_metadata(args.threshold)
     
     solution_data = []
-    dist_req = [args.distribution_req] * 10
+    
     
     if args.composable == 0:
         # start the algorithm for each partition
         # multithreaded
+        dist_req = [math.ceil(args.distribution_req / args.number_of_partitions)] * 10
         q = multiprocessing.Queue()
         processes = []
         for i in range(args.number_of_partitions):
@@ -57,6 +59,7 @@ def main(args):
             p.join()
 
     else:
+        dist_req = [args.distribution_req] * 10
         s, cscore, res_time = algorithm.algorithm(args.coverage_factor, dist_req, args.sample_weight)
         solution_data.append((s, cscore, res_time))
 
@@ -110,4 +113,9 @@ if __name__ == "__main__":
     parser.add_argument('--composable', type=int, required=True, default=1)
     parser.add_argument('--distribution_req', type=int, required=True, default=50)
     args = parser.parse_args()
+    print("Running algorithm for k={0}, distribution_req={1}, composable={2}".format(
+        args.coverage_factor,
+        args.distribution_req,
+        args.composable
+    ))
     main(args)

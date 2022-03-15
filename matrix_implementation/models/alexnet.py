@@ -46,6 +46,8 @@ DEVICE_IDS = [0, 1, 2, 3] # GPUs to use
 
 
 def get_metric_filename(args):
+    if args.coreset == 1:
+        return "metrics_full_data_ml_" + str(args.sample_weight) + ".txt"
     return "metrics_" + str(args.coverage_factor) + "_" + str(args.sample_weight) + "_" + str(args.distribution_req) + "_" + str(args.composable) + '.txt'
 
 class AlexNet(nn.Module):
@@ -103,7 +105,7 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
         training_data_loc += str(args.distribution_req) + "/" + tp
     else:
         training_data_loc += tp
-    training_data_loc += "/train"
+    training_data_loc += str(args.composable) + "/train"
     print(training_data_loc)
     # create data loader
     train_dataset = datasets.ImageFolder(training_data_loc, transforms.Compose([
@@ -224,7 +226,7 @@ def test_model(args, CHECKPOINT_DIR):
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
     # model.load_state_dict(state['model'])
     model.load_state_dict(torch.load(model_path))
-    print('model loaded')
+    print('model loaded from:{0}'.format(model_path))
     # create data loader
     test_dataset = datasets.ImageFolder(TEST_IMG_DIR, transforms.Compose([transforms.Resize((227,227)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
     print('testing dataset created')
@@ -249,7 +251,7 @@ def test_model(args, CHECKPOINT_DIR):
         num_samples += preds.size(0)
     
     print(f'test accuracy: {float(num_correct) / float(num_samples) * 100:.2f}')
-
+    print()
     with open(os.path.join(RUNS_DIR, get_metric_filename(args)), "a") as f:
         f.write(
             "Test Accuracy AlexNet Model: {0}\n".format((float(num_correct) / float(num_samples)))
@@ -266,9 +268,9 @@ def main(args):
         tp = "full_data"
 
     if tp != "full_data":
-        output_dir += str(args.distribution_req) + "/" + tp
+        output_dir += str(args.distribution_req) + "/" + tp + str(args.composable)
     else:
-        output_dir += tp
+        output_dir += tp 
 
 
     LOG_DIR = output_dir + 'tblogs/'

@@ -1,10 +1,14 @@
 #!/bin/sh
-for DIST_REQ in 5 10 20 40 80
+for DIST_REQ in 100 
 do
-    python3 ../models/main.py --sample_weight 0.1 \
-                    --coreset 0 \
-                    --train 0 \
-                    --composable 0 \
-                    --coverage_factor 30 \
-                    --distribution_req $DIST_REQ
+    for COMPOSABLE in 0 
+    do
+        python3 ../models/main.py \
+                --coreset 1 \
+                --train 0 \
+                --coverage_factor 30 \
+                --sample_weight 1 \
+                --composable $COMPOSABLE \
+                --distribution_req $DIST_REQ
+    done
 done
