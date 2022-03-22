@@ -261,53 +261,47 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
             labels_dict[key] = arr
 
     # Initialize variables to keep track of
-    cov_not_satisfied = list(delta) # Points whose coverage reqs are not met
+    not_satisfied = list(delta) # Points whose cov & dist reqs are not met
     CC = np.full((delta_size), coverage_factor) # Coverage counter
     GC = np.array(distribution_req) # Group requirement counter
     solution = set() # Coreset
 
-    while(len(not_satisfied) > 0 and (not check_for_zeros(GC))):
+    while(len(not_satisfied) > 0):
         actions = delta.difference(solution)
-        reward_estimate = {action : {"avg": 0, "stdev": 0, "m2": 0, "UCB": 0, "LCB": 0} for action in actions}
-
-        for i in range(0, len(cov_not_satisfied)):
+        reward_estimate = {a : {"avg": 0, "stdev": 0, "m2": 0} for a in actions}
+        for i in range(0, len(not_satisfied)):
+            if (len(actions) <= 1):
+                break
+            # Keep track of best LCB
+            best_LCB = float("-inf")
             # Sample random point
-            r = random.sample(cov_not_satisfied)
+            r = random.sample(not_satisfied)
             for a in actions:
                 # Calculate score for point r
                 r_score = 0
                 if (posting_list[a][r] == 1):
-                    r_score = CC[r] + distritbution_score(GC, labels_dict[p])
-                # Update mu and sigma
-                old_estimate = reward_estimate[r]
-                old_avg = old_estimate["avg"]
-                old_stdev = old_estimate["stdev"]
-                old_m2 = old_estimate["m2"]
-                new_avg = old_avg + (r_score - old_avg) / (i + 1)
-                new_m2 = old_m2 + (r_score + old_avg) * (r_score + new_avg)
-                new_stdev = new_m2 / i
-                new_UCB = new_avg + 2 * new_stdev
+                    r_score = CC[r] + distritbution_score(GC, labels_dict[r])
+                # Update avg and stdev
+                old_estimate = reward_estimate[a]
+                new_avg = old_avg + (r_score - old_estimate["avg"]) / (i + 1)
+                new_m2 = old_estimate["m2"] + (r_score + old_estimate["avg"]) * (r_score + new_avg)
+                new_stdev = math.sqrt(new_m2 / i)
+                reward_estimate[a] = {"avg": new_avg, "stdev": new_stdev, "m2": new_m2}
+                # Possibly update best LCB
                 new_LCB = new_avg - 2 * new_stdev
-                reward_estimate[a] = {"avg": new_avg, "stdev": new_stdev, "m2": new_m2, "UCB": new_UCB, "LCB": new_LCB}
-            # Remove bad actions
-            def action_is_good_enough(a, reward_estimate):
-                a_UCB = reward_estimate[a]["UCB"]
-                min_LCB_others = float('-inf')
-                for action, estimate in reward_estimate.items():
-                    if (action == a):
-                        continue
-                    if (estimate["LCB"] < min_LCB_others):
-                        min_LCB_others = estimate["LCB"]
-                return a_UCB >= min_LCB_others
-            actions = filter(action_is_good_enough(a, reward_estimate), actions)
+                if (new_LCB > best_LCB):
+                    best_LCB = new_LCB
+            # Remove actions that cannot be optimal
+            actions = filter(lambda a : reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"] >= best_LCB, actions)
 
-        # Choose best action (either only action remaining or with highest UCB)
+        # Choose best action
         best_action = None
+        best_UCB = float('-inf')
         for a in actions:
-            if (best_action is None):
+            a_UCB = reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"]
+            if (a_UCB > best_UCB):
                 best_action = a
-            elif (reward_estimate[a]["UCB"] > reward_estimate[best_action]["UCB"]):
-                best_action = a
+                best_UCB = a_UCB
         if (best_action is None):
             print("cannot find a point")
             break
@@ -316,6 +310,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
         solution.add(best_action)
         CC = np.subtract(CC, posting_list[best_action])
         GC = np.subtract(GC, labels_dict[best_action])
+        not_satisfied = filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0), not_satisfied)
     
     end_time = time.time()
     print(len(solution)) 
