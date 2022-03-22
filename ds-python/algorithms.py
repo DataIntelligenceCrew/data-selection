@@ -1,0 +1,324 @@
+"""
+Contains code for the greedy fair set cover algorithm 
+TODO: change the metadata loading from txt files to on the go faiss search 
+"""
+from cProfile import label
+import fnmatch
+import time
+import random
+import numpy as np
+import os
+from paths import *
+
+
+def calculate_cscore(solution, posting_list, delta_size=50000):
+    cmatrix = np.zeros(shape=(len(solution), delta_size))
+    for idx, s in enumerate(solution):
+        cmatrix[idx] = posting_list[s]
+    
+    new_matrix = np.dot(cmatrix.T, cmatrix)
+    return np.trace(new_matrix)
+
+def check_for_zeros(CC):
+    for e in CC:
+        if e > 0:
+            return False
+    return True
+
+def coverage_score(CC, pl):
+    return np.dot(CC.T, pl)
+
+def distritbution_score(GC, gl):
+    return np.dot(GC.T, gl)
+
+
+def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partitions, dataset_size, cov_threshold):
+    '''
+    Computes the greedy fair set cover for the given partition
+    @params
+        part_id : partition id
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list
+    @returns
+        solution of the greedy fair set cover that satisfies the coverage and 
+        distribution requirements
+        coverage score for this solution
+        time taken
+    '''
+    start_time = time.time()
+    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, partitions)
+    posting_list_filepath = location + 'posting_list_alexnet_' + str(part_id) + '.txt'
+    posting_list_file = open(posting_list_filepath, 'r')
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+    
+    # generate posting list map
+    posting_list = dict()
+    delta = set()
+    lines = posting_list_file.readlines()
+    delta_size = dataset_size
+    for line in lines:
+        pl = line.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+        arr = np.zeros(delta_size)
+        arr[value] = 1
+        posting_list[key] = arr
+        delta.add(key)
+
+    # class labels for points
+    labels = label_file.readlines()
+    labels_dict = dict()    
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if key in posting_list:
+            arr = np.zeros(len(label_ids_to_name.keys()))
+            arr[label] = 1
+            labels_dict[key] = arr
+    
+    delta_list = list(delta)
+    CC = np.zeros(delta_size) # coverage tracker
+    CC[delta_list] = coverage_factor
+    GC = np.array(distribution_req) # group count tracker
+    solution = set() # solution set 
+    # main loop
+    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
+        best_point, max_score = -1, float('-inf')
+        # TODO: optimize this loop using scipy
+        for p in delta.difference(solution):
+            p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+            if p_score > max_score:
+                max_score = p_score
+                best_point = p
+
+        if best_point == -1:
+            print("cannot find a point")
+            break
+
+        solution.add(best_point)
+        CC = np.subtract(CC, posting_list[best_point])
+        GC = np.subtract(GC, labels_dict[best_point])
+
+    end_time = time.time()
+    print(len(solution))
+    cscore = calculate_cscore(solution, posting_list, delta_size)
+    response_time = end_time - start_time
+    q.put((solution, cscore, response_time))
+    # return solution, posting_list
+
+
+def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold):
+    '''
+    Computes the greedy fair set cover for the entire dataset
+    @params
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list directory
+    @returns
+        solution of the greedy fair set cover that satisfies the coverage and 
+        distribution requirements
+        coverage score for this solution
+        time taken 
+    '''
+    start_time = time.time()
+    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
+    posting_list_filepath = location + 'posting_list_alexnet.txt'
+    posting_list_file = open(posting_list_filepath, 'r')
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+
+    # generate posting list map
+    posting_list = dict()
+    delta = set()
+    lines = posting_list_file.readlines()
+    delta_size = dataset_size
+    for line in lines:
+        pl = line.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+        arr = np.zeros(delta_size)
+        arr[value] = 1
+        posting_list[key] = arr
+        delta.add(key)
+
+    # class labels for points
+    labels = label_file.readlines()
+    labels_dict = dict()    
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if key in posting_list:
+            arr = np.zeros(len(label_ids_to_name.keys()))
+            arr[label] = 1
+            labels_dict[key] = arr
+    
+    CC = np.empty(delta_size) # coverage tracker
+    CC[list(delta)] = coverage_factor
+    GC = np.array(distribution_req) # group count tracker
+    solution = set() # solution set 
+    # main loop
+    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
+        best_point, max_score = -1, float('-inf')
+        # toDo: optimize this loop using scipy
+        for p in delta.difference(solution):
+            p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+            if p_score > max_score:
+                max_score = p_score
+                best_point = p
+
+        if best_point == -1:
+            print("cannot find a point")
+            break
+
+        solution.add(best_point)
+        CC = np.subtract(CC, posting_list[best_point])
+        GC = np.subtract(GC, labels_dict[best_point])
+
+    end_time = time.time()
+    print(len(solution)) 
+    cscore = calculate_cscore(solution, posting_list, delta_size)
+    res_time = end_time - start_time
+    return solution, cscore, res_time
+
+
+def random_algo(dataset_name, distribution_req):
+    start_time = time.time()
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    labels = label_file.readlines()
+    labels_dict = dict()
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[1].strip())
+        value = int(txt[0].strip())
+        if key not in labels_dict:
+            labels_dict[key] = list()
+
+        labels_dict[key].append(value)
+
+    coreset = []
+    for key, value in labels_dict.items():
+        coreset += random.sample(value, distribution_req)
+    end_time = time.time()
+    return set(coreset), 0, (start_time-end_time)
+
+def herding(dataset_name, coverage_factor, distribution_req, dataset_size, cov_threshold):
+    pass
+
+def k_center(dataset_name, coverage_factor, distribution_req, dataset_size, cov_threshold):
+    pass
+
+def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold):
+    '''
+    Computes the randomized bandit fair set cover for the entire dataset
+    @params
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list directory
+    @returns
+        solution of teh randomized bandit fair set cover that satisfies the
+        coverage and distribution requirements
+        coverage score for this solution
+        time taken
+    '''
+    start_time = time.time()
+    label_file = label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
+    posting_list_filepath = location + 'posting_list_alexnet.txt'
+    posting_list_file = open(posting_list_filepath, 'r')
+    
+    # generate posting list map
+    posting_list = dict()
+    delta = set()
+    lines = posting_list_file.readlines()
+    delta_size = dataset_size
+    for line in lines:
+        pl = line.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+        arr = np.zeros(delta_size)
+        arr[value] = 1
+        posting_list[key] = arr
+        delta.add(key)
+
+    # Class labels for points
+    labels = label_file.readlines()
+    labels_dict = dict()
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if key in posting_list:
+            arr = np.zeros(len(label_ids_to_name.keys()))
+            arr[label] = 1
+            labels_dict[key] = arr
+
+    # Initialize variables to keep track of
+    cov_not_satisfied = list(delta) # Points whose coverage reqs are not met
+    CC = np.full((delta_size), coverage_factor) # Coverage counter
+    GC = np.array(distribution_req) # Group requirement counter
+    solution = set() # Coreset
+
+    while(len(not_satisfied) > 0 and (not check_for_zeros(GC))):
+        actions = delta.difference(solution)
+        reward_estimate = {action : {"avg": 0, "stdev": 0, "m2": 0, "UCB": 0, "LCB": 0} for action in actions}
+
+        for i in range(0, len(cov_not_satisfied)):
+            # Sample random point
+            r = random.sample(cov_not_satisfied)
+            for a in actions:
+                # Calculate score for point r
+                r_score = 0
+                if (posting_list[a][r] == 1):
+                    r_score = CC[r] + distritbution_score(GC, labels_dict[p])
+                # Update mu and sigma
+                old_estimate = reward_estimate[r]
+                old_avg = old_estimate["avg"]
+                old_stdev = old_estimate["stdev"]
+                old_m2 = old_estimate["m2"]
+                new_avg = old_avg + (r_score - old_avg) / (i + 1)
+                new_m2 = old_m2 + (r_score + old_avg) * (r_score + new_avg)
+                new_stdev = new_m2 / i
+                new_UCB = new_avg + 2 * new_stdev
+                new_LCB = new_avg - 2 * new_stdev
+                reward_estimate[a] = {"avg": new_avg, "stdev": new_stdev, "m2": new_m2, "UCB": new_UCB, "LCB": new_LCB}
+            # Remove bad actions
+            def action_is_good_enough(a, reward_estimate):
+                a_UCB = reward_estimate[a]["UCB"]
+                min_LCB_others = float('-inf')
+                for action, estimate in reward_estimate.items():
+                    if (action == a):
+                        continue
+                    if (estimate["LCB"] < min_LCB_others):
+                        min_LCB_others = estimate["LCB"]
+                return a_UCB >= min_LCB_others
+            actions = filter(action_is_good_enough(a, reward_estimate), actions)
+
+        # Choose best action (either only action remaining or with highest UCB)
+        best_action = None
+        for a in actions:
+            if (best_action is None):
+                best_action = a
+            elif (reward_estimate[a]["UCB"] > reward_estimate[best_action]["UCB"]):
+                best_action = a
+        if (best_action is None):
+            print("cannot find a point")
+            break
+        
+        # If best action is found, update all info
+        solution.add(best_action)
+        CC = np.subtract(CC, posting_list[best_action])
+        GC = np.subtract(GC, labels_dict[best_action])
+    
+    end_time = time.time()
+    print(len(solution)) 
+    cscore = calculate_cscore(solution, posting_list, delta_size)
+    res_time = end_time - start_time
+    return solution, cscore, res_time
