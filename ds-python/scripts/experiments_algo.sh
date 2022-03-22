@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-for DIST_REQ in 50 200 300 400 500 600 700 800 900 1000
+for DIST_REQ in 900 1000
 do
     for ALG in 'greedyC' 'greedyNC'
     do

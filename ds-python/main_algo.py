@@ -41,7 +41,9 @@ def run_algo(params):
         s, cscore, res_time = random_algo(params.dataset, params.distribution_req)
         solution_data.append((s, cscore, res_time))
 
-        
+    elif params.algo_type == 'MAB':
+        s, cscore, res_time = bandit_algorithm(params.coverage_factor, params.distribution_req, params.dataset, params.dataset_size, params.coverage_threshold)
+        solution_data.append((s, cscore, res_time))
     # calculate metrics
     coreset = set()
     cscores = 0
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--algo_type', type=str, default='MAB', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
     parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     params = parser.parse_args()

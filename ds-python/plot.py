@@ -3,8 +3,10 @@ from os.path import join, isfile
 import argparse
 import os
 from paths import *
+from itertools import islice
 
-distribution_req = [50,100,200,300,400,500,600]
+
+distribution_req = [50,100,200,300,400,500,600,700,800]
 
 def get_output_filename(params, i, algo_type):
     return METRIC_FILE.format(params.dataset, params.coverage_factor, i, algo_type)
@@ -37,9 +39,9 @@ def get_metrics(filename):
     
     return data
 
-def plot_coreset_size(composable_data, greedy_data, params):
-    compsable_y = [data["solution_size"]/(params.dataset_size) for data in composable_data]
-    greedy_y = [data["solution_size"]/(params.dataset_size) for data in greedy_data]
+def plot_coreset_size(greedyC_data, greedyNC_data, params):
+    compsable_y = [data["solution_size"]/(params.dataset_size) for data in greedyC_data]
+    greedy_y = [data["solution_size"]/(params.dataset_size) for data in greedyNC_data]
     plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
     
     plt.plot(distribution_req, compsable_y, 'o--', label="greedyC")
@@ -53,9 +55,9 @@ def plot_coreset_size(composable_data, greedy_data, params):
     plt.clf()
     plt.cla()
 
-def plot_coreset_time(composable_data, greedy_data, params):
-    compsable_y = [data["response_time"] / 60 for data in composable_data]
-    greedy_y = [data["response_time"] / 60 for data in greedy_data]
+def plot_coreset_time(greedyC_data, greedyNC_data, params):
+    compsable_y = [data["response_time"] / 60 for data in greedyC_data]
+    greedy_y = [data["response_time"] / 60 for data in greedyNC_data]
     plot_filename = "./figures/time_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
     plt.plot(distribution_req, compsable_y, 'o--', label="greedyC")
     plt.plot(distribution_req, greedy_y, 'o--', label="greedyNC")
@@ -69,14 +71,11 @@ def plot_coreset_time(composable_data, greedy_data, params):
     plt.cla()
 
 
-
-
-
-def plot_coreset_ml(composable_data, greedy_data, args):
-    composable_ml_time_y = [data["ml_time"] for data in composable_data]
-    greedy_ml_time_y = [data["ml_time"] for data in greedy_data]
-    composable_ml_acc_y = [data["ml_acc"] for data in composable_data]
-    greedy_ml_acc_y = [data["ml_acc"] for data in greedy_data]
+def plot_coreset_ml(greedyC_data, greedyNC_data, args):
+    composable_ml_time_y = [data["ml_time"] for data in greedyC_data]
+    greedy_ml_time_y = [data["ml_time"] for data in greedyNC_data]
+    composable_ml_acc_y = [data["ml_acc"] for data in greedyC_data]
+    greedy_ml_acc_y = [data["ml_acc"] for data in greedyNC_data]
     full_data_time = 0.0
     full_data_acc = 0.0
     full_data_metric_file = '../runs/metrics_full_data_ml_' + str(args.sample_weight) + ".txt"
@@ -126,6 +125,22 @@ def plot_coreset_distribution(composable_data, greedy_data):
     pass
 
 
+
+def plot_model_hp_tuning(greedyC_data, greedyNC_data):
+    pass
+
+def get_hp_tuning_metrics(filename):
+    model_details = {}
+    with open(filename, 'r') as f:
+        n = 4
+        for line in f:
+            if line.startswith('Model ID:'):
+                model_details[line.strip()] = list(islice(f, n))
+
+
+    f.close()
+
+    return model_details
 
 
 if __name__=="__main__":
