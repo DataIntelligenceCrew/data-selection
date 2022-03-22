@@ -1,8 +1,0 @@
-Delta Size: 50000
-Solution Size: 16526
-Coverage Score: 4795712.0
-Time Taken: 17998.476251125336
-Distribution Requirement: 600
-Coverage Factor: 30
-Time Taken to Train AlexNet Model: 1502.0694453716278
-Test Accuracy AlexNet Model: 0.7448918269230769

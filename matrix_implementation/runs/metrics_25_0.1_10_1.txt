@@ -1,6 +1,0 @@
-Delta Size: 5000
-Solution Size: 246
-Coverage Score: 45528.0
-Time Taken: 18.132617712020874
-Distribution Requirement: 10
-Coverage Factor: 25

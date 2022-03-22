@@ -1,2 +1,0 @@
-Time Taken to Train AlexNet Model: 626.8088219165802
-Test Accuracy AlexNet Model: 0.5943509615384616
