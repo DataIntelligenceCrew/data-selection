@@ -1,0 +1,35 @@
+Model ID: convnet_W_32_D_1_N_groupnorm_A_relu_P_maxpooling_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 121.13533568382263
+Number of Test Runs: 20
+Mean Test Acc: 41.238982371794876
+Stdev Test Acc: 0.021823374023571318
+
+Model ID: convnet_W_32_D_1_N_groupnorm_A_relu_P_avgpooling_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 90.22403717041016
+Number of Test Runs: 20
+Mean Test Acc: 39.03445512820513
+Stdev Test Acc: 0.01611762988056499
+
+Model ID: convnet_W_32_D_1_N_groupnorm_A_leakyrelu_P_none_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 126.93645930290222
+Number of Test Runs: 20
+Mean Test Acc: 37.541566506410255
+Stdev Test Acc: 0.01817323674366887
+
+Model ID: convnet_W_32_D_1_N_groupnorm_A_leakyrelu_P_maxpooling_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 90.65446257591248
+Number of Test Runs: 20
+Mean Test Acc: 39.4325921474359
+Stdev Test Acc: 0.019893190695157298
+
+Model ID: convnet_W_32_D_1_N_groupnorm_A_leakyrelu_P_avgpooling_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 129.9046928882599
+Number of Test Runs: 20
+Mean Test Acc: 38.78455528846154
+Stdev Test Acc: 0.019999076689684137
+
+Model ID: convnet_W_32_D_2_N_none_A_sigmoid_P_none_epochs_100_lr_0.01_bs_128_seed1234
+Training Time: 45.992454290390015
+Number of Test Runs: 20
+Mean Test Acc: 27.578125
+Stdev Test Acc: 0.01933460286450082
