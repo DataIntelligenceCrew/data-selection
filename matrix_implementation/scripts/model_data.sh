@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for DIST_REQ in 100 
+for DIST_REQ in 50 
 do
     for COMPOSABLE in 0 1
     do

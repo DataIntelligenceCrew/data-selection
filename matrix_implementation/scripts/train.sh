@@ -1,10 +1,10 @@
 #!/bin/sh
-for DIST_REQ in 100 
+for DIST_REQ in 50 
 do
-    for COMPOSABLE in 0 
+    for COMPOSABLE in 0 1 
     do
         python3 ../models/main.py \
-                --coreset 1 \
+                --coreset 0 \
                 --train 0 \
                 --coverage_factor 30 \
                 --sample_weight 1 \

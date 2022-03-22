@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from torch.utils import data
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-import argparse
+import networks
 from tensorboardX import SummaryWriter
 
 
@@ -43,41 +43,10 @@ NUM_CLASSES = 10 # CIFAR-10
 DEVICE_IDS = [0, 1, 2, 3] # GPUs to use
 
 
-
-
 def get_metric_filename(args):
     if args.coreset == 1:
         return "metrics_full_data_ml_" + str(args.sample_weight) + ".txt"
     return "metrics_" + str(args.coverage_factor) + "_" + str(args.sample_weight) + "_" + str(args.distribution_req) + "_" + str(args.composable) + '.txt'
-
-class AlexNet(nn.Module):
-    def __init__(self, num_classes=10):
-        super(AlexNet, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels= 96, kernel_size= 11, stride=4, padding=0 )
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2)
-        self.conv2 = nn.Conv2d(in_channels=96, out_channels=256, kernel_size=5, stride= 1, padding= 2)
-        self.conv3 = nn.Conv2d(in_channels=256, out_channels=384, kernel_size=3, stride= 1, padding= 1)
-        self.conv4 = nn.Conv2d(in_channels=384, out_channels=384, kernel_size=3, stride=1, padding=1)
-        self.conv5 = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.fc1  = nn.Linear(in_features= 9216, out_features= 4096)
-        self.fc2  = nn.Linear(in_features= 4096, out_features= 4096)
-        self.fc3 = nn.Linear(in_features=4096 , out_features=num_classes)
-
-
-    def forward(self,x):
-        x = F.relu(self.conv1(x))
-        x = self.maxpool(x)
-        x = F.relu(self.conv2(x))
-        x = self.maxpool(x)
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.conv4(x))
-        x = F.relu(self.conv5(x))
-        x = self.maxpool(x)
-        x = x.reshape(x.shape[0], -1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x    
 
 
 def train(args, CHECKPOINT_DIR, LOG_DIR):
@@ -88,7 +57,10 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
     print('tensorboardX summary writer created')
 
     # init model
-    model = AlexNet(num_classes=NUM_CLASSES).to(device)
+    # default convnet settings
+    net_width, net_depth, net_act, net_norm, net_pooling = 128, 3, 'relu', 'instancenorm', 'avgpooling'
+    model = networks.ConvNet(3, NUM_CLASSES, net_width, net_depth, net_act, net_norm, net_pooling).to(device)
+    # model = networks.AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
     print(model)
@@ -108,8 +80,13 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
     training_data_loc += str(args.composable) + "/train"
     print(training_data_loc)
     # create data loader
+    # train_dataset = datasets.ImageFolder(training_data_loc, transforms.Compose([
+    #     transforms.Resize((227,227)), 
+    #     transforms.RandomHorizontalFlip(p=0.7), 
+    #     transforms.ToTensor(), 
+    #     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    # ]))
     train_dataset = datasets.ImageFolder(training_data_loc, transforms.Compose([
-        transforms.Resize((227,227)), 
         transforms.RandomHorizontalFlip(p=0.7), 
         transforms.ToTensor(), 
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -127,17 +104,17 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
     print('training dataloader created')
 
     # create optimizer
-    optimizer = optim.Adam(params=model.parameters(), lr=LR)
+    # optimizer = optim.Adam(params=model.parameters(), lr=LR)
     ### BELOW is the setting proposed by the original paper - which doesn't train....
     # optimizer = optim.SGD(
     #     params=alexnet.parameters(),
     #     lr=LR_INIT,
     #     momentum=MOMENTUM,
     #     weight_decay=LR_DECAY)
+    optimizer = optim.SGD(params=model.parameters(), lr=0.01)
     print('optimizer created')
-
     # multiply LR by 0.1 after every 30 epochs
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+    # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     print('LR scheduler created')
 
     # start training
@@ -146,7 +123,7 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
     # with torch.autograd.set_detect_anomaly(True):
     start_time = time.time()
     for epoch in range(NUM_EPOCHS):
-        lr_scheduler.step()
+        # lr_scheduler.step()
         for imgs, classes in train_dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
 
@@ -207,11 +184,11 @@ def train(args, CHECKPOINT_DIR, LOG_DIR):
     
     end_time = time.time()
     # save model
-    model_path = os.path.join(CHECKPOINT_DIR, 'alexnet_dist{0}_cf{1}_core{2}.pt'.format(args.distribution_req, args.coverage_factor, args.coreset))
+    model_path = os.path.join(CHECKPOINT_DIR, 'convnet_dist{0}_cf{1}_core{2}.pt'.format(args.distribution_req, args.coverage_factor, args.coreset))
     torch.save(model.state_dict(), model_path)
     with open(os.path.join(RUNS_DIR, get_metric_filename(args)), "a") as f:
         f.write(
-            "Time Taken to Train AlexNet Model: {0}\n".format((end_time - start_time))
+            "Time Taken to Train ConvNet Model: {0}\n".format((end_time - start_time))
         )
     f.close()
 
@@ -220,15 +197,18 @@ def test_model(args, CHECKPOINT_DIR):
     # load model
     model_save_loc = [os.path.join(CHECKPOINT_DIR, _) for _ in os.listdir(CHECKPOINT_DIR) if _.endswith('.pt')]
     model_path = model_save_loc[0]
-    # model_path = os.path.join(CHECKPOINT_DIR, 'alexnet_states_e90.pkl')
-    # state = torch.load(model_path)
-    model = AlexNet(num_classes=NUM_CLASSES).to(device)
+
+    net_width, net_depth, net_act, net_norm, net_pooling = 128, 3, 'relu', 'instancenorm', 'avgpooling'
+    model = networks.ConvNet(3, NUM_CLASSES, net_width, net_depth, net_act, net_norm, net_pooling).to(device)
+
+    # model = networks.AlexNet(num_classes=NUM_CLASSES).to(device)
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
     # model.load_state_dict(state['model'])
     model.load_state_dict(torch.load(model_path))
     print('model loaded from:{0}'.format(model_path))
     # create data loader
-    test_dataset = datasets.ImageFolder(TEST_IMG_DIR, transforms.Compose([transforms.Resize((227,227)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
+    # test_dataset = datasets.ImageFolder(TEST_IMG_DIR, transforms.Compose([transforms.Resize((227,227)), transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
+    test_dataset = datasets.ImageFolder(TEST_IMG_DIR, transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]))
     print('testing dataset created')
 
     test_dataloader = data.DataLoader(
@@ -254,7 +234,7 @@ def test_model(args, CHECKPOINT_DIR):
     print()
     with open(os.path.join(RUNS_DIR, get_metric_filename(args)), "a") as f:
         f.write(
-            "Test Accuracy AlexNet Model: {0}\n".format((float(num_correct) / float(num_samples)))
+            "Test Accuracy ConvNet Model: {0}\n".format((float(num_correct) / float(num_samples)))
         )
     f.close()
 
