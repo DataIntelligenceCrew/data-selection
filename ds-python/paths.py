@@ -14,7 +14,7 @@ We have the following directory structure for storage:
         $dataset_name/
             feature-vector-file
             labels.txt
-            $coverage_factor/
+            $coverage_threshold/
                 $number_partitions/ 
                     list of all posting list files
     
@@ -58,7 +58,7 @@ METRIC_FILE = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}
 SOLUTION_FILENAME = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}.txt'
 
 # paths for metadata/
-FEATURE_VECTOR_LOC = '/localdisk3/data-selection/data/metadata/{0}/alexnet-vectors'
+FEATURE_VECTOR_LOC = '/localdisk3/data-selection/data/metadata/{0}/vectors-alexnet'
 POSTING_LIST_LOC = '/localdisk3/data-selection/data/metadata/{0}/{1}/{2}/'
 LABELS_FILE_LOC = '/localdisk3/data-selection/data/metadata/{0}/labels.txt'
 

@@ -6,7 +6,8 @@ from paths import *
 from itertools import islice
 
 
-distribution_req = [50,100,200,300,400,500,600,700,800]
+# distribution_req = [50,100,200,300,400,500,600,700,800]
+distribution_req = [50]
 
 def get_output_filename(params, i, algo_type):
     return METRIC_FILE.format(params.dataset, params.coverage_factor, i, algo_type)
@@ -125,22 +126,27 @@ def plot_coreset_distribution(composable_data, greedy_data):
     pass
 
 
-
-def plot_model_hp_tuning(greedyC_data, greedyNC_data):
-    pass
-
-def get_hp_tuning_metrics(filename):
+def find_best_model(filename):
     model_details = {}
     with open(filename, 'r') as f:
         n = 4
         for line in f:
             if line.startswith('Model ID:'):
-                model_details[line.strip()] = list(islice(f, n))
-
-
+                # [training_time, number_runs, mean_test_acc, stdev_test_acc]
+                model_details[line.strip()] = list(islice(f, n))[2:] 
     f.close()
+    best_model_id = None
+    best_model_acc_data = [float("-inf"), float("-inf")] # [mean_test_acc, stdev_acc]
 
-    return model_details
+    for key, value in model_details.items():
+        test_acc = float(value[0].strip().split(":")[1])
+        if test_acc > best_model_acc_data[0]:
+            best_model_id = key
+            best_model_acc_data[0] = test_acc
+            best_model_acc_data[1] = float(value[1].strip().split(":")[1])
+
+    return [best_model_id, best_model_acc_data]
+
 
 
 if __name__=="__main__":
@@ -167,10 +173,16 @@ if __name__=="__main__":
     greedyC_metrics_files = [get_output_filename(params,i,'greedyC') for i in distribution_req]
     greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
 
-    greedyC_data = [get_metrics(f) for f in greedyC_metrics_files]
-    greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
+    # greedyC_data = [get_metrics(f) for f in greedyC_metrics_files]
+    # greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
 
-    plot_coreset_size(greedyC_data, greedyNC_data, params)
-    plot_coreset_time(greedyC_data, greedyNC_data, params)
+    # plot_coreset_size(greedyC_data, greedyNC_data, params)
+    # plot_coreset_time(greedyC_data, greedyNC_data, params)
     # plot_coreset_ml(greedyC_data, greedyNC_data, params)
     # plot_coreset_distribution(composable_data, greedy_data)
+
+    # find best model arch for coreset
+    greedyC_best_models = [find_best_model(f) for f in greedyC_metrics_files]
+    greedyNC_best_models = [find_best_model(f) for f in greedyNC_metrics_files]
+
+    print(greedyC_best_models)

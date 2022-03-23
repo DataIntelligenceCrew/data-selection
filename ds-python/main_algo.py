@@ -1,3 +1,7 @@
+'''
+TODO: time profiling for greedy algorithms. 
+    [hypothesis: loading metadata takes about 10 minutes]
+'''
 import math
 import os
 import numpy as np

@@ -7,8 +7,9 @@ with open('./test.txt', 'r') as ifile:
   n = 4
   for line in ifile:
     if line.startswith('Model ID:'):
-      model_details[line] = list(islice(ifile, n))
+      model_details["details"] = list(islice(ifile, n))[2:].append(line.strip()) 
 ifile.close()
 
 
-print(model_details)
+for key, value in model_details.items():
+  print(key + ' : ' + str(value) + '\n')
