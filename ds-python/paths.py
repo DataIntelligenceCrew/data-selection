@@ -39,7 +39,7 @@ import torch
 
 
 # define device type, number of GPUs available
-DEVICE_IDS = [0, 1, 2, 3]
+DEVICE_IDS = [0, 1, 2]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # paths for model-data/

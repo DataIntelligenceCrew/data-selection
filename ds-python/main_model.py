@@ -1,5 +1,6 @@
 
 import os
+from os.path import isfile
 import statistics
 import networks
 import argparse
@@ -58,6 +59,7 @@ def get_model_id(params):
 def train_and_test(model, params):
     tblog_path, checkpoint_dir = get_model_dump_paths(params)
     model_id = get_model_id(params)
+    model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
     torch.manual_seed(params.seed)
     print('used seed : {}'.format(params.seed))
 
@@ -156,7 +158,6 @@ def train_and_test(model, params):
         accs.append(test_acc)
     
     # save model
-    model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
     torch.save(model.state_dict(), model_path)
 
     # report metrics
@@ -210,13 +211,19 @@ if __name__=="__main__":
         im_size = (28, 28)
         num_classes = 10
 
-    # toDo: add other networks
-    model = None
-    if params.model == 'alexnet':
-        model = networks.AlexNet(num_classes)
-    elif params.model == 'convnet':
-        model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
 
-    model = model.to(device)
-    model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
-    train_and_test(model, params)
+    tblog_path, checkpoint_dir = get_model_dump_paths(params)
+    model_id = get_model_id(params)
+    model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
+
+    if not isfile(model_path):
+        # TODO: add other networks
+        model = None
+        if params.model == 'alexnet':
+            model = networks.AlexNet(num_classes)
+        elif params.model == 'convnet':
+            model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
+
+        model = model.to(device)
+        model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
+        train_and_test(model, params)

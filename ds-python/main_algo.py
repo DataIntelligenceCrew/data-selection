@@ -7,6 +7,7 @@ import os
 import numpy as np
 import multiprocessing
 import argparse
+import faiss
 from algorithms import *
 from paths import *
 
@@ -46,7 +47,8 @@ def run_algo(params):
         solution_data.append((s, cscore, res_time))
 
     elif params.algo_type == 'MAB':
-        s, cscore, res_time = bandit_algorithm(params.coverage_factor, params.distribution_req, params.dataset, params.dataset_size, params.coverage_threshold)
+        dist_req = [params.distribution_req] * params.num_classes 
+        s, cscore, res_time = bandit_algorithm(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold)
         solution_data.append((s, cscore, res_time))
     # calculate metrics
     coreset = set()
@@ -57,25 +59,26 @@ def run_algo(params):
         cscores += t[1]
         response_time = max(response_time, t[2])
     
+    print('Time Taken:{0}'.format(response_time))
     # report metrics
-    metric_file_name = METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
-    with open(metric_file_name, 'w') as f:
-        f.write(
-            'Dataset Size: {0}\nCoreset Size: {1}\nCoverage Score: {2}\nTime Taken: {3}\n'.format(
-                int(params.dataset_size),
-                len(coreset),
-                cscores,
-                response_time
-            )
-        )
-    f.close()
+    # metric_file_name = METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    # with open(metric_file_name, 'w') as f:
+    #     f.write(
+    #         'Dataset Size: {0}\nCoreset Size: {1}\nCoverage Score: {2}\nTime Taken: {3}\n'.format(
+    #             int(params.dataset_size),
+    #             len(coreset),
+    #             cscores,
+    #             response_time
+    #         )
+    #     )
+    # f.close()
 
-    # log coreset points
-    solution_file_name = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
-    with open(solution_file_name, 'w') as f:
-        for s in coreset:
-            f.write("{0}\n".format(s))
-    f.close()
+    # # log coreset points
+    # solution_file_name = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    # with open(solution_file_name, 'w') as f:
+    #     for s in coreset:
+    #         f.write("{0}\n".format(s))
+    # f.close()
 
 
 if __name__ == "__main__":
@@ -85,8 +88,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='MAB', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
-    parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
+    parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     params = parser.parse_args()
     

@@ -2,7 +2,7 @@
 
 for W in 32 64 128 256
 do
-    for D in 2 3 4
+    for D in 1 2 3 4
     do 
         for N in "none" "batchnorm" "layernorm" "instancenorm" "groupnorm"
         do 
@@ -32,7 +32,3 @@ do
         done
     done
 done
-
-
-
-# D is 1 2 3 4, have set it to 2 3 4 since experiments were paused

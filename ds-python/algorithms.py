@@ -10,7 +10,8 @@ import random
 import numpy as np
 import os
 from paths import *
-
+import faiss
+from utils_algo import *
 
 def calculate_cscore(solution, posting_list, delta_size=50000):
     cmatrix = np.zeros(shape=(len(solution), delta_size))
@@ -125,27 +126,45 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         coverage score for this solution
         time taken 
     '''
+
+    
+    '''
+    TODO: generate metadata on the fly, use the following to pass params to the utils_algo function
+        params = lambda : None 
+        params.dataset = 'cifar10'
+        params.coverage_threshold = 0.9
+    '''
     start_time = time.time()
     location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
-    posting_list_filepath = location + 'posting_list_alexnet.txt'
-    posting_list_file = open(posting_list_filepath, 'r')
+    # posting_list_filepath = location + 'posting_list_alexnet.txt'
+    # posting_list_file = open(posting_list_filepath, 'r')
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
     label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
 
     # generate posting list map
-    posting_list = dict()
-    delta = set()
-    lines = posting_list_file.readlines()
+    # posting_list = dict()
+    # delta = set()
+    # lines = posting_list_file.readlines()
+    # delta_size = dataset_size
+    # for line in lines:
+    #     pl = line.split(':')
+    #     key = int(pl[0])
+    #     value = pl[1].split(',')
+    #     value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+    #     arr = np.zeros(delta_size)
+    #     arr[value] = 1
+    #     posting_list[key] = arr
+    #     delta.add(key)
     delta_size = dataset_size
-    for line in lines:
-        pl = line.split(':')
-        key = int(pl[0])
-        value = pl[1].split(',')
-        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+    params = lambda : None
+    params.dataset = dataset_name
+    params.coverage_threshold = cov_threshold
+    posting_list = get_full_data_posting_list(params)
+    delta = set(posting_list.keys())
+    for key, value in posting_list.items():
         arr = np.zeros(delta_size)
-        arr[value] = 1
+        arr[list(value)] = 1
         posting_list[key] = arr
-        delta.add(key)
 
     # class labels for points
     labels = label_file.readlines()
@@ -159,6 +178,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
             arr[label] = 1
             labels_dict[key] = arr
     
+    label_file.close()
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
@@ -264,7 +284,8 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
     print('Time Taken for metadata loading:{0}'.format(mid_time - start_time))
     # Initialize variables to keep track of
     not_satisfied = list(delta) # Points whose cov & dist reqs are not met
-    CC = np.full((delta_size), coverage_factor) # Coverage counter
+    CC = np.empty(delta_size) # coverage tracker
+    CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # Group requirement counter
     solution = set() # Coreset
 
@@ -278,6 +299,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
             best_LCB = float("-inf")
             # Sample random point
             r = random.sample(not_satisfied, k=1)
+            r = r[0]
             for a in actions:
                 # Calculate score for point r
                 r_score = 0
@@ -294,7 +316,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
                 if (new_LCB > best_LCB):
                     best_LCB = new_LCB
             # Remove actions that cannot be optimal
-            actions = filter(lambda a : reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"] >= best_LCB, actions)
+            actions = list(filter(lambda a : reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"] >= best_LCB, actions))
 
         # Choose best action
         best_action = None
@@ -312,7 +334,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
         solution.add(best_action)
         CC = np.subtract(CC, posting_list[best_action])
         GC = np.subtract(GC, labels_dict[best_action])
-        not_satisfied = filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0)
+        not_satisfied = list(filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
     
     end_time = time.time()
     print(len(solution)) 

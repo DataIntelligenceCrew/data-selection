@@ -6,7 +6,7 @@ from paths import *
 from itertools import islice
 
 
-# distribution_req = [50,100,200,300,400,500,600,700,800]
+# distribution_req = [50,100,200,300,400,500,600,700,800,900]
 distribution_req = [50]
 
 def get_output_filename(params, i, algo_type):
@@ -137,7 +137,7 @@ def find_best_model(filename):
     f.close()
     best_model_id = None
     best_model_acc_data = [float("-inf"), float("-inf")] # [mean_test_acc, stdev_acc]
-
+    print(len(model_details.keys()))
     for key, value in model_details.items():
         test_acc = float(value[0].strip().split(":")[1])
         if test_acc > best_model_acc_data[0]:
@@ -186,3 +186,4 @@ if __name__=="__main__":
     greedyNC_best_models = [find_best_model(f) for f in greedyNC_metrics_files]
 
     print(greedyC_best_models)
+    print(greedyNC_best_models)

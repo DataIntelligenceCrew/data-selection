@@ -10,7 +10,7 @@ from os.path import isfile, join
 import pickle
 from collections import defaultdict
 import argparse
-
+import time
 
 
 def create_partitions(params, random_partition=False):
@@ -45,7 +45,7 @@ def create_partitions(params, random_partition=False):
 
 
 def get_posting_lists(params, partition_data):
-    feature_vectors = pickle.load(FEATURE_VECTOR_LOC.format(params.dataset), 'rb')
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset), 'rb'))
     fv_partitions = np.take(feature_vectors, partition_data, 0)
     d = fv_partitions.shape[1]
     N = fv_partitions.shape[0]
@@ -67,6 +67,27 @@ def get_posting_lists(params, partition_data):
     
     return partition_posting_list
 
+
+
+def get_full_data_posting_list(params):
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset), 'rb'))
+    d = feature_vectors.shape[1]
+    N = feature_vectors.shape[0]
+    posting_list = {}
+    xb = feature_vectors.astype('float32')
+    xb[:, 0] += np.arange(N) / 1000
+    faiss_index = faiss.IndexFlatL2(d)
+    faiss.normalize_L2(x=xb)
+    faiss_index.add(xb)
+    print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
+    # for larger index, search in batches 
+    batch_size = 1000
+    for i in range(0, xb.shape[0], batch_size):
+        limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
+        for j in range(batch_size):
+            posting_list[i+j] = set(I[limits[j] : limits[j+1]])
+    
+    return posting_list
 
 def write_posting_lists(params, posting_list_data):
     location = POSTING_LIST_LOC.format(params.dataset, params.coverage_threshold, params.partitions)
@@ -98,8 +119,12 @@ if __name__=='__main__':
         params.dataset_size = 50000
         params.num_classes = 100
 
-    partitions = create_partitions(params)
-    print(partitions)
+    # partitions = create_partitions(params)
+    # print(partitions)
+    start_time = time.time()
+    posting_list = get_full_data_posting_list(params)
+    end_time = time.time()
+    print('Time Taken to generate metadata: {0}'.format(end_time - start_time))
 
 
 
