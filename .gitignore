@@ -1,6 +1,5 @@
 *.tar.gz
 *.o
-*.*
 cifar/*
 *~
 temp*

@@ -1,0 +1,6 @@
+Starting partitioning
+Paritioning Done
+9975
+9975
+Time taken to load metadata: 892.458 for parition_number: 0
+Starting for parition_number0

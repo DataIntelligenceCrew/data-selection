@@ -1,0 +1,5 @@
+50000
+50000
+Time taken to load metadata: 213.814
+Set Cover Size: 8278 for k = 2
+Set Cover Time: 160390

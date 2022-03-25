@@ -1,0 +1,6 @@
+50000
+50000
+Time taken to load metadata: 151.126
+Set Cover Size: 4465 for k = 2
+Percent of Total Data: 0
+Set Cover Time: 38472.2
