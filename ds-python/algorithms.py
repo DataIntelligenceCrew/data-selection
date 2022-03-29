@@ -2,8 +2,6 @@
 Contains code for the greedy fair set cover algorithm 
 TODO: change the metadata loading from txt files to on the go faiss search 
 """
-from cProfile import label
-import fnmatch
 import math
 import time
 import random
@@ -33,6 +31,83 @@ def coverage_score(CC, pl):
 def distritbution_score(GC, gl):
     return np.dot(GC.T, gl)
 
+
+def greedyC_group(part_id, coverage_factor, distribution_req, q, dataset_name, partitions, dataset_size, cov_threshold, model_name):
+    '''
+    Computes the greedy fair set cover for the given partition
+    @params
+        part_id : partition id
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list
+    @returns
+        solution of the greedy fair set cover that satisfies the coverage and 
+        distribution requirements
+        coverage score for this solution
+        time taken
+    '''
+    start_time = time.time()
+    location = POSTING_LIST_LOC_GROUP.format(dataset_name, cov_threshold, partitions, model_name)
+    posting_list_filepath = location + 'posting_list_' + str(part_id) + '.txt'
+    posting_list_file = open(posting_list_filepath, 'r')
+    # label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    # label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+    
+    # generate posting list map
+    posting_list = dict()
+    delta = set()
+    lines = posting_list_file.readlines()
+    delta_size = dataset_size
+    for line in lines:
+        pl = line.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
+        arr = np.zeros(delta_size)
+        arr[value] = 1
+        posting_list[key] = arr
+        delta.add(key)
+
+    # class labels for points
+    # labels = label_file.readlines()
+    # labels_dict = dict()    
+    # for l in labels:
+    #     txt = l.split(':')
+    #     key = int(txt[0].strip())
+    #     label = int(txt[1].strip())
+    #     if key in posting_list:
+    #         arr = np.zeros(len(label_ids_to_name.keys()))
+    #         arr[label] = 1
+    #         labels_dict[key] = arr
+    
+    delta_list = list(delta)
+    CC = np.zeros(delta_size) # coverage tracker
+    CC[delta_list] = coverage_factor
+    GC = distribution_req # group count tracker
+    solution = set() # solution set 
+    # main loop
+    while ((not check_for_zeros(CC)) or (GC > 0)) and len(solution) < len(delta):
+        best_point, max_score = -1, float('-inf')
+        # TODO: optimize this loop using scipy
+        for p in delta.difference(solution):
+            p_score = coverage_score(CC, posting_list[p]) + GC
+            if p_score > max_score:
+                max_score = p_score
+                best_point = p
+
+        if best_point == -1:
+            print("cannot find a point")
+            break
+
+        solution.add(best_point)
+        CC = np.subtract(CC, posting_list[best_point])
+        GC = GC - 1
+
+    end_time = time.time()
+    print(len(solution))
+    cscore = calculate_cscore(solution, posting_list, delta_size)
+    response_time = end_time - start_time
+    q.put((solution, cscore, response_time))
 
 def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partitions, dataset_size, cov_threshold):
     '''
@@ -88,7 +163,7 @@ def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partiti
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
     # main loop
-    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
+    while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # TODO: optimize this loop using scipy
         for p in delta.difference(solution):
@@ -113,7 +188,7 @@ def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partiti
     # return solution, posting_list
 
 
-def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold):
+def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, model_name):
     '''
     Computes the greedy fair set cover for the entire dataset
     @params
@@ -135,7 +210,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         params.coverage_threshold = 0.9
     '''
     start_time = time.time()
-    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
+    # location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
     # posting_list_filepath = location + 'posting_list_alexnet.txt'
     # posting_list_file = open(posting_list_filepath, 'r')
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
@@ -159,7 +234,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     params = lambda : None
     params.dataset = dataset_name
     params.coverage_threshold = cov_threshold
-    posting_list = get_full_data_posting_list(params)
+    posting_list = get_full_data_posting_list(params, model_name)
     delta = set(posting_list.keys())
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
@@ -184,7 +259,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
     # main loop
-    while (not check_for_zeros(CC)) and len(solution) < len(delta) and (not check_for_zeros(GC)):
+    while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):

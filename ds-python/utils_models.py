@@ -45,7 +45,7 @@ if __name__=="__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyC', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--algo_type', type=str, default='greedyC_group', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
     parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     params = parser.parse_args()
@@ -60,7 +60,7 @@ if __name__=="__main__":
         classes_files[name] = onlyfiles
     
 
-    coreset_file = open(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type), 'r')
+    coreset_file = open(SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type), 'r')
     lines = coreset_file.readlines()
     coreset = set()
     for l in lines:

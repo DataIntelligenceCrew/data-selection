@@ -48,7 +48,7 @@ def get_dataloader(params, test=False):
     return data.DataLoader(dataset, shuffle=True, pin_memory=True, num_workers=8, drop_last=True, batch_size=params.batch_size)
     
 def get_model_metric_file(params):
-    return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    return METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
 
 def get_model_id(params):
     if params.model == 'alexnet':
@@ -178,11 +178,11 @@ if __name__=="__main__":
     parser.add_argument('--model', type=str, default="convnet", help="model type")
     
     # params for ConvNet
-    parser.add_argument('--net_width', type=int, default=128)
+    parser.add_argument('--net_width', type=int, default=256)
     parser.add_argument('--net_depth', type=int, default=3)
-    parser.add_argument('--net_act', type=str, default="relu")
-    parser.add_argument('--net_norm', type=str, default="instancenorm")
-    parser.add_argument('--net_pooling', type=str, default="avgpooling")
+    parser.add_argument('--net_act', type=str, default="leakyrelu")
+    parser.add_argument('--net_norm', type=str, default="batchnorm")
+    parser.add_argument('--net_pooling', type=str, default="maxpooling")
 
     # params for model training
     parser.add_argument('--num_runs', type=int, default=20, help="number of runs for model testing")
@@ -194,7 +194,7 @@ if __name__=="__main__":
     # params for data description
     parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyC")
+    parser.add_argument('--algo_type', type=str, default="greedyC_group")
     parser.add_argument('--coverage_factor', type=int, default=30)
     parser.add_argument('--distribution_req', type=int, default=100)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
