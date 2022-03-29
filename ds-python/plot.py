@@ -285,21 +285,35 @@ def plot_for_one(algo_data, model_data, params):
     stdev_y = []
     time_y = []
     for m in model_data:
-        time_y.append(m[1])
-        acc_y.append(m[2])
-        stdev_y.append(m[3])
+        # print(len(m))
+        time_y.append(m[1][1])
+        acc_y.append(m[1][2])
+        stdev_y.append(m[1][3])
 
     plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('ml_time', params.algo_type, params.model_type, params.dataset)
     plt.plot(distribution_req, time_y, 'o--')
-    plt.plot(distribution_req, y_time, 'o--', label='greedyC_group')
     plt.legend()
     plt.xticks(distribution_req)
     plt.ylabel("Time Taken(seconds)")
     plt.xlabel("Distribution Requirement")
-    plt.title("Time Taken for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
+    plt.title("Time Taken to Train Convnet for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
     plt.savefig(plot_filename)
     plt.clf()
     plt.cla()
+
+
+    plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('ml_acc', params.algo_type, params.model_type, params.dataset)
+    plt.errorbar(distribution_req, acc_y, yerr=stdev_y)
+    plt.legend()
+    plt.xticks(distribution_req)
+    plt.ylabel("Accuracy")
+    plt.xlabel("Distribution Requirement")
+    plt.title("Model Accuracy Convnet for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
+    plt.savefig(plot_filename)
+    plt.clf()
+    plt.cla()
+
+
 
 
 
@@ -352,8 +366,8 @@ if __name__=="__main__":
     # greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
     greedyC_group_data = [get_metrics(f) for f in greedyC_group_metric_files]
     greedyC_group_models = [find_best_model(f) for f in greedyC_group_metric_files]
-    print(greedyC_group_models)
-
+    # print(greedyC_group_models)
+    params.algo_type = 'greedyC_group'
     plot_for_one(greedyC_group_data, greedyC_group_models, params)
     # plot_coreset_size(greedyC_data, greedyNC_data, greedyC_group_data, params)
     # plot_coreset_time(greedyC_data, greedyNC_data, greedyC_group_data, params)
