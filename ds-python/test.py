@@ -9,7 +9,7 @@ import os
 
 def get_coreset(params):
     coreset = set()
-    solution_file_name = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    solution_file_name = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.fv_type)
     f = open(solution_file_name, 'r')
     lines = f.readlines()
     for line in lines:
@@ -38,13 +38,20 @@ def get_delta(params):
 
 
 def test_coverage(params, coreset):
-    delta_size = 50000
+    delta_size = params.dataset_size
     posting_list = dict()
     delta = set()
-    location = POSTING_LIST_LOC.format(params.dataset, params.coverage_threshold, params.partitions)
-    # location = "/localdisk3/data-selection/partitioned_data/" + str(args.sample_weight) + "/"
+    if params.algo_type == 'greedyC_group':
+        location = POSTING_LIST_LOC_GROUP.format(params.dataset, params.coverage_threshold, params.partitions, 'group2')
+    else:
+        location = POSTING_LIST_LOC.format(params.dataset, params.coverage_threshold, params.partitions)
+    
+    
     for i in range(params.partitions):
-        posting_list_file = open(os.path.join(location, 'posting_list_alexnet_{0}.txt'.format(i)), 'r')    
+        if params.algo_type == 'greedyNC' or params.algo_type == 'MAB':
+            posting_list_file = open(os.path.join(location, 'posting_list_alexnet.txt'), 'r')
+        else:
+            posting_list_file = open(os.path.join(location, 'posting_list_resnet_{0}.txt'.format(i)), 'r')    
         lines = posting_list_file.readlines()
         for line in lines:
             pl = line.split(':')
@@ -59,6 +66,7 @@ def test_coverage(params, coreset):
     
     # assert(len(delta) == (args.sample_weight * delta_size))
     coreset_CC = np.zeros(delta_size)
+    coreset_CC[list(delta)] = params.coverage_factor
     for key, value in posting_list.items():
         coreset_CC = np.subtract(coreset_CC, value)
 
@@ -66,7 +74,7 @@ def test_coverage(params, coreset):
     if coverage_satisfied == 0:
         print("Coverage Test Passed.....")
     else:
-        print("Coverage Test Failed.....")
+        print("Coverage Test Failed.....Uncovered:{0}".format(coverage_satisfied))
 
 
 def test_distribution_req(params, coreset):
@@ -99,8 +107,8 @@ if __name__=='__main__':
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyC', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
-    parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
+    parser.add_argument('--algo_type', type=str, default='greedyC_group', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     params = parser.parse_args()
     
@@ -117,8 +125,8 @@ if __name__=='__main__':
         params.dataset_size = 50000
         params.num_classes = 100
 
-
-    fname = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    params.fv_type = 'resnet'
+    fname = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.fv_type)
     print('Testing for {0}'.format(fname))
     coreset = get_coreset(params)
     # delta = get_delta(params)
