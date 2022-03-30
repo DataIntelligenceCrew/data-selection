@@ -48,7 +48,7 @@ def get_dataloader(params, test=False):
     return data.DataLoader(dataset, shuffle=True, pin_memory=True, num_workers=8, drop_last=True, batch_size=params.batch_size)
     
 def get_model_metric_file(params):
-    return METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type)
+    return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
 
 def get_model_id(params):
     if params.model == 'alexnet':
@@ -194,10 +194,11 @@ if __name__=="__main__":
     # params for data description
     parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyC_group")
+    parser.add_argument('--algo_type', type=str, default="greedyC_random")
     parser.add_argument('--coverage_factor', type=int, default=30)
     parser.add_argument('--distribution_req', type=int, default=100)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
+    parser.add_argument('--model_type', type=str, default='resnet')
     # parse all parameters
     params = parser.parse_args()
 
@@ -216,14 +217,14 @@ if __name__=="__main__":
     model_id = get_model_id(params)
     model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
 
-    if not isfile(model_path):
-        # TODO: add other networks
-        model = None
-        if params.model == 'alexnet':
-            model = networks.AlexNet(num_classes)
-        elif params.model == 'convnet':
-            model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
+    # if not isfile(model_path):
+    # TODO: add other networks
+    model = None
+    if params.model == 'alexnet':
+        model = networks.AlexNet(num_classes)
+    elif params.model == 'convnet':
+        model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
 
-        model = model.to(device)
-        model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
-        train_and_test(model, params)
+    model = model.to(device)
+    model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
+    train_and_test(model, params)

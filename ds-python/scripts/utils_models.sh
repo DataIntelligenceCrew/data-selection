@@ -2,7 +2,7 @@
 
 for DIST_REQ in 50 100 200 300 400 500 600 700 800 900
 do
-    for ALG in 'greedyC_group'
+    for ALG in 'greedyC_random'
     do
         python3 ../utils_models.py --dataset 'cifar10' \
                                --coverage_threshold 0.9 \

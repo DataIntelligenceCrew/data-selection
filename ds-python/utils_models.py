@@ -48,6 +48,7 @@ if __name__=="__main__":
     parser.add_argument('--algo_type', type=str, default='greedyC_group', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
     parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
+    parser.add_argument('--model_type', type=str, default='resnet')
     params = parser.parse_args()
 
     full_data_loc = INPUT_IMG_DIR_FULLDATA.format(params.dataset)
@@ -60,7 +61,7 @@ if __name__=="__main__":
         classes_files[name] = onlyfiles
     
 
-    coreset_file = open(SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type), 'r')
+    coreset_file = open(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type), 'r')
     lines = coreset_file.readlines()
     coreset = set()
     for l in lines:
@@ -71,4 +72,4 @@ if __name__=="__main__":
     coreset_point_files = [getfilename(x) for x in coreset]
 
     copy_images(coreset_point_files, classes_files, class_names, params, full_data_loc)
-
+    print('Done Copying Images for Filename:{0}'.format(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)))
