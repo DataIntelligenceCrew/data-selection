@@ -383,6 +383,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
                 break
             # Sample random point
             r = random.sample(not_satisfied, 1)[0]
+            best_LCB = float('-inf')
             for a in actions:
                 # Calculate score for point r
                 r_score = 0
