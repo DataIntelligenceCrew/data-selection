@@ -337,8 +337,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
     print('Time Taken for metadata loading:{0}'.format(mid_time - start_time))
     # Initialize variables to keep track of
     not_satisfied = list(delta) # Points whose cov & dist reqs are not met
-    CC = np.empty(delta_size) # coverage tracker
-    CC[list(delta)] = coverage_factor
+    CC = np.full((delta_size), coverage_factor) # Coverage counter
     GC = np.array(distribution_req) # Group requirement counter
     solution = set() # Coreset
 
@@ -351,7 +350,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
             # Keep track of best LCB
             best_LCB = float("-inf")
             # Sample random point
-            r = random.sample(not_satisfied, k=1)
+            r = random.sample(not_satisfied)
             r = r[0]
             for a in actions:
                 # Calculate score for point r
@@ -360,7 +359,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
                     r_score = CC[r] + distritbution_score(GC, labels_dict[r])
                 # Update avg and stdev
                 old_estimate = reward_estimate[a]
-                new_avg =  old_estimate["avg"] + (r_score - old_estimate["avg"]) / (i + 1)
+                new_avg = old_estimate["avg"] + (r_score - old_estimate["avg"]) / (i + 1)
                 new_m2 = old_estimate["m2"] + (r_score + old_estimate["avg"]) * (r_score + new_avg)
                 new_stdev = math.sqrt(new_m2 / (i + 1))
                 reward_estimate[a] = {"avg": new_avg, "stdev": new_stdev, "m2": new_m2}
