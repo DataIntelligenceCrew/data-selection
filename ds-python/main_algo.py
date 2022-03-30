@@ -51,7 +51,7 @@ def run_algo(params):
 
     elif params.algo_type == 'MAB':
         dist_req = [params.distribution_req] * params.num_classes 
-        s, cscore, res_time = bandit_algorithm(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold)
+        s, cscore, res_time = bandit_algorithm(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, params.model_type)
         solution_data.append((s, cscore, res_time))
     
     elif params.algo_type == 'greedyC_group':
@@ -146,4 +146,8 @@ if __name__ == "__main__":
             params.model_type
         ))
 
+<<<<<<< HEAD
         run_algo(params)
+=======
+    run_algo(params)
+>>>>>>> a33f90e44d1b2856bf10d2951f8a60d21373bf96

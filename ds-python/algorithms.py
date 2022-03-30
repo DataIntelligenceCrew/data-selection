@@ -281,23 +281,32 @@ def random_algo(labels_dict, distribution_req):
     end_time = time.time()
     return set(coreset), 0, (start_time-end_time)
 
-def herding(dataset_name, coverage_factor, distribution_req, dataset_size, cov_threshold):
+def herding(dataset_name, coverage_factor, distribution_req, dataset_size, 
+            cov_threshold):
     pass
 
-def k_center(dataset_name, coverage_factor, distribution_req, dataset_size, cov_threshold):
+def k_center(dataset_name, coverage_factor, distribution_req, dataset_size, 
+             cov_threshold):
     pass
 
-def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold):
+def bandit_algorithm(coverage_factor, distribution_req, dataset_name, 
+                     dataset_size, cov_threshold, model_name):
+    # These constants can be adjusted
+    max_iter = 25
+    stdev_multiplier = 0.0025
     '''
     Computes the randomized bandit fair set cover for the entire dataset
     @params
         coverage_factor : number of points needed for a point to be covered
         distribution_req : number of points from each group
-        sp : sampling weight to get the correct posting_list directory
+        dataset_name : name of the dataset used
+        dataset_size : 
+        cov_threshold : 
+        model_name : 
     @returns
-        solution of teh randomized bandit fair set cover that satisfies the
-        coverage and distribution requirements
-        coverage score for this solution
+        solution of the randomized bandit fair set cover that satisfies the
+        coverage and distribution requirements,
+        coverage score for this solution,
         time taken
     '''
     start_time = time.time()
@@ -306,23 +315,19 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
     location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
     posting_list_filepath = location + 'posting_list_alexnet.txt'
     posting_list_file = open(posting_list_filepath, 'r')
-    
-    # generate posting list map
-    posting_list = dict()
-    delta = set()
-    lines = posting_list_file.readlines()
-    delta_size = dataset_size
-    for line in lines:
-        pl = line.split(':')
-        key = int(pl[0])
-        value = pl[1].split(',')
-        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
-        arr = np.zeros(delta_size)
-        arr[value] = 1
-        posting_list[key] = arr
-        delta.add(key)
 
-    # Class labels for points
+    delta_size = dataset_size
+    params = lambda : None
+    params.dataset = dataset_name
+    params.coverage_threshold = cov_threshold
+    posting_list = get_full_data_posting_list(params, model_name)
+    delta = set(posting_list.keys())
+    for key, value in posting_list.items():
+        arr = np.zeros(delta_size)
+        arr[list(value)] = 1
+        posting_list[key] = arr
+
+    # class labels for points
     labels = label_file.readlines()
     labels_dict = dict()
     for l in labels:
@@ -333,63 +338,67 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name, dataset_si
             arr = np.zeros(len(label_ids_to_name.keys()))
             arr[label] = 1
             labels_dict[key] = arr
+    label_file.close()
+
     mid_time = time.time()
     print('Time Taken for metadata loading:{0}'.format(mid_time - start_time))
-    # Initialize variables to keep track of
-    not_satisfied = list(delta) # Points whose cov & dist reqs are not met
-    CC = np.full((delta_size), coverage_factor) # Coverage counter
-    GC = np.array(distribution_req) # Group requirement counter
-    solution = set() # Coreset
+
+    not_satisfied = list(delta)
+    CC = np.empty(delta_size) # coverage tracker
+    CC[list(delta)] = coverage_factor
+    GC = np.array(distribution_req) # group count tracker
+    solution = set() # solution set
 
     while(len(not_satisfied) > 0):
         actions = delta.difference(solution)
-        reward_estimate = {a : {"avg": 0, "stdev": 0, "m2": 0} for a in actions}
-        for i in range(0, len(not_satisfied)):
+        # estimate: [avg, m2, stdev, UCB, LCB]
+        reward_estimate = {a:{"avg":0.0, "m2":0.0, "stdev":0.0, "UCB":0.0, 
+            "LCB":0.0} for a in actions}
+        for i in range(0, max_iter):
             if (len(actions) <= 1):
                 break
-            # Keep track of best LCB
-            best_LCB = float("-inf")
             # Sample random point
-            r = random.sample(not_satisfied)
-            r = r[0]
+            r = random.sample(not_satisfied, 1)[0]
+            best_LCB = float('-inf')
             for a in actions:
                 # Calculate score for point r
                 r_score = 0
                 if (posting_list[a][r] == 1):
                     r_score = CC[r] + distritbution_score(GC, labels_dict[r])
-                # Update avg and stdev
+                # Recalculate reward_estimate
                 old_estimate = reward_estimate[a]
                 new_avg = old_estimate["avg"] + (r_score - old_estimate["avg"]) / (i + 1)
                 new_m2 = old_estimate["m2"] + (r_score + old_estimate["avg"]) * (r_score + new_avg)
                 new_stdev = math.sqrt(new_m2 / (i + 1))
-                reward_estimate[a] = {"avg": new_avg, "stdev": new_stdev, "m2": new_m2}
-                # Possibly update best LCB
-                new_LCB = new_avg - 2 * new_stdev
-                if (new_LCB > best_LCB):
-                    best_LCB = new_LCB
+                new_UCB = new_avg + stdev_multiplier * new_stdev
+                new_LCB = new_avg - stdev_multiplier * new_stdev
+                best_LCB = max(best_LCB, new_LCB) # Maybe update best_LCB
+                reward_estimate.update({a: {"avg":new_avg, "m2":new_m2, 
+                    "stdev":new_stdev, "UCB":new_UCB, "LCB":new_LCB}})
             # Remove actions that cannot be optimal
-            actions = list(filter(lambda a : reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"] >= best_LCB, actions))
+            actions = list(filter(lambda a : reward_estimate[a]["UCB"] >= best_LCB, actions))
 
         # Choose best action
         best_action = None
         best_UCB = float('-inf')
         for a in actions:
-            a_UCB = reward_estimate[a]["avg"] + 2 * reward_estimate[a]["stdev"]
-            if (a_UCB > best_UCB):
+            if (reward_estimate[a]["UCB"] > best_UCB):
                 best_action = a
-                best_UCB = a_UCB
+                best_UCB = reward_estimate[a]["UCB"]
         if (best_action is None):
             print("cannot find a point")
             break
-        
+    
         # If best action is found, update all info
         solution.add(best_action)
         CC = np.subtract(CC, posting_list[best_action])
         GC = np.subtract(GC, labels_dict[best_action])
         not_satisfied = list(filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
+        # For testing
+        print(str(len(solution)), ", len(a):", str(len(actions)), ", len(ns): ", str(len(not_satisfied)))
     
     end_time = time.time()
-    print(len(solution)) 
+    print(len(solution))
     cscore = calculate_cscore(solution, posting_list, delta_size)
     res_time = end_time - start_time
     return solution, cscore, res_time
