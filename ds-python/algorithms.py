@@ -351,9 +351,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
 
     # class labels for points
     labels = label_file.readlines()
-    print("m")
     labels_dict = dict()
-    print("n")
     for l in labels:
         txt = l.split(':')
         key = int(txt[0].strip())
