@@ -18,15 +18,15 @@ def create_partitions(params, lables, random_partition=False):
     labels_dict = lables
     delta = lables.keys()
     if random_partition:
-        ys = list(delta)
-        random.shuffle(ys)
-        ylen = len(ys)
-        size = int(ylen / params.partitions)
-        partitions = [ys[0+size*i : size*(i+1)] for i in range(params.partitions)]
-        leftover = ylen - size*params.partitions
-        edge = size*params.partitions
-        for i in range(leftover):
-                partitions[i%params.partitions].append(ys[edge+i])
+        # random.seed(1234)
+        partitions = dict()
+        for i in range(params.dataset_size):
+            part_id = random.randint(0, params.partitions - 1)
+            if part_id not in partitions:
+                partitions[part_id] = list()
+            
+            partitions[part_id].append(i)
+        
         return partitions
     else:
         paritions = [v for v in labels_dict.values()]
@@ -99,8 +99,8 @@ def create_connection(db_file):
         print(e)
 
 
-def generate_from_db(params):
-    alexnet_feature_vectors = np.ones((params.dataset_size, 512))
+def generate_from_db():
+    # alexnet_feature_vectors = np.ones((params.dataset_size, 512))
     labels = dict()
     db_file = r"/localdisk3/data-selection/cifar.db"
     conn = create_connection(db_file)
@@ -113,11 +113,11 @@ def generate_from_db(params):
         if label not in labels:
             labels[label] = list()
         labels[label].append(id)
-        alexnet_fv = np.fromstring(row[2], dtype='float')
-        alexnet_feature_vectors[id] = alexnet_fv
+        # alexnet_fv = np.fromstring(row[2], dtype='float')
+        # alexnet_feature_vectors[id] = alexnet_fv
 
     # print(alexnet_feature_vectors.shape)
-    return alexnet_feature_vectors, labels
+    return labels
 
 
 

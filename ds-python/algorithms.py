@@ -10,6 +10,7 @@ import os
 from paths import *
 import faiss
 from utils_algo import *
+import copy
 
 def calculate_cscore(solution, posting_list, delta_size=50000):
     cmatrix = np.zeros(shape=(len(solution), delta_size))
@@ -109,7 +110,7 @@ def greedyC_group(part_id, coverage_factor, distribution_req, q, dataset_name, p
     response_time = end_time - start_time
     q.put((solution, cscore, response_time))
 
-def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partitions, dataset_size, cov_threshold):
+def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_size, partition_data, model_name, coveragae_threshold):
     '''
     Computes the greedy fair set cover for the given partition
     @params
@@ -124,27 +125,20 @@ def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partiti
         time taken
     '''
     start_time = time.time()
-    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, partitions)
-    posting_list_filepath = location + 'posting_list_alexnet_' + str(part_id) + '.txt'
-    posting_list_file = open(posting_list_filepath, 'r')
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
     label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
     
-    # generate posting list map
-    posting_list = dict()
-    delta = set()
-    lines = posting_list_file.readlines()
-    delta_size = dataset_size
-    for line in lines:
-        pl = line.split(':')
-        key = int(pl[0])
-        value = pl[1].split(',')
-        value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
-        arr = np.zeros(delta_size)
-        arr[value] = 1
-        posting_list[key] = arr
-        delta.add(key)
 
+    params = lambda : None
+    params.dataset = dataset_name
+    params.coverage_threshold = coveragae_threshold
+    posting_list = get_posting_lists(params, partition_data, model_name)
+    delta_size = dataset_size
+    delta = set(posting_list.keys())
+    for key, value in posting_list.items():
+        arr = np.zeros(delta_size)
+        arr[list(value)] = 1
+        posting_list[key] = arr
     # class labels for points
     labels = label_file.readlines()
     labels_dict = dict()    
@@ -188,7 +182,7 @@ def greedyC(part_id, coverage_factor, distribution_req, q, dataset_name, partiti
     # return solution, posting_list
 
 
-def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, model_name):
+def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, posting_list):
     '''
     Computes the greedy fair set cover for the entire dataset
     @params
@@ -231,10 +225,6 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     #     posting_list[key] = arr
     #     delta.add(key)
     delta_size = dataset_size
-    params = lambda : None
-    params.dataset = dataset_name
-    params.coverage_threshold = cov_threshold
-    posting_list = get_full_data_posting_list(params, model_name)
     delta = set(posting_list.keys())
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
@@ -283,20 +273,8 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     return solution, cscore, res_time
 
 
-def random_algo(dataset_name, distribution_req):
-    start_time = time.time()
-    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-    labels = label_file.readlines()
-    labels_dict = dict()
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[1].strip())
-        value = int(txt[0].strip())
-        if key not in labels_dict:
-            labels_dict[key] = list()
-
-        labels_dict[key].append(value)
-
+def random_algo(labels_dict, distribution_req):
+    start_time = time.time()    
     coreset = []
     for key, value in labels_dict.items():
         coreset += random.sample(value, distribution_req)

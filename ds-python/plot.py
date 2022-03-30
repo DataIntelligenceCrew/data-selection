@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns 
 
 distribution_req = [50,100,200,300,400,500,600,700,800,900]
-# distribution_req = [50]
+# distribution_req = [100, 200, 300, 400, 500]
 
 def get_output_filename(params, i, algo_type):
     return METRIC_FILE.format(params.dataset, params.coverage_factor, i, algo_type, params.model_type)
@@ -43,9 +43,9 @@ def plot_coreset_size(greedyC_data, greedyNC_data, greedyC_group_data, params):
     greedy_y_group = [data["solution_size"]/(params.dataset_size) for data in greedyC_group_data]
     plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
     
-    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC")
+    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC_random")
     plt.plot(distribution_req, greedy_y, 'o--', label="greedyNC")
-    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group_partitions')
+    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group')
     plt.legend()
     plt.xticks(distribution_req)
     plt.ylabel("Coreset Size(Percentage of Original Dataset)")
@@ -61,9 +61,9 @@ def plot_coreset_time(greedyC_data, greedyNC_data, greedyC_group_data, params):
     greedy_y_group = [data["solution_size"]/(params.dataset_size) for data in greedyC_group_data]
     
     plot_filename = "./figures/time_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
-    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC")
+    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC_random")
     plt.plot(distribution_req, greedy_y, 'o--', label="greedyNC")
-    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group_partitions')
+    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group')
     plt.legend()
     plt.xticks(distribution_req)
     plt.ylabel("Time (minutes)")
@@ -75,54 +75,7 @@ def plot_coreset_time(greedyC_data, greedyNC_data, greedyC_group_data, params):
 
 
 def plot_coreset_ml(greedyC_data, greedyNC_data, args):
-    composable_ml_time_y = [data["ml_time"] for data in greedyC_data]
-    greedy_ml_time_y = [data["ml_time"] for data in greedyNC_data]
-    composable_ml_acc_y = [data["ml_acc"] for data in greedyC_data]
-    greedy_ml_acc_y = [data["ml_acc"] for data in greedyNC_data]
-    full_data_time = 0.0
-    full_data_acc = 0.0
-    full_data_metric_file = '../runs/metrics_full_data_ml_' + str(args.sample_weight) + ".txt"
-    with open(full_data_metric_file, 'r') as f:
-        lines = f.readlines()
-        for l in lines:
-            if l.startswith("Time Taken to Train AlexNet Model:"):
-                txt = l.split(":")
-                full_data_time = float(txt[1].strip())
-                print("here")
-            if l.startswith("Test Accuracy AlexNet Model:"):
-                txt = l.split(":")
-                full_data_acc = float(txt[1].strip())
-    
-    full_data_time_y = [full_data_time] * len(distribution_req)
-    full_data_acc_y = [full_data_acc] * len(distribution_req)
-
-    # Training Time 
-    plot_filename = "../plots/figures/ml_time_" + str(args.coverage_factor) + "_" + str(args.sample_weight) + ".png"
-    plt.plot(distribution_req, composable_ml_time_y, 'o--', label="Composable")
-    plt.plot(distribution_req, greedy_ml_time_y, 'o--', label="Baseline")
-    plt.plot(distribution_req, full_data_time_y, 'o--', label="Full Data")
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Time (seconds)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Time Taken to train AlexNet Model for k={0} sample_weight={1}".format(args.coverage_factor, args.sample_weight))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-    # Model Accuracy 
-    plot_filename = "../plots/figures/ml_acc_" + str(args.coverage_factor) + "_" + str(args.sample_weight) + ".png"
-    plt.plot(distribution_req, composable_ml_acc_y, 'o--', label="Composable")
-    plt.plot(distribution_req, greedy_ml_acc_y, 'o--', label="Baseline")
-    plt.plot(distribution_req, full_data_acc_y, 'o--', label="Full Data")
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Model Accuracy")
-    plt.xlabel("Distribution Requirement")
-    plt.title("AlexNet Model Accuracy for k={0} sample_weight={1}".format(args.coverage_factor, args.sample_weight))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
+    pass
 
 def plot_coreset_distribution(composable_data, greedy_data):
     pass
@@ -139,7 +92,7 @@ def find_best_model(filename):
     f.close()
     best_model_id = None
     best_model_acc_data = [float("-inf"), float("-inf"), float("-inf"), float("-inf")] # [training_time, number_runs, mean_test_acc, stdev_acc]
-    print(len(model_details.keys()))
+    # print(len(model_details.keys()))
     for key, value in model_details.items():
         test_acc = float(value[2].strip().split(":")[1])
         if test_acc > best_model_acc_data[0]:
@@ -315,10 +268,26 @@ def plot_for_one(algo_data, model_data, params):
 
 
 
+def score_method(algo_data, model_data, params):
+    coreset_score = algo_data["solution_size"] / params.dataset_size
+    time_score = algo_data["response_time"] / 10000
+    # print(model_data)
+    acc_score = 1 / model_data[1][2]
+    return coreset_score + time_score + acc_score
 
-
-
-
+def plot_score(greedyC_group, greedyC_random, greedyNC, params):
+    plot_filename = "./figures/{0}_{1}_{2}.png".format('method_score', params.model_type, params.dataset)
+    plt.plot(distribution_req, greedyC_group, 'o--', label='greedyC_group')
+    plt.plot(distribution_req, greedyC_random, 'o--', label='greedyC_random')
+    plt.plot(distribution_req, greedyNC, 'o--', label='greedyNC')
+    plt.legend()
+    plt.xticks(distribution_req)
+    plt.ylabel("Score")
+    plt.xlabel("Distribution Requirement")
+    plt.title("Method Score for k={0} dataset={1}(Lower is Better)".format(params.coverage_factor, params.dataset))
+    plt.savefig(plot_filename)
+    plt.clf()
+    plt.cla()
 
 
 if __name__=="__main__":
@@ -358,19 +327,30 @@ if __name__=="__main__":
     # f.close()
     # plot_cf_upper_bound(params, cf_data)
     # analysis_full_data(params)
-    # greedyC_metrics_files = [get_output_filename(params,i,'greedyC') for i in distribution_req]
+    greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random') for i in distribution_req]
     greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
     greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
     
-    # greedyC_data = [get_metrics(f) for f in greedyC_metrics_files]
-    # greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
+    greedyC_random_data = [get_metrics(f) for f in greedyC_random_metrics_files]
+    greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
     greedyC_group_data = [get_metrics(f) for f in greedyC_group_metric_files]
+
     greedyC_group_models = [find_best_model(f) for f in greedyC_group_metric_files]
+    greedyC_random_models = [find_best_model(f) for f in greedyC_random_metrics_files]
+    greedyNC_models = [find_best_model(f) for f in greedyNC_metrics_files]
+
+
+
+    greedyC_group_score = [score_method(a, m, params) for a,m in zip(greedyC_group_data, greedyC_group_models)]
+    greedyC_random_score = [score_method(a, m, params) for a,m in zip(greedyC_random_data, greedyC_random_models)]
+    greedyNC_score = [score_method(a, m, params) for a,m in zip(greedyNC_data, greedyNC_models)]
+
+    plot_score(greedyC_group=greedyC_group_score, greedyC_random=greedyC_random_score, greedyNC=greedyNC_score, params=params)
     # print(greedyC_group_models)
-    params.algo_type = 'greedyC_group'
-    plot_for_one(greedyC_group_data, greedyC_group_models, params)
-    # plot_coreset_size(greedyC_data, greedyNC_data, greedyC_group_data, params)
-    # plot_coreset_time(greedyC_data, greedyNC_data, greedyC_group_data, params)
+    # params.algo_type = 'greedyC_group'
+    # plot_for_one(greedyC_group_data, greedyC_group_models, params)
+    plot_coreset_size(greedyC_random_data, greedyNC_data, greedyC_group_data, params)
+    plot_coreset_time(greedyC_random_data, greedyNC_data, greedyC_group_data, params)
     # # plot_coreset_ml(greedyC_data, greedyNC_data, params)
     # # plot_coreset_distribution(composable_data, greedy_data)
 
