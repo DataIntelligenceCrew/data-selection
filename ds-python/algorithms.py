@@ -84,8 +84,9 @@ def greedyC_group(part_id, coverage_factor, distribution_req, q, dataset_name, p
     delta_list = list(delta)
     CC = np.zeros(delta_size) # coverage tracker
     CC[delta_list] = coverage_factor
-    GC = distribution_req # group count tracker
+    GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
+
     # main loop
     while ((not check_for_zeros(CC)) or (GC > 0)) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
@@ -292,8 +293,7 @@ def k_center(dataset_name, coverage_factor, distribution_req, dataset_size,
 def bandit_algorithm(coverage_factor, distribution_req, dataset_name, 
                      dataset_size, cov_threshold, model_name):
     # These constants can be adjusted
-    max_iter = 25
-    stdev_multiplier = 0.0025
+    max_iter = 50
     '''
     Computes the randomized bandit fair set cover for the entire dataset
     @params
@@ -347,55 +347,33 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
-    solution = set() # solution set
+    solution = set()
 
     while(len(not_satisfied) > 0):
-        actions = delta.difference(solution)
-        # estimate: [avg, m2, stdev, UCB, LCB]
-        reward_estimate = {a:{"avg":0.0, "m2":0.0, "stdev":0.0, "UCB":0.0, 
-            "LCB":0.0} for a in actions}
+        actions = list(delta.difference(solution))
+        reward_estimate = {a:0.0 for a in actions}
         for i in range(0, max_iter):
-            if (len(actions) <= 1):
-                break
             # Sample random point
             r = random.sample(not_satisfied, 1)[0]
-            best_LCB = float('-inf')
+            r_score_if_cover = CC[r] + distritbution_score(GC, labels_dict[r])
+            # Update reward estimates
+            max_estimate = float('-inf')
             for a in actions:
-                # Calculate score for point r
-                r_score = 0
-                if (posting_list[a][r] == 1):
-                    r_score = CC[r] + distritbution_score(GC, labels_dict[r])
-                # Recalculate reward_estimate
-                old_estimate = reward_estimate[a]
-                new_avg = old_estimate["avg"] + (r_score - old_estimate["avg"]) / (i + 1)
-                new_m2 = old_estimate["m2"] + (r_score + old_estimate["avg"]) * (r_score + new_avg)
-                new_stdev = math.sqrt(new_m2 / (i + 1))
-                new_UCB = new_avg + stdev_multiplier * new_stdev
-                new_LCB = new_avg - stdev_multiplier * new_stdev
-                best_LCB = max(best_LCB, new_LCB) # Maybe update best_LCB
-                reward_estimate.update({a: {"avg":new_avg, "m2":new_m2, 
-                    "stdev":new_stdev, "UCB":new_UCB, "LCB":new_LCB}})
-            # Remove actions that cannot be optimal
-            actions = list(filter(lambda a : reward_estimate[a]["UCB"] >= best_LCB, actions))
-
+                r_score = posting_list[r][a] and r_score_if_cover
+                reward_estimate[a] += r_score
+                max_estimate = max(max_estimate, reward_estimate[a])
+            actions = list(filter(lambda a : reward_estimate[a] >= max_estimate, actions))
         # Choose best action
-        best_action = None
-        best_UCB = float('-inf')
-        for a in actions:
-            if (reward_estimate[a]["UCB"] > best_UCB):
-                best_action = a
-                best_UCB = reward_estimate[a]["UCB"]
-        if (best_action is None):
-            print("cannot find a point")
-            break
-    
-        # If best action is found, update all info
+        best_action = random.sample(actions, 1)[0]
+        # Update all info based on best action
         solution.add(best_action)
-        CC = np.subtract(CC, posting_list[best_action])
-        GC = np.subtract(GC, labels_dict[best_action])
-        not_satisfied = list(filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
+        CC = np.clip(np.subtract(CC, posting_list[best_action]), 0, None)
+        #print("CC", str(CC))
+        GC = np.clip(np.subtract(GC, labels_dict[best_action]), 0, None)
+        #print("GC", str(GC))
+        not_satisfied = list(filter(lambda p : CC[p] + distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
         # For testing
-        print(str(len(solution)), ", len(a):", str(len(actions)), ", len(ns): ", str(len(not_satisfied)))
+        print(str(len(solution)), "len(a):", str(len(actions)), "len(ns): ", str(len(not_satisfied)))
     
     end_time = time.time()
     print(len(solution))

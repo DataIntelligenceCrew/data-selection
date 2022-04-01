@@ -131,10 +131,11 @@ if __name__ == "__main__":
     elif params.dataset == 'cifar100':
         params.dataset_size = 50000
         params.num_classes = 100
+
+    #run_algo(params)
     
-    # run_algo(params)
+    run_algo(params)
     distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
-    # distribution_req = [0]
     
     for i in distribution_req:
         params.distribution_req = i
@@ -145,9 +146,4 @@ if __name__ == "__main__":
             params.coverage_factor,
             params.model_type
         ))
-
-<<<<<<< HEAD
         run_algo(params)
-=======
-    run_algo(params)
->>>>>>> a33f90e44d1b2856bf10d2951f8a60d21373bf96
