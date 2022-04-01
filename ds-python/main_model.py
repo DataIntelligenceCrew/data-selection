@@ -1,4 +1,5 @@
 
+from cgi import test
 import os
 from os.path import isfile
 import statistics
@@ -12,6 +13,7 @@ import torchvision.datasets as datasets
 from torch.utils import data
 import time
 from paths import *
+import numpy as np
 from tensorboardX import SummaryWriter
 
 
@@ -159,7 +161,6 @@ def train_and_test(model, params):
     
     # save model
     torch.save(model.state_dict(), model_path)
-
     # report metrics
     metric_file = get_model_metric_file(params)
     mean_test_acc = statistics.mean(accs)
@@ -171,6 +172,40 @@ def train_and_test(model, params):
         )
     f.close()
 
+
+
+def class_wise_test_acc(model, params):
+    _, checkpoint_dir = get_model_dump_paths(params)
+    model_id = get_model_id(params)
+    model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
+    model.load_state_dict(torch.load(model_path))
+    print('Model loaded from:{0}'.format(model_path))
+    print('starting testing....')
+    test_dataloader = get_dataloader(params, test=True)
+    print('test dataloader created')
+    class_wise_accs = np.zeros((params.num_classes, params.num_runs)) 
+    for i in range(params.num_runs):
+        class_wise_correct = [0] * params.num_classes
+        class_wise_samples = [0] * params.num_classes
+        for imgs, classes in test_dataloader:
+            imgs, classes = imgs.to(device), classes.to(device)
+            output = model(imgs)
+            _, preds = torch.max(output, 1)
+            for c in range(params.num_classes):
+                class_wise_correct[c] += torch.sum((preds == classes) * (classes == c))
+                class_wise_samples[c] += torch.sum(classes == c)
+        
+        for c in range(params.num_classes):
+            class_wise_accs[c][i] = float(class_wise_correct[c]) / float(class_wise_samples[c]) * 100
+    
+    class_wise_accs = np.mean(class_wise_accs, axis=1)
+    print(class_wise_accs)
+    metric_file = get_model_metric_file(params)
+    with open(metric_file, 'a') as f:
+        f.write('Class Wise Test Accuracy\n')
+        for idx, value in enumerate(class_wise_accs):
+            f.write('Class:{0}\tAcc:{1}\n'.format(idx, value))
+    f.close()
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -196,7 +231,7 @@ if __name__=="__main__":
     parser.add_argument('--coreset', type=int, default=1)
     parser.add_argument('--algo_type', type=str, default="MAB")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=100)
+    parser.add_argument('--distribution_req', type=int, default=50)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
     parser.add_argument('--model_type', type=str, default='resnet')
     # parse all parameters
@@ -207,6 +242,7 @@ if __name__=="__main__":
         channel = 3
         im_size = (32, 32)
         num_classes = 10
+        params.num_classes = 10
     elif params.dataset == 'mnist':
         channel = 1
         im_size = (28, 28)
@@ -227,4 +263,5 @@ if __name__=="__main__":
 
     model = model.to(device)
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
-    train_and_test(model, params)
+    # train_and_test(model, params)
+    class_wise_test_acc(model, params)
