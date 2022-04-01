@@ -293,7 +293,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
                      dataset_size, cov_threshold, model_name):
     # These constants can be adjusted
     max_iter = 25
-    stdev_multiplier = 0.0025
+    stdev_multiplier = 0
     '''
     Computes the randomized bandit fair set cover for the entire dataset
     @params
@@ -312,10 +312,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
     start_time = time.time()
     label_file = label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
     label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
-    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
-    posting_list_filepath = location + 'posting_list_alexnet.txt'
-    posting_list_file = open(posting_list_filepath, 'r')
-
+    
     delta_size = dataset_size
     params = lambda : None
     params.dataset = dataset_name
@@ -393,9 +390,11 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
         solution.add(best_action)
         CC = np.subtract(CC, posting_list[best_action])
         GC = np.subtract(GC, labels_dict[best_action])
-        not_satisfied = list(filter(lambda p : CC[p] > 0 or distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
+        CC = np.clip(CC, 0, float('inf'))
+        GC = np.clip(GC, 0, float('inf'))
+        not_satisfied = list(filter(lambda p : CC[p]  + distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
         # For testing
-        print(str(len(solution)), ", len(a):", str(len(actions)), ", len(ns): ", str(len(not_satisfied)))
+        # print(str(len(solution)), ", len(a):", str(len(actions)), ", len(ns): ", str(len(not_satisfied)))
     
     end_time = time.time()
     print(len(solution))
