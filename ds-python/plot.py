@@ -204,6 +204,38 @@ def plot_ml_metrics(data, params):
     plt.cla()
 
 
+
+def get_class_wise_accuracy(filename, params):
+    # class_wise_accuracy = [0] * params.num_clases
+    f = open(filename, 'r')
+    for line in f:
+        n = 10
+        if line.startswith('Class Wise Test Accuracy'):
+            class_wise_accuracy = list(islice(f, n)) 
+            break
+    f.close()
+    class_wise_accuracy = [float(i.split('\t')[1].split(':')[1]) / 100 for i in class_wise_accuracy]
+    # print(class_wise_accuracy)
+    return class_wise_accuracy
+
+
+def plot_class_wise_acc(data, params):
+    # for each distribution requirement, plot the class wise accuracy for each algo_type
+    x = [i for i in range(params.num_classes)]
+    for idx, dr in enumerate(distribution_req):
+        for key, value in data.items():
+            plt.plot(x, value[idx], 'o--', label=key)
+            plt.legend()
+        plt.xticks(x)
+        plt.xlabel('Classes')
+        plt.ylabel('Accuracy')
+        plt.title('Class Wise Accuracy Breakdown for Convnet for DR={0}'.format(dr))
+        plot_filename = "./figures/class_wise/ml_acc_dr_{0}_dataset_{1}".format(dr, params.dataset)
+        plt.savefig(plot_filename)
+        plt.cla()
+        plt.clf()
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
@@ -237,31 +269,40 @@ if __name__=="__main__":
 
 
 
-    coreset_data = { 
-        'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
-        'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
-        'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
-        'random' : [get_metrics(f) for f in random_metric_files],
-        'MAB' : [get_metrics(f) for f in bandit_metric_files]
+    # coreset_data = { 
+    #     'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
+    #     'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
+    #     'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
+    #     'random' : [get_metrics(f) for f in random_metric_files],
+    #     'MAB' : [get_metrics(f) for f in bandit_metric_files]
+    # }
+
+    # model_data = { 
+    #     'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
+    #     'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
+    #     'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
+    #     'random' : [find_best_model(f) for f in random_metric_files],
+    #     'MAB' : [find_best_model(f) for f in bandit_metric_files]
+    # }
+
+    # score_data = { 
+    #     'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
+    #     'greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['greedyNC'], model_data['greedyNC'])],
+    #     'greedyC_group' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_group'], model_data['greedyC_group'])],
+    #     'random' : [score_method(a, m, params) for a,m in zip(coreset_data['random'], model_data['random'])],
+    #     'MAB' : [score_method(a, m, params) for a,m in zip(coreset_data['MAB'], model_data['MAB'])]
+    # }
+    
+    # algo_type : [[class_wise_acc for dist = i] for i in distritbution_req]
+    class_wise_accuracy_data = {
+        'greedyC_random': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files],
+        'greedyC_group' : [get_class_wise_accuracy(f, params) for f in greedyC_group_metric_files],
+        'greedyNC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
+        'random' : [get_class_wise_accuracy(f, params) for f in random_metric_files],
+        'MAB' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files]
     }
 
-    model_data = { 
-        'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
-        'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
-        'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
-        'random' : [find_best_model(f) for f in random_metric_files],
-        'MAB' : [find_best_model(f) for f in bandit_metric_files]
-    }
-
-    score_data = { 
-        'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
-        'greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['greedyNC'], model_data['greedyNC'])],
-        'greedyC_group' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_group'], model_data['greedyC_group'])],
-        'random' : [score_method(a, m, params) for a,m in zip(coreset_data['random'], model_data['random'])],
-        'MAB' : [score_method(a, m, params) for a,m in zip(coreset_data['MAB'], model_data['MAB'])]
-    }
-    
-    plot_coreset_metrics(data=coreset_data, params=params)
-    plot_ml_metrics(data=model_data, params=params)
-    plot_score(data=score_data, params=params)
-    
+    # plot_coreset_metrics(data=coreset_data, params=params)
+    # plot_ml_metrics(data=model_data, params=params)
+    # plot_score(data=score_data, params=params)
+    plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
