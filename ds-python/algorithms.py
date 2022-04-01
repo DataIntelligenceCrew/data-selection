@@ -312,10 +312,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
     start_time = time.time()
     label_file = label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
     label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
-    location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
-    posting_list_filepath = location + 'posting_list_alexnet.txt'
-    posting_list_file = open(posting_list_filepath, 'r')
-
+    
     delta_size = dataset_size
     params = lambda : None
     params.dataset = dataset_name

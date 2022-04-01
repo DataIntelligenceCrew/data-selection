@@ -37,49 +37,6 @@ def get_metrics(filename):
     
     return data
 
-def plot_coreset_size(greedyC_data, greedyNC_data, greedyC_group_data, params):
-    compsable_y = [data["solution_size"]/(params.dataset_size) for data in greedyC_data]
-    greedy_y = [data["solution_size"]/(params.dataset_size) for data in greedyNC_data]
-    greedy_y_group = [data["solution_size"]/(params.dataset_size) for data in greedyC_group_data]
-    plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
-    
-    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC_random")
-    plt.plot(distribution_req, greedy_y, 'o--', label="greedyNC")
-    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group')
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Coreset Size(Percentage of Original Dataset)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Coreset Size for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-def plot_coreset_time(greedyC_data, greedyNC_data, greedyC_group_data, params):
-    compsable_y = [data["response_time"] / 60 for data in greedyC_data]
-    greedy_y = [data["response_time"] / 60 for data in greedyNC_data]
-    greedy_y_group = [data["solution_size"]/(params.dataset_size) for data in greedyC_group_data]
-    
-    plot_filename = "./figures/time_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
-    plt.plot(distribution_req, compsable_y, 'o--', label="greedyC_random")
-    plt.plot(distribution_req, greedy_y, 'o--', label="greedyNC")
-    plt.plot(distribution_req, greedy_y_group, 'o--', label='greedyC_group')
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Time (minutes)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Time Taken for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-
-def plot_coreset_ml(greedyC_data, greedyNC_data, args):
-    pass
-
-def plot_coreset_distribution(composable_data, greedy_data):
-    pass
-
 
 def find_best_model(filename):
     model_details = {}
@@ -131,19 +88,6 @@ def analysis(params, model_type):
                 inverted_index[v].append(key)
             posting_list[key] = len(value)
         posting_list_file.close()
-
-        # dict_df = {"Points" : posting_list.keys(), "Posting List Size" : posting_list.values()}
-        # df = pd.DataFrame.from_dict(dict_df)
-        # sns.displot(data=df, x="Points", kind="kde")
-        # plt.bar(posting_list.keys(), posting_list.values(), width=1)
-        # plt.xticks(rotation=90)
-        # plt.ylabel("Posting List Size")
-        # plt.show()
-        # plot_file_name = './figures/posting_list_alexnet_' + str(i) + '.png'
-        # plt.savefig(plot_file_name)
-        # plt.cla()
-        # plt.clf()
-        # print('Statistics for Parition Number: {0}'.format(i))
         # max_s = max(posting_list.values())
         # min_s = min(posting_list.values())
         # mean_s = statistics.mean(posting_list.values())
@@ -188,85 +132,6 @@ def analysis_full_data(params):
     print('Coverage Threshold Upper Bound: {0}'.format(min(inverted_index_size)))
 
 
-def plot_cf_upper_bound(params,data):
-    y_axis = [i for i in range(params.num_classes)]
-    fig, ax = plt.subplots()
-    for key, value in data.items():
-        label = key + '_' + str(MODELS[key])
-        ax.plot(y_axis, value, 'o--', label=label)
-    
-    ax.set_xlabel('Groups')
-    ax.set_ylabel('Coverage Factor Upper Bound')
-    ax.legend()
-    ax.set_title('Analysis for coverage threshold = {0}'.format(params.coverage_threshold))
-    plt.savefig('./figures/cf_analysis.png')
-    plt.cla()
-    plt.clf()    
-
-def plot_for_one(algo_data, model_data, params):
-    # plotting algorithm graphs
-    y_size = [data["solution_size"]/(params.dataset_size) for data in algo_data]
-    y_time = [data["response_time"] for data in algo_data]
-
-    # plot coreset size
-    plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('size', params.algo_type, params.model_type, params.dataset)
-    plt.plot(distribution_req, y_size, 'o--', label='greedyC_group')
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Coreset Size(Percentage of Original Dataset)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Coreset Size for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-    # plot coreset time
-    plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('time', params.algo_type, params.model_type, params.dataset)
-    plt.plot(distribution_req, y_time, 'o--', label='greedyC_group')
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Time Taken(seconds)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Time Taken for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-
-    # plot ml_acc
-    acc_y = []
-    stdev_y = []
-    time_y = []
-    for m in model_data:
-        # print(len(m))
-        time_y.append(m[1][1])
-        acc_y.append(m[1][2])
-        stdev_y.append(m[1][3])
-
-    plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('ml_time', params.algo_type, params.model_type, params.dataset)
-    plt.plot(distribution_req, time_y, 'o--')
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Time Taken(seconds)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Time Taken to Train Convnet for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-
-    plot_filename = "./figures/{0}_{1}_{2}_{3}.png".format('ml_acc', params.algo_type, params.model_type, params.dataset)
-    plt.errorbar(distribution_req, acc_y, yerr=stdev_y)
-    plt.legend()
-    plt.xticks(distribution_req)
-    plt.ylabel("Accuracy")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Model Accuracy Convnet for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
-
-
 
 def score_method(algo_data, model_data, params):
     coreset_score = algo_data["solution_size"] / params.dataset_size
@@ -275,16 +140,65 @@ def score_method(algo_data, model_data, params):
     acc_score = 1 / model_data[1][2]
     return coreset_score + time_score + acc_score
 
-def plot_score(greedyC_group, greedyC_random, greedyNC, params):
+def plot_score(data, params):
     plot_filename = "./figures/{0}_{1}_{2}.png".format('method_score', params.model_type, params.dataset)
-    plt.plot(distribution_req, greedyC_group, 'o--', label='greedyC_group')
-    plt.plot(distribution_req, greedyC_random, 'o--', label='greedyC_random')
-    plt.plot(distribution_req, greedyNC, 'o--', label='greedyNC')
-    plt.legend()
+    for key, value in data.items():
+        plt.plot(distribution_req, value, 'o--', label=key)
+        plt.legend()
     plt.xticks(distribution_req)
     plt.ylabel("Score")
     plt.xlabel("Distribution Requirement")
     plt.title("Method Score for k={0} dataset={1}(Lower is Better)".format(params.coverage_factor, params.dataset))
+    plt.savefig(plot_filename)
+    plt.clf()
+    plt.cla()
+
+
+def plot_coreset_metrics(data, params):
+    for key, value in data.items():
+        size_y = [v["solution_size"]/params.dataset_size for v in value]
+        plt.plot(distribution_req, size_y, 'o--', label=key)
+        plt.legend()
+
+    plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
+    plt.xticks(distribution_req)
+    plt.ylabel("Coreset Size(Percentage of Original Dataset)")
+    plt.xlabel("Distribution Requirement")
+    plt.title("Coreset Size for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
+    plt.savefig(plot_filename)
+    plt.clf()
+    plt.cla()
+
+    plot_filename = "./figures/time_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
+    for key, value in data.items():
+        time_y = [v["response_time"]/60 for v in value]
+        plt.plot(distribution_req, time_y, 'o--', label=key)
+    plt.xticks(distribution_req)
+    plt.ylabel("Time(Minutes)")
+    plt.xlabel("Distribution Requirement")
+    plt.title("Time Taken for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
+    plt.savefig(plot_filename)
+    plt.clf()
+    plt.cla()
+
+
+
+def plot_ml_metrics(data, params):
+    for key, value in data.items():
+        acc_y = []
+        stdev_y = []
+        for m in value:
+            acc_y.append(m[1][2])
+            stdev_y.append(m[1][3])
+        
+        plt.errorbar(distribution_req, acc_y, yerr=stdev_y, label=key)
+        plt.legend()
+    
+    plot_filename = "./figures/ml_acc_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
+    plt.xticks(distribution_req)
+    plt.ylabel("Accuracy")
+    plt.xlabel("Distribution Requirement")
+    plt.title("Model Accuracy Convnet for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
     plt.savefig(plot_filename)
     plt.clf()
     plt.cla()
@@ -311,52 +225,43 @@ if __name__=="__main__":
         params.dataset_size = 50000
         params.num_classes = 100
     
-    # params.group = True
-    # cf_data = dict()
-    # for key, value in MODELS.items():
-    #     cf_data[key] = analysis(params, key)
     
-    # location = "/localdisk3/data-selection/data/metadata/{0}/{1}/{2}/cf_analysis.txt".format(params.dataset, params.coverage_threshold, params.partitions)
-    # with open(location, 'w') as f:
-    #     for key, value in cf_data.items():
-    #         f.write("Model Name:{0}\tFV_Dimension:{1}\tCF_UpperBound:{2}\n".format(
-    #             key,
-    #             MODELS[key],
-    #             min(value)
-    #         ))
-    # f.close()
-    # plot_cf_upper_bound(params, cf_data)
-    # analysis_full_data(params)
+
+
+
     greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random') for i in distribution_req]
     greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
     greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
+    random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
+    bandit_metric_files = [get_output_filename(params, i, 'MAB') for i in distribution_req]
+
+
+
+    coreset_data = { 
+        'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
+        'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
+        'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
+        'random' : [get_metrics(f) for f in random_metric_files],
+        'MAB' : [get_metrics(f) for f in bandit_metric_files]
+    }
+
+    model_data = { 
+        'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
+        'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
+        'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
+        'random' : [find_best_model(f) for f in random_metric_files],
+        'MAB' : [find_best_model(f) for f in bandit_metric_files]
+    }
+
+    score_data = { 
+        'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
+        'greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['greedyNC'], model_data['greedyNC'])],
+        'greedyC_group' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_group'], model_data['greedyC_group'])],
+        'random' : [score_method(a, m, params) for a,m in zip(coreset_data['random'], model_data['random'])],
+        'MAB' : [score_method(a, m, params) for a,m in zip(coreset_data['MAB'], model_data['MAB'])]
+    }
     
-    greedyC_random_data = [get_metrics(f) for f in greedyC_random_metrics_files]
-    greedyNC_data = [get_metrics(f) for f in greedyNC_metrics_files]
-    greedyC_group_data = [get_metrics(f) for f in greedyC_group_metric_files]
-
-    greedyC_group_models = [find_best_model(f) for f in greedyC_group_metric_files]
-    greedyC_random_models = [find_best_model(f) for f in greedyC_random_metrics_files]
-    greedyNC_models = [find_best_model(f) for f in greedyNC_metrics_files]
-
-
-
-    greedyC_group_score = [score_method(a, m, params) for a,m in zip(greedyC_group_data, greedyC_group_models)]
-    greedyC_random_score = [score_method(a, m, params) for a,m in zip(greedyC_random_data, greedyC_random_models)]
-    greedyNC_score = [score_method(a, m, params) for a,m in zip(greedyNC_data, greedyNC_models)]
-
-    plot_score(greedyC_group=greedyC_group_score, greedyC_random=greedyC_random_score, greedyNC=greedyNC_score, params=params)
-    # print(greedyC_group_models)
-    # params.algo_type = 'greedyC_group'
-    # plot_for_one(greedyC_group_data, greedyC_group_models, params)
-    plot_coreset_size(greedyC_random_data, greedyNC_data, greedyC_group_data, params)
-    plot_coreset_time(greedyC_random_data, greedyNC_data, greedyC_group_data, params)
-    # # plot_coreset_ml(greedyC_data, greedyNC_data, params)
-    # # plot_coreset_distribution(composable_data, greedy_data)
-
-    # # find best model arch for coreset
-    # greedyC_best_models = [find_best_model(f) for f in greedyC_metrics_files]
-    # greedyNC_best_models = [find_best_model(f) for f in greedyNC_metrics_files]
-
-    # print(greedyC_best_models)
-    # print(greedyNC_best_models)
+    plot_coreset_metrics(data=coreset_data, params=params)
+    plot_ml_metrics(data=model_data, params=params)
+    plot_score(data=score_data, params=params)
+    

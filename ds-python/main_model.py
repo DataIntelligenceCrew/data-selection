@@ -194,7 +194,7 @@ if __name__=="__main__":
     # params for data description
     parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyC_random")
+    parser.add_argument('--algo_type', type=str, default="MAB")
     parser.add_argument('--coverage_factor', type=int, default=30)
     parser.add_argument('--distribution_req', type=int, default=100)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
