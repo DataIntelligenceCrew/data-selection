@@ -21,6 +21,12 @@ def run_algo(params):
         posting_list = get_full_data_posting_list(params, params.model_type)    
         s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list)
         solution_data.append((s, cscore, res_time))
+    
+    elif params.algo_type == 'stochastic_greedyNC':
+        dist_req = [params.distribution_req] * params.num_classes
+        posting_list = get_full_data_posting_list(params, params.model_type)    
+        s, cscore, res_time = stochastic_greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list)
+        solution_data.append((s, cscore, res_time))
 
     elif params.algo_type == 'greedyC_random':
         dist_req = [math.ceil(params.distribution_req) / params.partitions] * params.num_classes
@@ -85,6 +91,7 @@ def run_algo(params):
         response_time = max(response_time, t[2])
     
     print('Time Taken:{0}'.format(response_time))
+    print('Solution Size: {0}'.format(len(coreset)))
     # report metrics
     metric_file_name = METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
     with open(metric_file_name, 'w') as f:
@@ -113,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='random', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--algo_type', type=str, default='stochastic_greedyNC', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
     parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet', help='model used to produce the feature_vector')
@@ -134,7 +141,7 @@ if __name__ == "__main__":
 
     #run_algo(params)
     
-    run_algo(params)
+    # run_algo(params)
     distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
     
     for i in distribution_req:
