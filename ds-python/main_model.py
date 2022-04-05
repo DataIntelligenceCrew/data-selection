@@ -229,9 +229,9 @@ if __name__=="__main__":
     # params for data description
     parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="MAB")
+    parser.add_argument('--algo_type', type=str, default="stochastic_greedyNC")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=50)
+    parser.add_argument('--distribution_req', type=int, default=500)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
     parser.add_argument('--model_type', type=str, default='resnet')
     # parse all parameters
@@ -263,5 +263,5 @@ if __name__=="__main__":
 
     model = model.to(device)
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
-    # train_and_test(model, params)
+    train_and_test(model, params)
     class_wise_test_acc(model, params)

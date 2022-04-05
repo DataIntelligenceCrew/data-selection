@@ -12,7 +12,7 @@ do
                 do
                     for DIST_REQ in 50 
                     do
-                        for ALG in 'greedyC' 'greedyNC'
+                        for ALG in 'MAB' 
                         do
                             python3 ../main_model.py \
                                     --dataset 'cifar10' \

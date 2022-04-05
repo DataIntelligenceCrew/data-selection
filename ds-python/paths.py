@@ -44,7 +44,7 @@ MODELS = {'resnet' : 512, 'alexnet' : 4096, 'densenet' : 1024, 'efficientnet_b0'
             'efficientnet_b3' : 1536, 'efficientnet_b4' : 1792, 'efficientnet_b5' : 2048, 'efficientnet_b6' : 2304, 'efficientnet_b7' : 2560}
 
 # define device type, number of GPUs available
-DEVICE_IDS = [0, 1, 2]
+DEVICE_IDS = [0, 1]
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # paths for model-data/
