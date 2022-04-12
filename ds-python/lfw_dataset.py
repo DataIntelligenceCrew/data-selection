@@ -133,7 +133,12 @@ if __name__ == '__main__':
     #     pickle.dump(feature_vectors, f)
     #     f.close()
     # create_config_file(attributes)
-    create_data_rowwise(attributes[2:], data)
+    # create_data_rowwise(attributes[2:], data)
+    location = '/localdisk3/data-selection/data/metadata/lfw/labels.obj'
+    f = open(location, 'rb')
+    labels = pickle.load(f)
+    f.close()
+    # print()
     # print(get_row(0, attributes, data))
         
 

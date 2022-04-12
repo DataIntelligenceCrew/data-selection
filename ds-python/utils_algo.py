@@ -61,7 +61,7 @@ def get_full_data_posting_list(params, model_name):
     feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset, model_name), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
-    posting_list = {}
+    posting_list = dict()
     xb = feature_vectors.astype('float32')
     xb[:, 0] += np.arange(N) / 1000
     faiss_index = faiss.IndexFlatL2(d)
@@ -72,9 +72,14 @@ def get_full_data_posting_list(params, model_name):
     batch_size = 1000
     for i in range(0, xb.shape[0], batch_size):
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
-        for j in range(batch_size):
-            posting_list[i+j] = set(I[limits[j] : limits[j+1]])
-    
+        print(i)
+        try:
+            for j in range(batch_size):
+                # print(j)
+                pl = set(I[limits[j] : limits[j+1]])
+                posting_list[i+j] = pl
+        except IndexError:
+            break
     return posting_list
 
 def write_posting_lists(params, posting_list_data, model_name):
@@ -144,6 +149,8 @@ if __name__=='__main__':
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     params = parser.parse_args()
     
+    params.dataset = 'lfw'
+
     if params.dataset == 'mnist':
         params.dataset_size = 60000
         params.num_classes = 10
@@ -156,7 +163,9 @@ if __name__=='__main__':
     elif params.dataset == 'cifar100':
         params.dataset_size = 50000
         params.num_classes = 100
-
+    elif params.dataset == 'lfw':
+        params.dataset_size = 13143
+        params.num_classes = 73
     # feature_vectors, labels = generate_from_db(params)
     # partitions = create_partitions(params, labels)
     # for key, value in MODELS.items():
@@ -167,8 +176,10 @@ if __name__=='__main__':
 
     # posting_list_data = [get_full_data_posting_list(params, 'resnet')]
     # write_posting_lists(params, posting_list_data, 'resent')
-    attrib_config = get_lfw_dr_config()
-    print(attrib_config)
+    # attrib_config = get_lfw_dr_config()
+    # print(attrib_config)
+    
+    pl = get_full_data_posting_list(params, 'resnet-18')
 
 
 

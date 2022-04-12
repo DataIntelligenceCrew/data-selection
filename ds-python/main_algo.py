@@ -16,7 +16,10 @@ def run_algo(params):
     # TODO: add other methods
     labels = generate_from_db()
     if params.algo_type == 'greedyNC':
-        dist_req = [params.distribution_req] * params.num_classes
+        if params.dataset == 'lfw':
+            dist_req = get_lfw_dr_config()
+        else:
+            dist_req = [params.distribution_req] * params.num_classes
         posting_list = get_full_data_posting_list(params, params.model_type)    
         s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list)
         solution_data.append((s, cscore, res_time))
@@ -140,7 +143,9 @@ if __name__ == "__main__":
     elif params.dataset == 'cifar100':
         params.dataset_size = 50000
         params.num_classes = 100
-
+    elif params.dataset == 'lfw':
+        params.dataset_size = 13143
+        params.num_classes = 73
     #run_algo(params)
     
     # run_algo(params)
