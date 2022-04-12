@@ -1,0 +1,299 @@
+Dataset Name: Labelled Faces in the Wild, #Images = 13143
+------#-----
+------person-----
+Max Value:530.0	Min Value:1.0	Mean Value:19.33553983108879	Stdev:63.137376260292136
+
+
+------imagenum-----
+Max Value:3.75088738973	Min Value:-3.67287112343	Mean Value:0.6297997464894755	Stdev:1.0906986933764893
+
+
+------Male-----
+Max Value:2.62489284423	Min Value:-3.34065335331	Mean Value:-1.083953162852562	Stdev:0.7638293808575628
+
+
+------Asian-----
+Max Value:3.29373771894	Min Value:-2.84717180664	Mean Value:0.5415646363044446	Stdev:0.9415266974359937
+
+
+------White-----
+Max Value:2.99696076537	Min Value:-4.69011928933	Mean Value:-1.658864307844353	Stdev:0.8850361622549787
+
+
+------Black-----
+Max Value:0.860697260961	Min Value:-3.63667492655	Mean Value:-1.733381055457922	Stdev:0.6077732365002582
+
+
+------Baby-----
+Max Value:1.77946802523	Min Value:-2.86836599298	Mean Value:-0.9667830461245506	Stdev:0.5778799904652858
+
+
+------Child-----
+Max Value:2.09969129918	Min Value:-2.92951003822	Mean Value:-0.6501767800780004	Stdev:0.6571603744206734
+
+
+------Youth-----
+Max Value:1.14528905603	Min Value:-1.66011816614	Mean Value:-0.3899172940695877	Stdev:0.3095114764614146
+
+
+------Middle Aged-----
+Max Value:1.79792321691	Min Value:-2.66543446204	Mean Value:-0.5302862847380555	Stdev:0.6642392421302055
+
+
+------Senior-----
+Max Value:2.69897651085	Min Value:-3.05065659719	Mean Value:-0.8632061725104214	Stdev:0.739388142710968
+
+
+------Black Hair-----
+Max Value:1.48324814225	Min Value:-2.65011503428	Mean Value:-0.8187513361014152	Stdev:0.4346017244079723
+
+
+------Blond Hair-----
+Max Value:2.7799505361	Min Value:-4.754409408	Mean Value:-0.4576806606322041	Stdev:1.1505532230513724
+
+
+------Brown Hair-----
+Max Value:1.71494634833	Min Value:-3.0186343762	Mean Value:-0.9254269737679779	Stdev:0.7103766965698409
+
+
+------Bald-----
+Max Value:3.51791168823	Min Value:-5.63984379624	Mean Value:0.7356488127554017	Stdev:1.1700602213937685
+
+
+------No Eyewear-----
+Max Value:5.23594188694	Min Value:-3.15247545609	Mean Value:-0.7573992278037837	Stdev:0.9534326785154896
+
+
+------Eyeglasses-----
+Max Value:2.10726424626	Min Value:-2.53916951451	Mean Value:-1.264268080572713	Stdev:0.4672487068756397
+
+
+------Sunglasses-----
+Max Value:2.82057621954	Min Value:-2.59134981291	Mean Value:-0.618284903417797	Stdev:0.6658157426127187
+
+
+------Mustache-----
+Max Value:2.83999377045	Min Value:-2.68659390331	Mean Value:-0.15069979541223322	Stdev:1.1277216256621674
+
+
+------Smiling-----
+Max Value:2.8393835565	Min Value:-2.9535718404	Mean Value:0.14866080483412197	Stdev:1.163603060705137
+
+
+------Frowning-----
+Max Value:3.12742465602	Min Value:-3.16560379709	Mean Value:-0.2688194595122586	Stdev:0.7798993540071859
+
+
+------Chubby-----
+Max Value:2.78578849654	Min Value:-2.76268492476	Mean Value:-0.6139884469348227	Stdev:0.6121117455021277
+
+
+------Blurry-----
+Max Value:6.39245	Min Value:-2.99231364673	Mean Value:-0.29315950257019413	Stdev:0.9274166061807139
+
+
+------Harsh Lighting-----
+Max Value:1.70016841361	Min Value:-2.0701617919	Mean Value:-0.5990510008852896	Stdev:0.6172408302998155
+
+
+------Flash-----
+Max Value:10.5782689547	Min Value:-27.5264209415	Mean Value:0.33130974667921903	Stdev:0.9557563344283084
+
+
+------Soft Lighting-----
+Max Value:2.16236917306	Min Value:-2.37091848693	Mean Value:-0.15187536256089398	Stdev:0.7320683120905944
+
+
+------Outdoor-----
+Max Value:2.24918412631	Min Value:-2.43333088372	Mean Value:0.11773493269220199	Stdev:0.6421086687611662
+
+
+------Curly Hair-----
+Max Value:1.92675458487	Min Value:-2.61560718952	Mean Value:-0.15292379040736698	Stdev:0.6228736935636333
+
+
+------Wavy Hair-----
+Max Value:3.34408916029	Min Value:-3.53680823089	Mean Value:-0.22261502298534872	Stdev:0.8555758580873164
+
+
+------Straight Hair-----
+Max Value:3.00591870664	Min Value:-3.73787657486	Mean Value:0.1111480042640682	Stdev:1.066986665966811
+
+
+------Receding Hairline-----
+Max Value:2.32519337791	Min Value:-2.78530693726	Mean Value:-0.7431490664679905	Stdev:0.7525557055986125
+
+
+------Bangs-----
+Max Value:1.41604705029	Min Value:-1.91731062991	Mean Value:-0.17142220666740438	Stdev:0.38822567147929915
+
+
+------Sideburns-----
+Max Value:3.30646809979	Min Value:-4.61686952264	Mean Value:0.3375236247717955	Stdev:1.2447880421519673
+
+
+------Fully Visible Forehead-----
+Max Value:1.84345457963	Min Value:-2.1055017787	Mean Value:-0.6202244247557592	Stdev:0.4091485152386978
+
+
+------Partially Visible Forehead-----
+Max Value:1.70171869721	Min Value:-2.38791325572	Mean Value:-0.701035193706399	Stdev:0.6282058866913424
+
+
+------Obstructed Forehead-----
+Max Value:2.90933823608	Min Value:-2.64281643661	Mean Value:0.00553473347958373	Stdev:0.7368148819743626
+
+
+------Bushy Eyebrows-----
+Max Value:3.49120070371	Min Value:-4.20530728418	Mean Value:-0.6127097218914769	Stdev:1.0357294220575353
+
+
+------Arched Eyebrows-----
+Max Value:3.80451584514	Min Value:-3.79236987984	Mean Value:0.3797895978588551	Stdev:1.0484813168355667
+
+
+------Narrow Eyes-----
+Max Value:3.80094866407	Min Value:-2.43275558472	Mean Value:0.883143480455014	Stdev:0.8307509278688371
+
+
+------Eyes Open-----
+Max Value:2.46137632949	Min Value:-2.4531781924	Mean Value:0.3420663632481193	Stdev:0.7196000144916603
+
+
+------Big Nose-----
+Max Value:2.19405103569	Min Value:-1.72001080454	Mean Value:0.287897445372894	Stdev:0.5514167980488034
+
+
+------Pointy Nose-----
+Max Value:2.05962665122	Min Value:-2.35375816162	Mean Value:-0.22024192924261124	Stdev:0.6310662763752056
+
+
+------Big Lips-----
+Max Value:2.78355727331	Min Value:-3.53426808724	Mean Value:-0.3717950043884308	Stdev:1.0710391050989958
+
+
+------Mouth Closed-----
+Max Value:2.45810259727	Min Value:-2.21925315588	Mean Value:-0.25450172044069275	Stdev:0.724416846488435
+
+
+------Mouth Slightly Open-----
+Max Value:2.21790843962	Min Value:-2.8606692013	Mean Value:-0.8023880868566771	Stdev:0.6132869147735369
+
+
+------Mouth Wide Open-----
+Max Value:2.67247283618	Min Value:-2.78797650947	Mean Value:0.06697552774075693	Stdev:0.9136078409377594
+
+
+------Teeth Not Visible-----
+Max Value:2.95507423204	Min Value:-3.55700139512	Mean Value:0.3857810576212883	Stdev:0.832803357083894
+
+
+------No Beard-----
+Max Value:1.83170906688	Min Value:-2.20393436368	Mean Value:-0.35433761968220506	Stdev:0.5342814347292266
+
+
+------Goatee-----
+Max Value:1.10696225802	Min Value:-0.784228329576	Mean Value:0.18612430753093487	Stdev:0.17401935560147583
+
+
+------Round Jaw-----
+Max Value:1.7664135141	Min Value:-2.00085441164	Mean Value:-0.17831715481171834	Stdev:0.5011592193570538
+
+
+------Double Chin-----
+Max Value:2.26879171968	Min Value:-2.3584689249	Mean Value:-0.738764833070553	Stdev:0.6939049020291528
+
+
+------Wearing Hat-----
+Max Value:2.51898686295	Min Value:-2.0523431513	Mean Value:0.04170605586137254	Stdev:0.6108875583989328
+
+
+------Oval Face-----
+Max Value:0.581238463295	Min Value:-1.64608406093	Mean Value:-0.4504987660098009	Stdev:0.2778303614551045
+
+
+------Square Face-----
+Max Value:1.35705320226	Min Value:-2.08741097194	Mean Value:-0.5417574256637568	Stdev:0.3795572355495216
+
+
+------Round Face-----
+Max Value:14.4668098119	Min Value:-10.2230696537	Mean Value:3.036812793789769	Stdev:1.9466653115002988
+
+
+------Color Photo-----
+Max Value:2.40853184621	Min Value:-2.40238460695	Mean Value:0.03384544839700061	Stdev:0.6735073116056706
+
+
+------Posed Photo-----
+Max Value:1.98892811883	Min Value:-2.48452282731	Mean Value:-0.24499624770349948	Stdev:0.5866109563065385
+
+
+------Attractive Man-----
+Max Value:2.09626809233	Min Value:-2.37672816904	Mean Value:-0.5815627444933029	Stdev:0.605332048464638
+
+
+------Attractive Woman-----
+Max Value:1.60379679848	Min Value:-3.10847950716	Mean Value:-1.1606726893562194	Stdev:0.5421008634322114
+
+
+------Indian-----
+Max Value:1.44818321325	Min Value:-2.67864287706	Mean Value:-0.6130969707185207	Stdev:0.596396159197135
+
+
+------Gray Hair-----
+Max Value:2.42411142597	Min Value:-2.12616366485	Mean Value:0.1567304852923921	Stdev:0.6407982476125957
+
+
+------Bags Under Eyes-----
+Max Value:2.66792920527	Min Value:-2.46268043461	Mean Value:-0.7652671438608519	Stdev:0.6820145232687576
+
+
+------Heavy Makeup-----
+Max Value:5.80872111478	Min Value:-15.0421435555	Mean Value:-1.302595055301589	Stdev:1.6630102533577578
+
+
+------Rosy Cheeks-----
+Max Value:1.82079223568	Min Value:-2.47544339814	Mean Value:-0.6542195050250555	Stdev:0.5547707494157077
+
+
+------Shiny Skin-----
+Max Value:7.35142707089	Min Value:-14.0601032275	Mean Value:0.0027422861615175017	Stdev:1.6301152403606087
+
+
+------Pale Skin-----
+Max Value:3.86483164916	Min Value:-3.51968779697	Mean Value:-0.24390092489824938	Stdev:0.9955160767791474
+
+
+------5 o' Clock Shadow-----
+Max Value:2.93519103278	Min Value:-2.45695876007	Mean Value:0.11361257899308308	Stdev:0.8843881256318091
+
+
+------Strong Nose-Mouth Lines-----
+Max Value:3.12398936089	Min Value:-3.13553053635	Mean Value:-0.7948887939821337	Stdev:0.8640040624441203
+
+
+------Wearing Lipstick-----
+Max Value:5.98903477564	Min Value:-11.8743493636	Mean Value:-1.7939022706714183	Stdev:1.6449422368367737
+
+
+------Flushed Face-----
+Max Value:2.24790704508	Min Value:-2.55571762384	Mean Value:-0.2766386562906768	Stdev:0.7529360094744739
+
+
+------High Cheekbones-----
+Max Value:3.98992216529	Min Value:-2.57349603597	Mean Value:0.3731817716032568	Stdev:0.9111136433028962
+
+
+------Brown Eyes-----
+Max Value:1.7985749317	Min Value:-2.12348373622	Mean Value:-0.535513485100273	Stdev:0.5092904739668673
+
+
+------Wearing Earrings-----
+Max Value:2.08673492499	Min Value:-2.03535584301	Mean Value:0.1962818043053677	Stdev:0.6200363192412114
+
+
+------Wearing Necktie-----
+Max Value:2.44345691775	Min Value:-2.15455524176	Mean Value:-0.4372764053639556	Stdev:0.5824316176440253
+
+
+------Wearing Necklace-----

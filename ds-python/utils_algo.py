@@ -10,7 +10,7 @@ from os.path import isfile, join
 import pickle
 from collections import defaultdict
 import argparse
-import time
+import json
 import sqlite3
 from sqlite3 import Error
 
@@ -122,6 +122,19 @@ def generate_from_db():
 
 
 
+def get_lfw_dr_config():
+    location = './lfw_dr.json'
+    f = open(location, 'r')
+    attrib_data = dict(json.load(f))
+    f.close()
+    attrib_config = list()
+    for key, value in attrib_data.items():
+        attrib_config.append(value)
+    return attrib_config
+    
+    
+
+
 
 
 if __name__=='__main__':
@@ -152,8 +165,10 @@ if __name__=='__main__':
     #     # posting_list_data = [get_full_data_posting_list(params, key)]
     #     write_posting_lists(params, posting_list_data,key)
 
-    posting_list_data = [get_full_data_posting_list(params, 'resnet')]
-    write_posting_lists(params, posting_list_data, 'resent')
+    # posting_list_data = [get_full_data_posting_list(params, 'resnet')]
+    # write_posting_lists(params, posting_list_data, 'resent')
+    attrib_config = get_lfw_dr_config()
+    print(attrib_config)
 
 
 

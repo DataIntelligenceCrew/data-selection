@@ -290,10 +290,7 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
 
     
     '''
-    TODO: generate metadata on the fly, use the following to pass params to the utils_algo function
-        params = lambda : None 
-        params.dataset = 'cifar10'
-        params.coverage_threshold = 0.9
+    TODO: handle LFW dataset posting list and label_dict generation
     '''
     start_time = time.time()
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
@@ -308,18 +305,28 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
         posting_list[key] = arr
 
     # class labels for points
-    labels = label_file.readlines()
-    labels_dict = dict()    
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
-            arr[label] = 1
-            labels_dict[key] = arr
+    if dataset_name == 'lfw':
+        location = '/localdisk3/data-selection/data/metadata/lfw/labels.obj'
+        f = open(location, 'rb')
+        data = pickle.load(f)
+        f.close()
+        labels_dict = dict()
+        for key, value in data.items():
+            labels_dict[key] = np.array(value)
+    else:
+        labels = label_file.readlines()
+        labels_dict = dict()    
+        for l in labels:
+            txt = l.split(':')
+            key = int(txt[0].strip())
+            label = int(txt[1].strip())
+            if key in posting_list:
+                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr[label] = 1
+                labels_dict[key] = arr
     
-    label_file.close()
+        label_file.close()
+
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
