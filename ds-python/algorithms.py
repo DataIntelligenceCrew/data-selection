@@ -7,10 +7,12 @@ import time
 import random
 import numpy as np
 import os
+from lfw_dataset import get_row, load_from_disk
 from paths import *
 import faiss
 from utils_algo import *
 import copy
+from lfw_dataset import *
 
 def calculate_cscore(solution, posting_list, delta_size=50000):
     cmatrix = np.zeros(shape=(len(solution), delta_size))
@@ -205,27 +207,8 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         params.coverage_threshold = 0.9
     '''
     start_time = time.time()
-    # location = POSTING_LIST_LOC.format(dataset_name, cov_threshold, 1)
-    # posting_list_filepath = location + 'posting_list_alexnet.txt'
-    # posting_list_file = open(posting_list_filepath, 'r')
-    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
-
-    # generate posting list map
-    # posting_list = dict()
-    # delta = set()
-    # lines = posting_list_file.readlines()
-    # delta_size = dataset_size
-    # for line in lines:
-    #     pl = line.split(':')
-    #     key = int(pl[0])
-    #     value = pl[1].split(',')
-    #     value = [int(v.replace("{", "").replace("}", "").strip()) for v in value]
-    #     arr = np.zeros(delta_size)
-    #     arr[value] = 1
-    #     posting_list[key] = arr
-    #     delta.add(key)
     delta_size = dataset_size
+    print(delta_size)
     delta = set(posting_list.keys())
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
@@ -233,27 +216,38 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         posting_list[key] = arr
 
     # class labels for points
-    labels = label_file.readlines()
-    labels_dict = dict()    
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
-            arr[label] = 1
-            labels_dict[key] = arr
+    if dataset_name == 'lfw':
+        data, attributes = load_from_disk()
+        labels_dict = dict()
+        for i in range(delta_size):
+            labels_dict[i] = np.array(get_row(i, attributes, data)[2:])
+    else:
+        label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+        label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+        labels = label_file.readlines()
+        labels_dict = dict()    
+        for l in labels:
+            txt = l.split(':')
+            key = int(txt[0].strip())
+            label = int(txt[1].strip())
+            if key in posting_list:
+                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr[label] = 1
+                labels_dict[key] = arr
     
-    label_file.close()
+        label_file.close()
+
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set 
     # main loop
+    iters = 0
     while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):
+            print(iters)
             p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
             if p_score > max_score:
                 max_score = p_score
@@ -266,7 +260,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         solution.add(best_point)
         CC = np.subtract(CC, posting_list[best_point])
         GC = np.subtract(GC, labels_dict[best_point])
-
+        iters += 1
     end_time = time.time()
     print(len(solution)) 
     cscore = calculate_cscore(solution, posting_list, delta_size)
@@ -290,17 +284,14 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
 
     
     '''
-    TODO: generate metadata on the fly, use the following to pass params to the utils_algo function
-        params = lambda : None 
-        params.dataset = 'cifar10'
-        params.coverage_threshold = 0.9
+    TODO: handle LFW dataset posting list and label_dict generation
     '''
     start_time = time.time()
-    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+   
 
 
     delta_size = dataset_size
+    print(delta_size)
     delta = set(posting_list.keys())
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
@@ -308,28 +299,39 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
         posting_list[key] = arr
 
     # class labels for points
-    labels = label_file.readlines()
-    labels_dict = dict()    
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
-            arr[label] = 1
-            labels_dict[key] = arr
+    if dataset_name == 'lfw':
+        data, attributes = load_from_disk()
+        labels_dict = dict()
+        for i in range(delta_size):
+            labels_dict[i] = np.array(get_row(i, attributes, data)[2:])
+    else:
+        label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+        label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+        labels = label_file.readlines()
+        labels_dict = dict()    
+        for l in labels:
+            txt = l.split(':')
+            key = int(txt[0].strip())
+            label = int(txt[1].strip())
+            if key in posting_list:
+                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr[label] = 1
+                labels_dict[key] = arr
     
-    label_file.close()
+        label_file.close()
+
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
     GC = np.array(distribution_req) # group count tracker
     solution = set() # solution set
     stch = 500 # stochastic step size 
     # main loop
+    iters = 0
     while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         stochastic_sample = random.sample(delta.difference(solution), stch)
+        print(iters)
         for p in stochastic_sample:
             p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
             if p_score > max_score:
@@ -343,6 +345,7 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
         solution.add(best_point)
         CC = np.subtract(CC, posting_list[best_point])
         GC = np.subtract(GC, labels_dict[best_point])
+        iters += 1
 
     end_time = time.time()
     print(len(solution)) 
