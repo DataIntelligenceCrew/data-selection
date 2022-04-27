@@ -220,7 +220,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         data, attributes = load_from_disk()
         labels_dict = dict()
         for i in range(delta_size):
-            labels_dict[i] = np.array(get_row(i, attributes, data)[2:])
+            labels_dict[i] = np.array(get_row(i, attributes, data)[3:])
     else:
         label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
         label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
@@ -247,7 +247,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):
-            print(iters)
+            # print(iters)
             p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
             if p_score > max_score:
                 max_score = p_score
@@ -331,7 +331,7 @@ def stochastic_greedyNC(coverage_factor, distribution_req, dataset_name, dataset
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         stochastic_sample = random.sample(delta.difference(solution), stch)
-        print(iters)
+        # print(iters)
         for p in stochastic_sample:
             p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
             if p_score > max_score:
@@ -360,18 +360,72 @@ def random_algo(labels_dict, distribution_req):
     for key, value in labels_dict.items():
         coreset += random.sample(value, distribution_req)
     end_time = time.time()
-    return set(coreset), 0, (start_time-end_time)
+    return set(coreset), 0, (end_time-start_time)
+
+def random_algo_lfw(distribution_req):
+    data, attributes = load_from_disk()
+    coreset = []
+    for i, e in enumerate(distribution_req):
+        if  e > 0:
+            label_points = [idx for idx, en in enumerate(data[attributes[i]]) if en == 1]
+            if e > len(label_points):
+                coreset += random.sample(label_points, e)
+            else:
+                coreset += label_points
+    return set(coreset), 0, 0
+
+
 
 def herding(dataset_name, coverage_factor, distribution_req, dataset_size, 
             cov_threshold):
     pass
 
-def k_center(dataset_name, coverage_factor, distribution_req, dataset_size, 
-             cov_threshold):
-    pass
+def k_centers_group(coverage_factor, distribution_req, dataset_name, partitions, cov_threshold, model_name, part_id, q):
+    # TODO: K-means for each group based on the distribution requirements 
+
+    # generate the NxN distance matrix for each label group 
+    # get the points for that group
+    start_time = time.time()
+    location = POSTING_LIST_LOC_GROUP.format(dataset_name, cov_threshold, partitions, model_name)
+    posting_list_filepath = location + 'posting_list_' + str(part_id) + '.txt'
+    posting_list_file = open(posting_list_filepath, 'r')    
+    delta = list()
+    lines = posting_list_file.readlines()
+    for line in lines:
+        pl = line.split(':')
+        key = int(pl[0])
+        delta.append(key)    
+    
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(dataset_name, model_name), 'rb'))
+    fv_partitions = np.take(feature_vectors, delta, 0)
+
+    # get the distance matrix for the fv_partitions
+    from scipy.spatial.distance import cdist 
+    distance_matrix = cdist(fv_partitions, fv_partitions, metric='euclidean')
+    temp_dist = [float("inf")] * len(delta)
+    centers = list()
+
+    curr_center = random.randint(0, len(delta) - 1)
+    for i in range(distribution_req):
+        centers.append(curr_center)
+        for j in range(len(delta)):
+            # update the distance of the points to their closest centers
+            temp_dist[j] = min(temp_dist[j], distance_matrix[curr_center][j])
+        # print(centers)
+        # get new center point, that maximizes the min distance
+        mi = 0
+        for k in range(len(delta)):
+            if (temp_dist[k] > temp_dist[mi]):
+                curr_center = i
+    
+    end_time = time.time()
+    coreset = [delta[i] for i in centers]
+    response_time = end_time - start_time    
+    q.put((set(coreset), 0, response_time))
+
 
 def bandit_algorithm(coverage_factor, distribution_req, dataset_name, 
-                     dataset_size, cov_threshold, model_name):
+                     dataset_size, posting_list):
     # These constants can be adjusted
     max_iter = 50
     '''
@@ -390,14 +444,8 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
         time taken
     '''
     start_time = time.time()
-    label_file = label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
-    
     delta_size = dataset_size
-    params = lambda : None
-    params.dataset = dataset_name
-    params.coverage_threshold = cov_threshold
-    posting_list = get_full_data_posting_list(params, model_name)
+    print(delta_size)
     delta = set(posting_list.keys())
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
@@ -405,20 +453,26 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
         posting_list[key] = arr
 
     # class labels for points
-    labels = label_file.readlines()
-    labels_dict = dict()
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
-            arr[label] = 1
-            labels_dict[key] = arr
-    label_file.close()
-
-    mid_time = time.time()
-    print('Time Taken for metadata loading:{0}'.format(mid_time - start_time))
+    if dataset_name == 'lfw':
+        data, attributes = load_from_disk()
+        labels_dict = dict()
+        for i in range(delta_size):
+            labels_dict[i] = np.array(get_row(i, attributes, data)[3:])
+    else:
+        label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+        label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+        labels = label_file.readlines()
+        labels_dict = dict()    
+        for l in labels:
+            txt = l.split(':')
+            key = int(txt[0].strip())
+            label = int(txt[1].strip())
+            if key in posting_list:
+                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr[label] = 1
+                labels_dict[key] = arr
+    
+        label_file.close()
 
     not_satisfied = list(delta)
     CC = np.empty(delta_size) # coverage tracker
@@ -450,7 +504,7 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
         #print("GC", str(GC))
         not_satisfied = list(filter(lambda p : CC[p] + distritbution_score(GC, labels_dict[p]) > 0, not_satisfied))
         # For testing
-        print(str(len(solution)), "len(a):", str(len(actions)), "len(ns): ", str(len(not_satisfied)))
+        # print(str(len(solution)), "len(a):", str(len(actions)), "len(ns): ", str(len(not_satisfied)))
     
     end_time = time.time()
     print(len(solution))

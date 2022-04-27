@@ -1,13 +1,15 @@
 #!/bin/sh
 
 
-for DIST_REQ in 50 100 200 300 400 500
+for DIST_REQ in 50 100 200 300 400 500 600 700 800 900 
 do
-    python3 ../main_algo.py \
-            --dataset 'cifar10' \
-            --coverage_threshold 0.9 \
-            --partitions 10 \
-            --algo_type 'greedyNC' \
-            --coverage_factor 30 \
-            --distribution_req $DIST_REQ 
+    for ALG in 'greedyNC' 'MAB' 'greedyC_group' 'greedyC_random' 'random'
+    do
+        python3 ../main_algo.py \
+                --coverage_threshold 0.9 \
+                --partitions 10 \
+                --algo_type $ALG \
+                --coverage_factor 0 \
+                --distribution_req $DIST_REQ 
+    done
 done

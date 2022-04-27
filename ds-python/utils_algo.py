@@ -72,7 +72,7 @@ def get_full_data_posting_list(params, model_name):
     batch_size = 1000
     for i in range(0, xb.shape[0], batch_size):
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
-        print(i)
+        # print(i)
         try:
             for j in range(batch_size):
                 # print(j)

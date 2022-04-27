@@ -11,22 +11,50 @@ from algorithms import *
 from paths import *
 from utils_algo import *
 
-def run_algo(params):
+LFW_LABELS = {'Asian' : 0, 
+              'White' : 1, 
+              'Black' : 2, 
+              'Baby' : 3, 
+              'Child' : 4, 
+              'Youth' : 5, 
+              'Middle Aged' : 6,
+              'Senior' : 7, 
+              'Indian' : 56
+            }
+            
+def run_algo(params, dr=None):
+    print('Running Algorithm: {0}\nDataset:{1}\nDistribution Requirement:{2}\nCverage Factor:{3}\nCoverage Threshold:{4}\n'.format(
+            params.algo_type,
+            params.dataset,
+            params.distribution_req,
+            params.coverage_factor,
+            params.coverage_threshold
+        ))
+
     solution_data = []
     # TODO: add other methods
     labels = generate_from_db()
     if params.algo_type == 'greedyNC':
-        if params.dataset == 'lfw':
-            dist_req = get_lfw_dr_config()
+        if params.dataset.lower() == 'lfw':
+            # dist_req = get_lfw_dr_config()
+            # dist_req = [params.distribution_req] * params.num_classes
+            dist_req = [0] * params.num_classes
+            for idx in LFW_LABELS.values():
+                dist_req[idx] = params.distribution_req
+
         else:
             dist_req = [params.distribution_req] * params.num_classes
+        if dr:
+            dist_req = dr
+
         posting_list = get_full_data_posting_list(params, params.model_type)    
         s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list)
         solution_data.append((s, cscore, res_time))
     
     elif params.algo_type == 'stochastic_greedyNC':
         if params.dataset == 'lfw':
-            dist_req = get_lfw_dr_config()
+            # dist_req = get_lfw_dr_config()
+            dist_req = [params.distribution_req] * params.num_classes
         else:
             dist_req = [params.distribution_req] * params.num_classes
         posting_list = get_full_data_posting_list(params, params.model_type)    
@@ -57,12 +85,26 @@ def run_algo(params):
             p.join()
     
     elif params.algo_type == 'random':
-        s, cscore, res_time = random_algo(labels, params.distribution_req)
+        if params.dataset == 'lfw':
+            dist_req = [0] * params.num_classes
+            for idx in LFW_LABELS.values():
+                dist_req[idx] = params.distribution_req
+            s, cscore, res_time = random_algo_lfw(dist_req)
+        else:
+            s, cscore, res_time = random_algo(labels, params.distribution_req)
         solution_data.append((s, cscore, res_time))
 
+
     elif params.algo_type == 'MAB':
-        dist_req = [params.distribution_req] * params.num_classes 
-        s, cscore, res_time = bandit_algorithm(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, params.model_type)
+        if params.dataset.lower() == 'lfw':
+            # dist_req = get_lfw_dr_config()
+            # dist_req = [params.distribution_req] * params.num_classes
+            dist_req = [0] * params.num_classes
+            for idx in LFW_LABELS.values():
+                dist_req[idx] = params.distribution_req
+        dist_req = [params.distribution_req] * params.num_classes
+        posting_list = get_full_data_posting_list(params, params.model_type)
+        s, cscore, res_time = bandit_algorithm(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list)
         solution_data.append((s, cscore, res_time))
     
     elif params.algo_type == 'greedyC_group':
@@ -86,6 +128,25 @@ def run_algo(params):
         # delete all spawned processes
         for p in processes:
             p.join()
+    elif params.algo_type == 'k_centers_group':
+        dist_req = params.distribution_req
+        q = multiprocessing.Queue()
+        process = []
+        for i in range(params.partitions):
+            p = multiprocessing.Process(
+                target=k_centers_group,
+                args=(params.coverage_factor, dist_req, params.dataset, params.partitions, params.coverage_threshold, params.model_type, i, q)
+            )
+            process.append(p)
+            p.start()
+        
+        for p in process:
+            sol_data = q.get()
+            solution_data.append(sol_data)
+        
+        for p in process:
+            p.join()
+        
     # calculate metrics
     coreset = set()
     cscores = 0
@@ -122,13 +183,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # data selection parameters
-    parser.add_argument('--dataset', type=str, default='lfw', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='stochastic_greedyNC', help='which algorithm to use')
-    parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
+    parser.add_argument('--algo_type', type=str, default='k_centers_group', help='which algorithm to use')
+    parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
+    parser.add_argument('--model_type', type=str, default='resnet', help='model used to produce the feature_vector')
     params = parser.parse_args()
     
     if params.dataset == 'mnist':
@@ -145,20 +206,22 @@ if __name__ == "__main__":
         params.num_classes = 100
     elif params.dataset == 'lfw':
         params.dataset_size = 13143
-        params.num_classes = 73
-    #run_algo(params)
+        params.num_classes = 72
     
-    # run_algo(params)
+
+
+    
+    run_algo(params)
     # distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
-    distribution_req = [0]
+    # distribution_req = [0]
     
-    for i in distribution_req:
-        params.distribution_req = i
-        print('Running Algorithm:{0}\tDataset:{1}\tDR:{2}\tCF:{3}\tModel_FV:{4}\n'.format(
-            params.algo_type,
-            params.dataset,
-            params.distribution_req,
-            params.coverage_factor,
-            params.model_type
-        ))
-        run_algo(params)
+    # for i in distribution_req:
+    #     params.distribution_req = i
+    #     print('Running Algorithm:{0}\tDataset:{1}\tDR:{2}\tCF:{3}\tModel_FV:{4}\n'.format(
+    #         params.algo_type,
+    #         params.dataset,
+    #         params.distribution_req,
+    #         params.coverage_factor,
+    #         params.model_type
+    #     ))
+    #     run_algo(params)

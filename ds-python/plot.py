@@ -4,12 +4,14 @@ from os.path import join, isfile
 import argparse
 import os
 from paths import *
+from lfw_dataset import *
 from itertools import islice
 import pandas as pd 
 import seaborn as sns 
+import csv
 
 distribution_req = [50,100,200,300,400,500,600,700,800,900]
-# distribution_req = [50, 100, 200, 300, 400, 500, 600]
+# distribution_req = [0, 5, 10, 15, 20, 25, 30, 40, 45, 50]
 
 def get_output_filename(params, i, algo_type):
     return METRIC_FILE.format(params.dataset, params.coverage_factor, i, algo_type, params.model_type)
@@ -153,6 +155,46 @@ def plot_score(data, params):
     plt.clf()
     plt.cla()
 
+def generate_csv_dict(coreset_data, params):
+    csv_data_size = {}
+    csv_data_time = {}
+    for key, value in coreset_data.items():
+        size_y = [v["solution_size"]/params.dataset_size for v in value]
+        time_y = [v["response_time"] for v in value]
+        csv_data_size[key] = size_y
+        csv_data_time[key] = time_y
+
+    print('Coreset Size Data for {0}'.format(params.dataset))
+    for key, value in csv_data_size.items():
+        print(key + ' : ' + str(value))
+    print()
+    print('Coreset Time Data for {0}'.format(params.dataset))
+    for key, value in csv_data_time.items():
+        print(key + ' : ' + str(value))
+
+
+def generate_csv_ml_data(model_data, params):
+    csv_model_acc = {}
+    csv_model_train_time = {}
+    for key, value in model_data.items():
+        acc_y = []
+        stdev_y = []
+        time_y = []
+        for m in value:
+            time_y.append(m[1][0])
+            acc_y.append(m[1][2])
+            stdev_y.append(m[1][3])
+        test_acc_stdev = [str(a) + ' - ' + str(s) for a,s in zip(acc_y, stdev_y)]
+        csv_model_acc[key] = test_acc_stdev
+        csv_model_train_time[key] = time_y
+    
+    print('ML Acc Data for {0}'.format(params.dataset))
+    for key, value in csv_model_acc.items():
+        print(key + ' : ' + str(value))
+    print()
+    print('ML Train Time Data for {0}'.format(params.dataset))
+    for key, value in csv_model_train_time.items():
+        print(key + ' : ' + str(value))
 
 def plot_coreset_metrics(data, params):
     for key, value in data.items():
@@ -238,13 +280,51 @@ def plot_class_wise_acc(data, params):
         plt.clf()
 
 
+def plot_tsne():
+    from sklearn.manifold import TSNE
+    data, attributes = load_from_disk()
+    lfw = np.zeros((13143, 3))
+    lfw_y = np.zeros(13143)
+    for i in range(13143):
+        # need to only get particular feature and it's label
+        '''
+        "Asian": 0,
+        "White": 1,
+        "Black": 2,
+        '''
+        lfw[i] = get_row(i, attributes, data)[3:6]
+        if lfw[i][0] == 1:
+            label = 0
+        elif lfw[i][1] == 1:
+            label = 1
+        else:
+            label = 2
+        
+        lfw_y[i] = label
+
+    tsne = TSNE(n_components=2, verbose=1, random_state=123)
+    z = tsne.fit_transform(lfw)
+    df = pd.DataFrame()
+    df["y"] = lfw_y 
+    df["comp-1"] = z[:, 0]
+    df["comp-2"] = z[:, 1]
+    sns.scatterplot(x="comp-1", y="comp-2", hue=df.y.tolist(), palette=sns.color_palette('hls', 3), data=df)
+    plt.show()
+    plt.savefig('./figures/tsne_lfw.png')
+    plt.cla()
+    plt.clf()
+
+
+# def plot_gender_detection(params):
+#     raise NotImplementedError
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
-    parser.add_argument('--coverage_threshold', type=float, default=0.85, help='coverage threshold to generate metadata')
+    parser.add_argument('--dataset', type=str, default='lfw', help='dataset to use')
+    parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet', help='model used for generating feature vectors')
+    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used for generating feature vectors')
     params = parser.parse_args()
     if params.dataset == 'mnist':
         params.dataset_size = 60000
@@ -258,58 +338,61 @@ if __name__=="__main__":
     elif params.dataset == 'cifar100':
         params.dataset_size = 50000
         params.num_classes = 100
+    elif params.dataset == 'lfw':
+        params.dataset_size = 13143
+        params.num_classes = 2
     
-    
 
-
-
-    greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random') for i in distribution_req]
+    # greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random') for i in distribution_req]
     greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
-    greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
-    random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
-    bandit_metric_files = [get_output_filename(params, i, 'MAB') for i in distribution_req]
-    stochastic_greedyNC_metric_files = [get_output_filename(params, i, 'stochastic_greedyNC') for i in distribution_req]
+    # greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
+    # random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
+    # bandit_metric_files = [get_output_filename(params, i, 'MAB') for i in distribution_req]
+    # stochastic_greedyNC_metric_files = [get_output_filename(params, i, 'stochastic_greedyNC') for i in distribution_req]
 
 
 
     coreset_data = { 
-        'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
+        # 'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
         'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
-        'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
-        'random' : [get_metrics(f) for f in random_metric_files],
-        'MAB' : [get_metrics(f) for f in bandit_metric_files],
-        'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files]
+        # 'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
+        # 'random' : [get_metrics(f) for f in random_metric_files],
+        # 'MAB' : [get_metrics(f) for f in bandit_metric_files],
+        # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files]
     }
 
     model_data = { 
-        'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
+        # 'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
         'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
-        'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
-        'random' : [find_best_model(f) for f in random_metric_files],
-        'MAB' : [find_best_model(f) for f in bandit_metric_files],
-        'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files]
+        # 'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
+        # 'random' : [find_best_model(f) for f in random_metric_files],
+        # 'MAB' : [find_best_model(f) for f in bandit_metric_files],
+        # 'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files]
     }
 
-    score_data = { 
-        'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
-        'greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['greedyNC'], model_data['greedyNC'])],
-        'greedyC_group' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_group'], model_data['greedyC_group'])],
-        'random' : [score_method(a, m, params) for a,m in zip(coreset_data['random'], model_data['random'])],
-        'MAB' : [score_method(a, m, params) for a,m in zip(coreset_data['MAB'], model_data['MAB'])],
-        'stochastic_greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['stochastic_greedyNC'], model_data['stochastic_greedyNC'])]
-    }
+    # score_data = { 
+    #     'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
+    #     'greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['greedyNC'], model_data['greedyNC'])],
+    #     'greedyC_group' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_group'], model_data['greedyC_group'])],
+    #     'random' : [score_method(a, m, params) for a,m in zip(coreset_data['random'], model_data['random'])],
+    #     'MAB' : [score_method(a, m, params) for a,m in zip(coreset_data['MAB'], model_data['MAB'])],
+    #     'stochastic_greedyNC': [score_method(a, m, params) for a,m in zip(coreset_data['stochastic_greedyNC'], model_data['stochastic_greedyNC'])]
+    # }
     
-    # algo_type : [[class_wise_acc for dist = i] for i in distritbution_req]
-    class_wise_accuracy_data = {
-        'greedyC_random': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files],
-        'greedyC_group' : [get_class_wise_accuracy(f, params) for f in greedyC_group_metric_files],
-        'greedyNC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
-        'random' : [get_class_wise_accuracy(f, params) for f in random_metric_files],
-        'MAB' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files],
-        'stochastic_greedyNC' : [get_class_wise_accuracy(f, params) for f in stochastic_greedyNC_metric_files]
-    }
+    # # algo_type : [[class_wise_acc for dist = i] for i in distritbution_req]
+    # class_wise_accuracy_data = {
+        # 'greedyC_random': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files],
+        # 'greedyC_group' : [get_class_wise_accuracy(f, params) for f in greedyC_group_metric_files],
+        # 'greedyNC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
+        # 'random' : [get_class_wise_accuracy(f, params) for f in random_metric_files],
+        # 'MAB' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files],
+        # 'stochastic_greedyNC' : [get_class_wise_accuracy(f, params) for f in stochastic_greedyNC_metric_files]
+    # }
 
-    plot_coreset_metrics(data=coreset_data, params=params)
-    plot_ml_metrics(data=model_data, params=params)
-    plot_score(data=score_data, params=params)
-    plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
+    # plot_coreset_metrics(data=coreset_data, params=params)
+    # plot_ml_metrics(data=model_data, params=params)
+    # plot_score(data=score_data, params=params)
+    # plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
+    # plot_tsne()
+    generate_csv_dict(coreset_data, params)
+    generate_csv_ml_data(model_data, params)
