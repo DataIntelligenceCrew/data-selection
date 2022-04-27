@@ -404,18 +404,23 @@ def bandit_algorithm(coverage_factor, distribution_req, dataset_name,
         arr[list(value)] = 1
         posting_list[key] = arr
 
-    # class labels for points
-    labels = label_file.readlines()
-    labels_dict = dict()
-    for l in labels:
-        txt = l.split(':')
-        key = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
-            arr[label] = 1
-            labels_dict[key] = arr
-    label_file.close()
+    if dataset_name == 'lfw':
+        data, attributes = load_from_disk()
+        labels_dict = dict()
+        for i in range(delta_size):
+            labels_dict[i] = np.array(get_row(i, attributes, data)[2:])
+    else:
+        labels = label_file.readlines()
+        labels_dict = dict()
+        for l in labels:
+            txt = l.split(':')
+            key = int(txt[0].strip())
+            label = int(txt[1].strip())
+            if key in posting_list:
+                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr[label] = 1
+                labels_dict[key] = arr
+        label_file.close()
 
     mid_time = time.time()
     print('Time Taken for metadata loading:{0}'.format(mid_time - start_time))
