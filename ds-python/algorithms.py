@@ -376,10 +376,6 @@ def random_algo_lfw(distribution_req):
 
 
 
-def herding(dataset_name, coverage_factor, distribution_req, dataset_size, 
-            cov_threshold):
-    pass
-
 def k_centers_group(coverage_factor, distribution_req, dataset_name, partitions, cov_threshold, model_name, part_id, q):
     # TODO: K-means for each group based on the distribution requirements 
 
@@ -416,7 +412,9 @@ def k_centers_group(coverage_factor, distribution_req, dataset_name, partitions,
         mi = 0
         for k in range(len(delta)):
             if (temp_dist[k] > temp_dist[mi]):
-                curr_center = i
+                mi = k
+
+        curr_center = mi
     
     end_time = time.time()
     coreset = [delta[i] for i in centers]

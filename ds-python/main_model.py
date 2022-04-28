@@ -229,7 +229,7 @@ def class_wise_test_acc(model, params):
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model', type=str, default="resnet34", help="model type")
+    parser.add_argument('--model', type=str, default="convnet", help="model type")
     
     # params for ConvNet
     parser.add_argument('--net_width', type=int, default=256)
@@ -252,7 +252,7 @@ if __name__=="__main__":
     parser.add_argument('--coverage_factor', type=int, default=30)
     parser.add_argument('--distribution_req', type=int, default=500)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
-    parser.add_argument('--model_type', type=str, default='resnet-18')
+    parser.add_argument('--model_type', type=str, default='resnet')
     # parse all parameters
     params = parser.parse_args()
 

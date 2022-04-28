@@ -1,8 +1,8 @@
 #!/bin/sh
 
-for DIST_REQ in 50 100 200 300 400 500 600 700 800 900
+for DIST_REQ in 50 100 200 300 400 500 600 700 800 900 
 do
-    for ALG in 'stochastic_greedyNC'
+    for ALG in 'k_centers_group'
     do
         python3 ../utils_models.py --dataset 'cifar10' \
                                --coverage_threshold 0.9 \

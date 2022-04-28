@@ -11,7 +11,7 @@ import seaborn as sns
 import csv
 
 distribution_req = [50,100,200,300,400,500,600,700,800,900]
-# distribution_req = [0, 5, 10, 15, 20, 25, 30, 40, 45, 50]
+# distribution_req = [10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 def get_output_filename(params, i, algo_type):
     return METRIC_FILE.format(params.dataset, params.coverage_factor, i, algo_type, params.model_type)
@@ -160,7 +160,7 @@ def generate_csv_dict(coreset_data, params):
     csv_data_time = {}
     for key, value in coreset_data.items():
         size_y = [v["solution_size"]/params.dataset_size for v in value]
-        time_y = [v["response_time"] for v in value]
+        time_y = [v["response_time"]/60 for v in value]
         csv_data_size[key] = size_y
         csv_data_time[key] = time_y
 
@@ -320,11 +320,11 @@ def plot_tsne():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='lfw', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used for generating feature vectors')
+    parser.add_argument('--model_type', type=str, default='resnet', help='model used for generating feature vectors')
     params = parser.parse_args()
     if params.dataset == 'mnist':
         params.dataset_size = 60000
@@ -344,30 +344,32 @@ if __name__=="__main__":
     
 
     # greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random') for i in distribution_req]
-    greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
+    # greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC') for i in distribution_req]
     # greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
     # random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
     # bandit_metric_files = [get_output_filename(params, i, 'MAB') for i in distribution_req]
     # stochastic_greedyNC_metric_files = [get_output_filename(params, i, 'stochastic_greedyNC') for i in distribution_req]
-
+    k_centers_group_metric_files = [get_output_filename(params, i, 'k_centers_group') for i in distribution_req]
 
 
     coreset_data = { 
         # 'greedyC_random' : [get_metrics(f) for f in greedyC_random_metrics_files],
-        'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
+        # 'greedyNC': [get_metrics(f) for f in greedyNC_metrics_files],
         # 'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
         # 'random' : [get_metrics(f) for f in random_metric_files],
         # 'MAB' : [get_metrics(f) for f in bandit_metric_files],
-        # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files]
+        # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files],
+        'k_centers_group' : [get_metrics(f) for f in k_centers_group_metric_files]
     }
 
     model_data = { 
         # 'greedyC_random' : [find_best_model(f) for f in greedyC_random_metrics_files],
-        'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
+        # 'greedyNC': [find_best_model(f) for f in greedyNC_metrics_files],
         # 'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
         # 'random' : [find_best_model(f) for f in random_metric_files],
         # 'MAB' : [find_best_model(f) for f in bandit_metric_files],
-        # 'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files]
+        # 'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files],
+        'k_centers_group' : [find_best_model(f) for f in k_centers_group_metric_files]
     }
 
     # score_data = { 
@@ -395,4 +397,5 @@ if __name__=="__main__":
     # plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
     # plot_tsne()
     generate_csv_dict(coreset_data, params)
+    print()
     generate_csv_ml_data(model_data, params)
