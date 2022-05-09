@@ -1,13 +1,16 @@
 #!/bin/sh
 
-for DIST_REQ in 50 100 200 300 400 500 600 700 800 900 
+for DIST in 200 300 400 500 600 700 800 900 100
 do
-    for ALG in 'k_centers_group'
+    for CF in 0 30
     do
-        python3 ../main_model.py --dataset 'cifar10' \
-                               --partitions 10 \
-                               --algo_type $ALG \
-                               --coverage_factor 30 \
-                               --distribution_req $DIST_REQ
+        for ALG in 'greedyNC' 'greedyC_random' 'k_centersNC' 'MAB'
+        do
+            python3 ../main_model.py --dataset 'mnist' \
+                                --partitions 10 \
+                                --algo_type $ALG \
+                                --coverage_factor $CF \
+                                --distribution_req $DIST
+        done
     done
 done

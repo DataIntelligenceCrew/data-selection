@@ -241,18 +241,18 @@ if __name__=="__main__":
     # params for model training
     parser.add_argument('--num_runs', type=int, default=20, help="number of runs for model testing")
     parser.add_argument('--num_epochs', type=int, default=100, help="Number of training epochs")
-    parser.add_argument('--batch_size', type=int, default=128, help="batch size for model training")
-    parser.add_argument('--lr', type=float, default=0.0001, help="learning rate for model training")
+    parser.add_argument('--batch_size', type=int, default=64, help="batch size for model training")
+    parser.add_argument('--lr', type=float, default=0.005, help="learning rate for model training")
     parser.add_argument('--seed', type=int, default=1234, help="seed to init torch")
 
     # params for data description
-    parser.add_argument('--dataset', type=str, default="lfw")
+    parser.add_argument('--dataset', type=str, default="mnist")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyNC")
+    parser.add_argument('--algo_type', type=str, default="MAB")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=500)
+    parser.add_argument('--distribution_req', type=int, default=200)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
-    parser.add_argument('--model_type', type=str, default='resnet')
+    parser.add_argument('--model_type', type=str, default='resnet-18')
     # parse all parameters
     params = parser.parse_args()
 

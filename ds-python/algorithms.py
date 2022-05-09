@@ -113,7 +113,7 @@ def greedyC_group(part_id, coverage_factor, distribution_req, q, dataset_name, p
     response_time = end_time - start_time
     q.put((solution, cscore, response_time))
 
-def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_size, partition_data, model_name, coveragae_threshold):
+def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_size, partition_data, model_name, coveragae_threshold, num_classes):
     '''
     Computes the greedy fair set cover for the given partition
     @params
@@ -129,7 +129,7 @@ def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_s
     '''
     start_time = time.time()
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-    label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+    # label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
     
 
     params = lambda : None
@@ -150,7 +150,7 @@ def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_s
         key = int(txt[0].strip())
         label = int(txt[1].strip())
         if key in posting_list:
-            arr = np.zeros(len(label_ids_to_name.keys()))
+            arr = np.zeros(num_classes)
             arr[label] = 1
             labels_dict[key] = arr
     
@@ -176,6 +176,8 @@ def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_s
         solution.add(best_point)
         CC = np.subtract(CC, posting_list[best_point])
         GC = np.subtract(GC, labels_dict[best_point])
+        if coverage_factor == 0:
+            CC = np.clip(np.subtract(CC, posting_list[best_point]), 0, None)
 
     end_time = time.time()
     print(len(solution))
@@ -185,7 +187,7 @@ def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_s
     # return solution, posting_list
 
 
-def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, posting_list):
+def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, posting_list, num_classes):
     '''
     Computes the greedy fair set cover for the entire dataset
     @params
@@ -223,7 +225,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
             labels_dict[i] = np.array(get_row(i, attributes, data)[3:])
     else:
         label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
-        label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
+        # label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
         labels = label_file.readlines()
         labels_dict = dict()    
         for l in labels:
@@ -231,7 +233,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
             key = int(txt[0].strip())
             label = int(txt[1].strip())
             if key in posting_list:
-                arr = np.zeros(len(label_ids_to_name.keys()))
+                arr = np.zeros(num_classes)
                 arr[label] = 1
                 labels_dict[key] = arr
     
@@ -258,8 +260,12 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
             break
 
         solution.add(best_point)
+        
         CC = np.subtract(CC, posting_list[best_point])
         GC = np.subtract(GC, labels_dict[best_point])
+        if coverage_factor == 0:
+            CC = np.clip(np.subtract(CC, posting_list[best_point]), 0, None)
+        
         iters += 1
     end_time = time.time()
     print(len(solution)) 
@@ -420,6 +426,35 @@ def k_centers_group(coverage_factor, distribution_req, dataset_name, partitions,
     coreset = [delta[i] for i in centers]
     response_time = end_time - start_time    
     q.put((set(coreset), 0, response_time))
+
+
+def k_centersNC(k, dataset_name, dataset_size, model_name):
+    start_time = time.time()
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(dataset_name, model_name), 'rb'))
+    from scipy.spatial.distance import cdist
+    distance_matrix = cdist(feature_vectors, feature_vectors, metric='euclidean')
+    temp_dist = [float("inf")] * dataset_size
+    centers = list()
+
+    curr_center = random.randint(0, dataset_size - 1)
+    for i in range(k):
+        centers.append(curr_center)
+        for j in range(dataset_size):
+            # update the distance of the points to their closest centers
+            temp_dist[j] = min(temp_dist[j], distance_matrix[curr_center][j])
+        # print(centers)
+        # get new center point, that maximizes the min distance
+        mi = 0
+        for k in range(dataset_size):
+            if (temp_dist[k] > temp_dist[mi]):
+                mi = k
+
+        curr_center = mi
+    
+    end_time = time.time()
+    coreset = set(centers)
+    response_time = end_time - start_time    
+    return coreset, 0, response_time
 
 
 def bandit_algorithm(coverage_factor, distribution_req, dataset_name, 

@@ -21,7 +21,23 @@ LFW_LABELS = {'Asian' : 0,
               'Senior' : 7, 
               'Indian' : 56
             }
-            
+
+
+def get_label_dict(dataset_name):
+    labels_dict = dict()
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    labels = label_file.readlines()
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        value = int(txt[1].strip())
+        if value not in labels_dict:
+            labels_dict[value] = list()
+        labels_dict[value].append(key)
+    
+    label_file.close()
+    return labels_dict
+
 def run_algo(params, dr=None):
     print('Running Algorithm: {0}\nDataset:{1}\nDistribution Requirement:{2}\nCverage Factor:{3}\nCoverage Threshold:{4}\n'.format(
             params.algo_type,
@@ -33,7 +49,7 @@ def run_algo(params, dr=None):
 
     solution_data = []
     # TODO: add other methods
-    labels = generate_from_db()
+    # labels = get_label_dict(params.dataset)
     if params.algo_type == 'greedyNC':
         if params.dataset.lower() == 'lfw':
             # dist_req = get_lfw_dr_config()
@@ -48,7 +64,7 @@ def run_algo(params, dr=None):
             dist_req = dr
 
         posting_list = get_full_data_posting_list(params, params.model_type)    
-        s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list)
+        s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
         solution_data.append((s, cscore, res_time))
     
     elif params.algo_type == 'stochastic_greedyNC':
@@ -70,7 +86,7 @@ def run_algo(params, dr=None):
         for i in range(params.partitions):
             p = multiprocessing.Process(
                 target=greedyC_random,
-                args=(params.coverage_factor, dist_req, q, params.dataset, params.dataset_size, partition_data[i], params.model_type, params.coverage_threshold)
+                args=(params.coverage_factor, dist_req, q, params.dataset, params.dataset_size, partition_data[i], params.model_type, params.coverage_threshold, params.num_classes)
             )
             processes.append(p)
             p.start()
@@ -146,7 +162,9 @@ def run_algo(params, dr=None):
         
         for p in process:
             p.join()
-        
+    elif params.algo_type == 'k_centersNC':
+        s, cscore, res_time = k_centersNC(params.k, params.dataset, params.dataset_size, params.model_type)
+        solution_data.append((s, cscore, res_time))
     # calculate metrics
     coreset = set()
     cscores = 0
@@ -189,7 +207,8 @@ if __name__ == "__main__":
     parser.add_argument('--algo_type', type=str, default='k_centers_group', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet', help='model used to produce the feature_vector')
+    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
+    parser.add_argument('--k', type=int, default=0, help='number of centers for k_centersNC')
     params = parser.parse_args()
     
     if params.dataset == 'mnist':
@@ -208,9 +227,31 @@ if __name__ == "__main__":
         params.dataset_size = 13143
         params.num_classes = 72
     
+    ## cifar10
+    # k_to_dr = { 1077 : 50,  
+    #             1743 : 100,
+    #             3296 : 200, 
+    #             4634 : 300, 
+    #             5945 : 400, 
+    #             7275 : 500, 
+    #             8525 : 600, 
+    #             9538 : 700,
+    #             10788 : 800, 
+    #             11985 : 900 }
 
+    ## lfw
+    k_to_dr = { 153 : 50,  
+                293 : 100,
+                543 : 200, 
+                769 : 300, 
+                984 : 400, 
+                1201 : 500, 
+                1457 : 600, 
+                1664 : 700,
+                1882 : 800, 
+                2086 : 900 }
 
-    
+    params.distribution_req = k_to_dr[params.k]
     run_algo(params)
     # distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
     # distribution_req = [0]

@@ -9,7 +9,7 @@ Test on Fairface test set.
 import os
 import random
 import torch
-import faiss
+# import faiss
 import pickle
 from os.path import isfile, isdir
 import statistics
@@ -22,7 +22,7 @@ import json
 import matplotlib.pyplot as plt
 from networks import * 
 from lfw_dataset import *
-from main_algo import *
+# from main_algo import *
 import csv
 # from torchvision.models import resnet
 from torch.utils.data import Dataset
@@ -62,11 +62,11 @@ def gather_training_images(params):
     print('# of Males in Coreset: {0}'.format(len(df_coreset_male)))
     print('# of Females in Coreset: {0}'.format(len(df_coreset_female)))
 
-    train_dir = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
-    os.makedirs(train_dir, exist_ok=True)
+    # train_dir = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
+    # os.makedirs(train_dir, exist_ok=True)
     # copy male images to train_dir/male/
-    copy_images_lfw('male/', df_coreset_male, train_dir)
-    copy_images_lfw('female/', df_coreset_female, train_dir)
+    # copy_images_lfw('male/', df_coreset_male, train_dir)
+    # copy_images_lfw('female/', df_coreset_female, train_dir)
     # copy female images to train_dir/female/
 
     # male_dest_path = os.path.join(train_dir, 'male/')
@@ -138,8 +138,8 @@ if __name__=='__main__':
     parser.add_argument('--dataset', type=str, default='lfw', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use')
-    parser.add_argument('--distribution_req', type=int, default=800, help='number of samples ')
+    parser.add_argument('--algo_type', type=str, default='k_centersNC', help='which algorithm to use')
+    parser.add_argument('--distribution_req', type=int, default=200, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
 
@@ -174,8 +174,11 @@ if __name__=='__main__':
   
     # generate_coreset(params)
     # make_data_frame(params)
+    # for i in [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
+    #     params.distribution_req = i
+    #     gather_training_images(params)
     gather_training_images(params)
-    print('Done for DR : {0}'.format(params.distribution_req))
+    # print('Done for DR : {0}'.format(params.distribution_req))
     # train_model(params)
     # make_fairface_testset(params)
 
