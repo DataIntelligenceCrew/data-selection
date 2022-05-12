@@ -68,7 +68,8 @@ SOLUTION_FILENAME = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}
 SOLUTION_FILENAME2 = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}.txt'
 METRIC_FILE_GROUP = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}.txt'
 SOLUTION_FILENAME_GROUP = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}.txt'
-
+NAS_EXP_FILE = '/localdisk3/data-selection/data/runs/metric_files/nas_dataset_{0}_dr_{1}.txt'
+FULL_DATA_RESULTS = '/localdisk3/data-selection/data/runs/metric_files/full_dataset_{0}.txt'
 # paths for metadata/
 FEATURE_VECTOR_LOC = '/localdisk3/data-selection/data/metadata/{0}/vectors-{1}'
 POSTING_LIST_LOC = '/localdisk3/data-selection/data/metadata/{0}/{1}/{2}/'

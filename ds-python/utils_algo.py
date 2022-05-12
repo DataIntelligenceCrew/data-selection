@@ -86,8 +86,8 @@ def write_posting_lists(params, posting_list_data, model_name):
     location = POSTING_LIST_LOC_GROUP.format(params.dataset, params.coverage_threshold, params.partitions, model_name)
     os.makedirs(location, exist_ok=True)
     for i in range(params.partitions):
-        # posting_list_file = location + 'posting_list_' + str(i) + '.txt'
-        posting_list_file = location + 'posting_list.txt'
+        posting_list_file = location + 'posting_list_' + str(i) + '.txt'
+        # posting_list_file = location + 'posting_list.txt'
         with open(posting_list_file, 'w') as f:
             for key, value in posting_list_data[i].items():
                 f.write(str(key) + ' : ' + str(value) + '\n')
@@ -144,12 +144,12 @@ def get_lfw_dr_config():
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='mnist', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     params = parser.parse_args()
     
-    params.dataset = 'lfw'
+    # params.dataset = 'lfw'
 
     if params.dataset == 'mnist':
         params.dataset_size = 60000
@@ -179,7 +179,27 @@ if __name__=='__main__':
     # attrib_config = get_lfw_dr_config()
     # print(attrib_config)
     
-    pl = get_full_data_posting_list(params, 'resnet-18')
+    label_file = open(LABELS_FILE_LOC.format(params.dataset), 'r')
+    lines = label_file.readlines()
+    labels = dict()
+
+    for l in lines:
+        txt = l.split(":")
+        point = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if label not in labels:
+            labels[label] = list()
+        
+        labels[label].append(point)
+    
+
+    partitions = create_partitions(params, labels, random_partition=False)
+    posting_list_data = [get_posting_lists(params, p, 'resnet-18') for p in partitions]
+    write_posting_lists(params, posting_list_data, 'resnet-18')
+
+
+
+    # pl = get_full_data_posting_list(params, 'resnet-18')
 
 
 

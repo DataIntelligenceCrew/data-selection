@@ -10,7 +10,7 @@ do
             do
                 for P in "none" "maxpooling" "avgpooling"
                 do
-                    python3 ../main_model.py \
+                    python3 ../nas.py \
                             --net_width $W \
                             --net_depth $D \
                             --net_act $A \

@@ -54,10 +54,7 @@ def get_dataloader(params, test=False):
     return data.DataLoader(dataset, shuffle=True, pin_memory=True, num_workers=8, drop_last=True, batch_size=params.batch_size)
     
 def get_model_metric_file(params):
-    if params.coreset == 1:
-        return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
-    else:
-        return FULL_DATA_RESULTS.format(params.dataset)
+    return NAS_EXP_FILE.format(params.dataset, params.distribution_req)
 
 def get_model_id(params):
     if params.model == 'alexnet':
@@ -180,54 +177,16 @@ def train_and_test(model, params):
     torch.save(model.state_dict(), model_path)
     # report metrics
     metric_file = get_model_metric_file(params)
-    mean_test_acc = statistics.mean(accs)
-    std_test_acc = statistics.stdev(accs)
+    mean_test_acc = accs[0]
     with open(metric_file, 'a') as f:
         f.write(
-            'Model ID: {0}\nTraining Time: {1}\nNumber of Test Runs: {2}\nMean Test Acc: {3}\nStdev Test Acc: {4}\n\n'.format(
-                model_id, time_taken, params.num_runs, mean_test_acc, std_test_acc)
+            'Model ID: {0}\nTraining Time: {1}\nMean Test Acc: {2}\n\n'.format(
+                model_id, time_taken, mean_test_acc)
         )
     f.close()
 
 
 
-def class_wise_test_acc(model, params):
-    _, checkpoint_dir = get_model_dump_paths(params)
-    model_id = get_model_id(params)
-    model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
-    model.load_state_dict(torch.load(model_path))
-    print('Model loaded from:{0}'.format(model_path))
-    print('starting testing....')
-    test_dataloader = get_dataloader(params, test=True)
-    print('test dataloader created')
-    class_wise_accs = np.zeros((params.num_classes, params.num_runs)) 
-    for i in range(params.num_runs):
-        class_wise_correct = [0] * params.num_classes
-        class_wise_samples = [0] * params.num_classes
-        for imgs, classes in test_dataloader:
-            imgs, classes = imgs.to(device), classes.to(device)
-            if params.model == 'resnet34':
-                output, _ = model(imgs)
-            else:
-                output = model(imgs)
-
-            _, preds = torch.max(output, 1)
-            for c in range(params.num_classes):
-                class_wise_correct[c] += torch.sum((preds == classes) * (classes == c))
-                class_wise_samples[c] += torch.sum(classes == c)
-        
-        for c in range(params.num_classes):
-            class_wise_accs[c][i] = float(class_wise_correct[c]) / float(class_wise_samples[c]) * 100
-            # print('Number of Points in class {0}: {1}'.format(c, class_wise_samples[c]))
-
-    class_wise_accs = np.mean(class_wise_accs, axis=1)
-    print(class_wise_accs)
-    metric_file = get_model_metric_file(params)
-    with open(metric_file, 'a') as f:
-        f.write('Class Wise Test Accuracy\n')
-        for idx, value in enumerate(class_wise_accs):
-            f.write('Class:{0}\tAcc:{1}\n'.format(idx, value))
-    f.close()
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -236,24 +195,24 @@ if __name__=="__main__":
     
     # params for ConvNet
     parser.add_argument('--net_width', type=int, default=256)
-    parser.add_argument('--net_depth', type=int, default=4)
+    parser.add_argument('--net_depth', type=int, default=3)
     parser.add_argument('--net_act', type=str, default="leakyrelu")
     parser.add_argument('--net_norm', type=str, default="batchnorm")
-    parser.add_argument('--net_pooling', type=str, default="avgpooling")
+    parser.add_argument('--net_pooling', type=str, default="maxpooling")
 
     # params for model training
-    parser.add_argument('--num_runs', type=int, default=2, help="number of runs for model testing")
+    parser.add_argument('--num_runs', type=int, default=20, help="number of runs for model testing")
     parser.add_argument('--num_epochs', type=int, default=100, help="Number of training epochs")
-    parser.add_argument('--batch_size', type=int, default=64, help="batch size for model training")
-    parser.add_argument('--lr', type=float, default=0.02, help="learning rate for model training")
+    parser.add_argument('--batch_size', type=int, default=128, help="batch size for model training")
+    parser.add_argument('--lr', type=float, default=0.01, help="learning rate for model training")
     parser.add_argument('--seed', type=int, default=1234, help="seed to init torch")
 
     # params for data description
-    parser.add_argument('--dataset', type=str, default="lfw")
+    parser.add_argument('--dataset', type=str, default="mnist")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyNC")
+    parser.add_argument('--algo_type', type=str, default="MAB")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=50)
+    parser.add_argument('--distribution_req', type=int, default=200)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
     parser.add_argument('--model_type', type=str, default='resnet-18')
     # parse all parameters
@@ -272,9 +231,7 @@ if __name__=="__main__":
         num_classes = 10
     elif params.dataset == 'lfw':
         params.num_classes = 2
-        im_size = (128, 128)
-        num_classes = 2
-        channel = 3
+    
 
 
     # tblog_path, checkpoint_dir = get_model_dump_paths(params)
@@ -290,10 +247,7 @@ if __name__=="__main__":
         model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
     elif params.model == 'resnet34':
         model = networks.resnet34()
-    elif params.model == 'resnet50':
-        model = networks.ResNet50(num_classes)
 
     model = model.to(device)
     model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
     train_and_test(model, params)
-    class_wise_test_acc(model, params)

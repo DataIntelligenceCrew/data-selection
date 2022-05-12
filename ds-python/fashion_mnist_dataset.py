@@ -17,7 +17,7 @@ import glob
 
 
 def load_data(model_name):
-    location = '/localdisk3/data-selection/data/datasets/mnist/train/{0}/'
+    location = '/localdisk3/data-selection/data/datasets/fashion-mnist/train/{0}/'
     img2vec = Img2Vec(cuda=True, model=model_name)
     feature_vectors = np.ones((60000, MODELS[model_name]))
     labels_dist = np.ones((60000, 1))
@@ -27,11 +27,11 @@ def load_data(model_name):
         # print(files)
         # break;
         for f in files:
-            # img = Image.open(join(dir_location, f)).convert(mode="RGB")
-            # vec = img2vec.get_vec(img)
-            # img.close()
+            img = Image.open(join(dir_location, f)).convert(mode="RGB")
+            vec = img2vec.get_vec(img)
+            img.close()
             key = int(f.split('.')[0])
-            # feature_vectors[key] = vec
+            feature_vectors[key] = vec
             labels_dist[key] = i
 
     return feature_vectors, labels_dist
@@ -41,12 +41,12 @@ def load_data(model_name):
 
 if __name__ == '__main__':
     feature_vector, label_dict = load_data('resnet-18')
-    location = FEATURE_VECTOR_LOC.format('mnist', 'resnet-18')
+    location = FEATURE_VECTOR_LOC.format('fashion-mnist', 'resnet-18')
     f = open(location, 'wb')
     pickle.dump(feature_vector, f)
     f.close()
     # print(label_dict)
-    location = '/localdisk3/data-selection/data/metadata/mnist/labels.txt'
+    location = '/localdisk3/data-selection/data/metadata/fashion-mnist/labels.txt'
 
     f = open(location, 'w')
 

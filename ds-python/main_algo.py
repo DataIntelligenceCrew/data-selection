@@ -49,7 +49,7 @@ def run_algo(params, dr=None):
 
     solution_data = []
     # TODO: add other methods
-    # labels = get_label_dict(params.dataset)
+    labels = get_label_dict(params.dataset)
     if params.algo_type == 'greedyNC':
         if params.dataset.lower() == 'lfw':
             # dist_req = get_lfw_dr_config()
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     elif params.dataset == 'cifar10':
         params.num_classes = 10 
         params.dataset_size = 50000 
-    elif params.dataset == 'fashionmnist':
+    elif params.dataset == 'fashion-mnist':
         params.num_classes = 10
         params.dataset_size = 60000
     elif params.dataset == 'cifar100':
@@ -240,18 +240,32 @@ if __name__ == "__main__":
     #             11985 : 900 }
 
     ## lfw
-    k_to_dr = { 153 : 50,  
-                293 : 100,
-                543 : 200, 
-                769 : 300, 
-                984 : 400, 
-                1201 : 500, 
-                1457 : 600, 
-                1664 : 700,
-                1882 : 800, 
-                2086 : 900 }
+    # k_to_dr = { 153 : 50,  
+    #             293 : 100,
+    #             543 : 200, 
+    #             769 : 300, 
+    #             984 : 400, 
+    #             1201 : 500, 
+    #             1457 : 600, 
+    #             1664 : 700,
+    #             1882 : 800, 
+    #             2086 : 900 }
 
-    params.distribution_req = k_to_dr[params.k]
+    ## mnist
+    # k_to_dr = {
+    #     1132 : 50,
+    #     1748 : 100,
+    #     3150 : 200,
+    #     4519 : 300,
+    #     6111 : 400,
+    #     8035 : 500,
+    #     9876 : 600,
+    #     11476 : 700,
+    #     12907 : 800,
+    #     14396 : 900
+    # }
+
+    # params.distribution_req = k_to_dr[params.k]
     run_algo(params)
     # distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
     # distribution_req = [0]

@@ -1,10 +1,10 @@
 #!/bin/sh
 
-for DIST in 200 300 400 500 600 700 800 900 100
+for DIST in 50 100 200 300 400 500 600 700 800 900
 do
-    for CF in 0 30
+    for CF in 30
     do
-        for ALG in 'greedyNC' 'greedyC_random' 'k_centersNC' 'MAB'
+        for ALG in 'k_centersNC'
         do
             python3 ../main_model.py --dataset 'mnist' \
                                 --partitions 10 \
