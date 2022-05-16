@@ -45,7 +45,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
 
     # data selection parameters
-    parser.add_argument('--dataset', type=str, default='mnist', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='fashion-mnist', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--algo_type', type=str, default='MAB', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')

@@ -36,6 +36,11 @@ def get_dataloader(params, test=False):
         mean = [0.1307]
         std = [0.3081]
         transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
+    elif params.dataset == 'fashion-mnist':
+        mean = [0.2861]
+        std = [0.3530]
+        transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
+        
     elif params.dataset == 'lfw':
         transform = transforms.Compose([transforms.CenterCrop((178, 178)),
                                        transforms.Resize((128, 128)),
@@ -275,6 +280,11 @@ if __name__=="__main__":
         im_size = (128, 128)
         num_classes = 2
         channel = 3
+    elif params.dataset == 'fashion-mnist':
+        channel = 1
+        im_size = (28, 28)
+        num_classes = 10
+        params.num_classes = 10
 
 
     # tblog_path, checkpoint_dir = get_model_dump_paths(params)

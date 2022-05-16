@@ -11,16 +11,16 @@ import seaborn as sns
 import csv
 
 # distribution_req = [50,100,200,300,400,500,600,700,800,900]
-distribution_req = [500]
-# distribution_req = [50, 100, 200, 300, 500, 700, 900]
+# distribution_req = [500]
+distribution_req = [50, 100, 200, 300, 500, 700, 900]
 # distribution_req = [10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 def get_output_filename(params, i, algo_type, cf):
-    if algo_type.startswith('k_centers') or cf == 0 or i == 0:
-        return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
-    else :
-        return METRIC_FILE2.format(params.dataset, cf, i, algo_type, params.model_type)
-    # return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
+    # if algo_type.startswith('k_centers') or cf == 0 or i == 0:
+    #     return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
+    # else :
+    #     return METRIC_FILE2.format(params.dataset, cf, i, algo_type, params.model_type)
+    return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
 
 def get_sol_filename(params, i, algo_type, cf):
     if algo_type.startswith('k_centers') or cf == 0 or i == 0:
@@ -269,7 +269,7 @@ def generate_csv_ml_data(model_data, params):
             time_y.append(m[1][0])
             acc_y.append(m[1][2])
             stdev_y.append(m[1][3])
-        test_acc_stdev = [str(a) + ' - ' + str(s) for a,s in zip(acc_y, stdev_y)]
+        test_acc_stdev = [str(a) for a in acc_y]
         csv_model_acc[key] = test_acc_stdev
         csv_model_train_time[key] = time_y
     
@@ -382,7 +382,7 @@ def plot_class_wise_acc(data, params):
         # ax.set_xticklabels([x[j] for j in x_axis])
         ax.set_xticklabels(x)
         plt.xlabel('Classes')
-        plt.ylabel('Accuracy Parity')
+        plt.ylabel('Accuracy Disparity')
         # plt.ylim(-1, 1)
         # plt.title('Class Wise Accuracy Breakdown for Convnet for DR={0}'.format(dr))
         # plt.ylim(bottom=0)
@@ -433,11 +433,11 @@ def plot_tsne():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='fashion-mnist', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet', help='model used for generating feature vectors')
+    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used for generating feature vectors')
     parser.add_argument('--distribution_req', type=int, default=100)
     params = parser.parse_args()
     if params.dataset == 'mnist':
@@ -446,7 +446,7 @@ if __name__=="__main__":
     elif params.dataset == 'cifar10':
         params.num_classes = 10 
         params.dataset_size = 50000 
-    elif params.dataset == 'fashionmnist':
+    elif params.dataset == 'fashion-mnist':
         params.num_classes = 10
         params.dataset_size = 60000
     elif params.dataset == 'cifar100':
@@ -471,33 +471,33 @@ if __name__=="__main__":
     k_centersNC_metric_files = [get_output_filename(params, i, 'k_centersNC', params.coverage_factor) for i in distribution_req]
 
 
-    # coreset_data = { 
-        # 'GCR' : [get_metrics(f) for f in greedyC_random_metrics_files],
+    coreset_data = { 
+        'GCR' : [get_metrics(f) for f in greedyC_random_metrics_files],
         # 'GCR_fairness' : [get_metrics(f) for f in greedyC_random_metrics_files_fair],
-        # 'GNC': [get_metrics(f) for f in greedyNC_metrics_files],
-        # 'GNC_fairness': [get_metrics(f) for f in greedyNC_metrics_files_fair],
+        'GNC': [get_metrics(f) for f in greedyNC_metrics_files],
+        'GNC_fairness': [get_metrics(f) for f in greedyNC_metrics_files_fair],
         # 'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
         # 'random' : [get_metrics(f) for f in random_metric_files],
-        # 'MAB' : [get_metrics(f) for f in bandit_metric_files],
+        'MAB' : [get_metrics(f) for f in bandit_metric_files],
         # 'MAB_fairness' : [get_metrics(f) for f in bandit_metric_files_fair],
         # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files],
         # 'k_centers_group' : [get_metrics(f) for f in k_centers_group_metric_files],
-        # 'k_centersNC' : [get_metrics(f) for f in k_centersNC_metric_files]
-    # }
+        'k_centersNC' : [get_metrics(f) for f in k_centersNC_metric_files]
+    }
 
-    # model_data = { 
-        # 'GCR' : [find_best_model(f) for f in greedyC_random_metrics_files],
+    model_data = { 
+        'GCR' : [find_best_model(f) for f in greedyC_random_metrics_files],
         # 'GCR_fairness' : [find_best_model(f) for f in greedyC_random_metrics_files_fair],
-        # 'GNC': [find_best_model(f) for f in greedyNC_metrics_files],
-        # 'GNC_fairness': [find_best_model(f) for f in greedyNC_metrics_files_fair],
+        'GNC': [find_best_model(f) for f in greedyNC_metrics_files],
+        'GNC_nocov': [find_best_model(f) for f in greedyNC_metrics_files_fair],
         # 'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
         # 'random' : [find_best_model(f) for f in random_metric_files],
-        # 'MAB' : [find_best_model(f) for f in bandit_metric_files],
+        'MAB' : [find_best_model(f) for f in bandit_metric_files],
         # 'MAB_fairness' : [find_best_model(f) for f in bandit_metric_files_fair],
         # 'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files],
         # 'k_centers_group' : [find_best_model(f) for f in k_centers_group_metric_files],
-        # 'k_centersNC' : [find_best_model(f) for f in k_centersNC_metric_files]
-    # }
+        'k_centersNC' : [find_best_model(f) for f in k_centersNC_metric_files]
+    }
 
     # score_data = { 
     #     'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
@@ -514,7 +514,7 @@ if __name__=="__main__":
         # 'GCR_fairness': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files_fair],
         # 'greedyC_group' : [get_class_wise_accuracy(f, params) for f in greedyC_group_metric_files],
         'GNC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
-        'GNC_fairness' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files_fair],
+        'GNC_nocov' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files_fair],
         # 'random' : [get_class_wise_accuracy(f, params) for f in random_metric_files],
         'MAB' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files],
         # 'MAB_fairness' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files_fair],
@@ -540,9 +540,9 @@ if __name__=="__main__":
     # plot_score(data=score_data, params=params)
     plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
     # plot_tsne()
-    # generate_csv_dict(coreset_data, params)
-    # print()
-    # generate_csv_ml_data(model_data, params)
+    generate_csv_dict(coreset_data, params)
+    print()
+    generate_csv_ml_data(model_data, params)
 
     # # NAS Experiments
     # nas_sorted = find_nas_model(params)

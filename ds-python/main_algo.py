@@ -162,7 +162,7 @@ def run_algo(params, dr=None):
         
         for p in process:
             p.join()
-    elif params.algo_type == 'k_centersNC':
+    elif params.algo_type == 'k_centersNC' and params.k > 0:
         s, cscore, res_time = k_centersNC(params.k, params.dataset, params.dataset_size, params.model_type)
         solution_data.append((s, cscore, res_time))
     # calculate metrics
@@ -265,7 +265,17 @@ if __name__ == "__main__":
     #     14396 : 900
     # }
 
-    # params.distribution_req = k_to_dr[params.k]
+    # # fashion-mnist
+    k_to_dr = {
+        1946 : 50,
+        2791 : 100,
+        4046 : 200,
+        5452 : 300,
+        8597 : 500,
+        12805 : 700,
+        16132 : 900
+    }
+    params.distribution_req = k_to_dr[params.k]
     run_algo(params)
     # distribution_req = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
     # distribution_req = [0]

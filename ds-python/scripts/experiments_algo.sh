@@ -1,19 +1,19 @@
 #!/bin/sh
 
 
-# for K in  1077 1743 3296 4634 5945 7275 8525 9538 10788 11985  
-for DIST in 50 100 200 300 500 700 900 400 600 800
+for K in  1946 2791 4046 5452 8597 12805 16132 
+# for DIST in 50 100 200 300 500 700 900 400 600 800
 do
-    for CF in 0 30
+    for CF in 30
     do
-        for ALG in 'k_centersNC' 'greedyNC' 'greedyC_random' 'MAB' 
+        for ALG in 'k_centersNC' 
         do
             python3 ../main_algo.py \
                     --coverage_threshold 0.9 \
                     --partitions 10 \
                     --algo_type $ALG \
                     --coverage_factor $CF \
-                    --distribution_req $DIST \
+                    --k $K \
                     --dataset 'fashion-mnist' 
         done
     done
