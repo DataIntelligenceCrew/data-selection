@@ -1,16 +1,23 @@
 #!/bin/sh
 
-for DIST in 50 100 200 300 500 700 900 
+for SEED in 1234 9876
 do
-    for CF in 30
+    for DIST in 50 
     do
-        for ALG in 'k_centersNC'
+        for ALG in 'dc'
         do
-            python3 ../main_model.py --dataset 'fashion-mnist' \
-                                --partitions 10 \
-                                --algo_type $ALG \
-                                --coverage_factor $CF \
-                                --distribution_req $DIST
+            for D in 'cifar10' 
+            do
+                python3 ../main_model.py --dataset $D \
+                                    --partitions 10 \
+                                    --algo_type $ALG \
+                                    --coverage_factor 30 \
+                                    --distribution_req $DIST \
+                                    --seed $SEED
+            done
         done
     done
 done
+
+
+

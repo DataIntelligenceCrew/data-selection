@@ -9,18 +9,23 @@ from itertools import islice
 import pandas as pd 
 import seaborn as sns 
 import csv
+import math
 
 # distribution_req = [50,100,200,300,400,500,600,700,800,900]
 # distribution_req = [500]
 distribution_req = [50, 100, 200, 300, 500, 700, 900]
 # distribution_req = [10, 15, 20, 25, 30, 35, 40, 45, 50]
-
+dataset_condensation_results = {
+    'mnist' : [31912.672649860382, 67664.35151720047, 149332.97345995903, 207215.46717977524],
+    'fashion-mnist' : [25474.079214811325, 54670.21223163605, 122733.64507222176],
+    'cifar10' : [20104, 41962.31711626053, 91445.69206666946, 179590.4165980816]
+}
 def get_output_filename(params, i, algo_type, cf):
-    # if algo_type.startswith('k_centers') or cf == 0 or i == 0:
-    #     return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
-    # else :
-    #     return METRIC_FILE2.format(params.dataset, cf, i, algo_type, params.model_type)
-    return METRIC_FILE.format(params.dataset, cf, i, algo_type, params.model_type)
+    if algo_type.startswith('k_centers') or cf == 0 or i == 0:
+        return METRIC_FILE3.format(params.dataset, cf, i, algo_type, params.model_type)
+    else :
+        return METRIC_FILE2.format(params.dataset, cf, i, algo_type, params.model_type)
+    # return METRIC_FILE3.format(params.dataset, cf, i, algo_type, params.model_type)
 
 def get_sol_filename(params, i, algo_type, cf):
     if algo_type.startswith('k_centers') or cf == 0 or i == 0:
@@ -135,7 +140,7 @@ def get_bias_score(filename, df, full_data=False):
     
     df_coreset_male = df_coreset.loc[df_coreset['Male'] == 1]
     df_coreset_female = df_coreset.loc[df_coreset['Male'] == 0]
-    return len(df_coreset_male)/len(df_coreset_female)
+    return math.sqrt(math.pow(len(df_coreset_male)/len(df_coreset_female) - 1, 2))
 
 def analysis(params, model_type):
     # for each partition, plot the distribution
@@ -176,19 +181,20 @@ def analysis(params, model_type):
 
 def plot_bias_score(data):
     for key, value in data.items():
-        if key == 'Original Dataset':
-            plt.plot(distribution_req, value, '--', label=key)
-        else:
-            plt.plot(distribution_req, value, 'o-', label=key)
-        plt.legend()
+        # if key == 'Original Dataset':
+        #     plt.plot(distribution_req, value, '--', label=key)
+        # else:
+        #     plt.plot(distribution_req, value, 'o-', label=key)
+        # plt.legend()
+        print('Method: {0}\t MSE : {1}'.format(key, statistics.mean(value)))
     
-    plt.xlabel('Distribution Requirement')
-    plt.ylabel('Bias Ratio')
-    plt.xticks(distribution_req)
-    plt.tight_layout()
-    plt.savefig('./figures/bias_lfw.png')
-    plt.cla()
-    plt.clf()
+    # plt.xlabel('Distribution Requirement')
+    # plt.ylabel('MSE Bias Ratio')
+    # plt.xticks(distribution_req)
+    # plt.tight_layout()
+    # plt.savefig('./figures/mse_bias_lfw.png')
+    # plt.cla()
+    # plt.clf()
 
 def analysis_full_data(params):
     location = POSTING_LIST_LOC.format(params.dataset, params.coverage_threshold, 1)
@@ -282,28 +288,32 @@ def generate_csv_ml_data(model_data, params):
     #     print(key + ' : ' + str(value))
 
 def plot_coreset_metrics(data, params):
-    for key, value in data.items():
-        size_y = [v["solution_size"]/params.dataset_size for v in value]
-        plt.plot(distribution_req, size_y, 'o--', label=key)
-        plt.legend()
+    # for key, value in data.items():
+    #     size_y = [v["solution_size"]/params.dataset_size for v in value]
+    #     plt.plot(distribution_req, size_y, 'o--', label=key)
+    #     plt.legend()
 
-    plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
-    plt.xticks(distribution_req)
-    plt.ylabel("Coreset Size(Percentage of Original Dataset)")
-    plt.xlabel("Distribution Requirement")
-    plt.title("Coreset Size for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
-    plt.savefig(plot_filename)
-    plt.clf()
-    plt.cla()
+    # plot_filename = "./figures/size_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
+    # plt.xticks(distribution_req)
+    # plt.ylabel("Coreset Size(Percentage of Original Dataset)")
+    # plt.xlabel("Distribution Requirement")
+    # plt.title("Coreset Size for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
+    # plt.savefig(plot_filename)
+    # plt.clf()
+    # plt.cla()
 
     plot_filename = "./figures/time_" + str(params.coverage_factor) + "_" + str(params.dataset) + ".png"
+    len_dc = len(dataset_condensation_results[params.dataset])
+    plt.plot(distribution_req[:len_dc], dataset_condensation_results[params.dataset], 'o--', label='DC')
+    plt.legend()
     for key, value in data.items():
         time_y = [v["response_time"]/60 for v in value]
         plt.plot(distribution_req, time_y, 'o--', label=key)
         plt.legend()
+    plt.yscale('log')
     plt.xticks(distribution_req)
-    plt.ylabel("Time(Minutes)")
-    plt.xlabel("Distribution Requirement")
+    plt.ylabel("Time(Minutes) log scale")
+    plt.xlabel("Fairness Requirements")
     plt.title("Time Taken for k={0} dataset={1}".format(params.coverage_factor, params.dataset))
     plt.savefig(plot_filename)
     plt.clf()
@@ -433,11 +443,11 @@ def plot_tsne():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='fashion-mnist', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet-18', help='model used for generating feature vectors')
+    parser.add_argument('--model_type', type=str, default='resnet', help='model used for generating feature vectors')
     parser.add_argument('--distribution_req', type=int, default=100)
     params = parser.parse_args()
     if params.dataset == 'mnist':
@@ -456,48 +466,51 @@ if __name__=="__main__":
         params.dataset_size = 13143
         params.num_classes = 2
     
+    whole_dataset_metric_file = FULL_DATA_RESULTS.format(params.dataset)
+    whole_dataset_class_wise = get_class_wise_accuracy(whole_dataset_metric_file, params)
+    print(whole_dataset_class_wise)
 
-    greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random', params.coverage_factor) for i in distribution_req]
-    greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC', params.coverage_factor) for i in distribution_req]
+    # greedyC_random_metrics_files = [get_output_filename(params,i,'greedyC_random', params.coverage_factor) for i in distribution_req]
+    # greedyNC_metrics_files = [get_output_filename(params,i,'greedyNC', params.coverage_factor) for i in distribution_req]
 
-    # greedyC_random_metrics_files_fair = [get_output_filename(params,i,'greedyC_random', 0) for i in distribution_req]
-    greedyNC_metrics_files_fair = [get_output_filename(params,i,'greedyNC', 0) for i in distribution_req]
-    # greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
-    # random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
-    bandit_metric_files = [get_output_filename(params, i, 'MAB', params.coverage_factor) for i in distribution_req]
-    # bandit_metric_files_fair = [get_output_filename(params, i, 'MAB', 0) for i in distribution_req]
-    # stochastic_greedyNC_metric_files = [get_output_filename(params, i, 'stochastic_greedyNC') for i in distribution_req]
-    # k_centers_group_metric_files = [get_output_filename(params, i, 'k_centers_group', params.coverage_factor) for i in distribution_req]
-    k_centersNC_metric_files = [get_output_filename(params, i, 'k_centersNC', params.coverage_factor) for i in distribution_req]
+    # # greedyC_random_metrics_files_fair = [get_output_filename(params,i,'greedyC_random', 0) for i in distribution_req]
+    # greedyNC_metrics_files_fair = [get_output_filename(params,i,'greedyNC', 0) for i in distribution_req]
+    # # greedyC_group_metric_files = [get_output_filename(params, i, 'greedyC_group') for i in distribution_req]
+    # # random_metric_files = [get_output_filename(params, i, 'random') for i in distribution_req]
+    # bandit_metric_files = [get_output_filename(params, i, 'MAB', params.coverage_factor) for i in distribution_req]
+    # # bandit_metric_files_fair = [get_output_filename(params, i, 'MAB', 0) for i in distribution_req]
+    # # stochastic_greedyNC_metric_files = [get_output_filename(params, i, 'stochastic_greedyNC') for i in distribution_req]
+    # # k_centers_group_metric_files = [get_output_filename(params, i, 'k_centers_group', params.coverage_factor) for i in distribution_req]
+    # k_centersNC_metric_files = [get_output_filename(params, i, 'k_centersNC', params.coverage_factor) for i in distribution_req]
 
 
-    coreset_data = { 
-        'GCR' : [get_metrics(f) for f in greedyC_random_metrics_files],
-        # 'GCR_fairness' : [get_metrics(f) for f in greedyC_random_metrics_files_fair],
-        'GNC': [get_metrics(f) for f in greedyNC_metrics_files],
-        'GNC_fairness': [get_metrics(f) for f in greedyNC_metrics_files_fair],
-        # 'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
-        # 'random' : [get_metrics(f) for f in random_metric_files],
-        'MAB' : [get_metrics(f) for f in bandit_metric_files],
-        # 'MAB_fairness' : [get_metrics(f) for f in bandit_metric_files_fair],
-        # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files],
-        # 'k_centers_group' : [get_metrics(f) for f in k_centers_group_metric_files],
-        'k_centersNC' : [get_metrics(f) for f in k_centersNC_metric_files]
-    }
+    # coreset_data = { 
+    #     # 'GCR_fairness' : [get_metrics(f) for f in greedyC_random_metrics_files_fair],
+    #     'GFKC': [get_metrics(f) for f in greedyNC_metrics_files],
+    #     'C-GFKC' : [get_metrics(f) for f in greedyC_random_metrics_files],
+    #     # 'greedyC_group' : [get_metrics(f) for f in greedyC_group_metric_files],
+    #     # 'random' : [get_metrics(f) for f in random_metric_files],
+    #     'FKCBandit' : [get_metrics(f) for f in bandit_metric_files],
+    #     # 'MAB_fairness' : [get_metrics(f) for f in bandit_metric_files_fair],
+    #     # 'stochastic_greedyNC' : [get_metrics(f) for f in stochastic_greedyNC_metric_files],
+    #     # 'k_centers_group' : [get_metrics(f) for f in k_centers_group_metric_files],
+    #     'KCenters' : [get_metrics(f) for f in k_centersNC_metric_files],
+    #     'GFKC_nocov': [get_metrics(f) for f in greedyNC_metrics_files_fair],
+    # }
 
-    model_data = { 
-        'GCR' : [find_best_model(f) for f in greedyC_random_metrics_files],
+    # model_data = { 
+        # 'GCR' : [find_best_model(f) for f in greedyC_random_metrics_files],
         # 'GCR_fairness' : [find_best_model(f) for f in greedyC_random_metrics_files_fair],
-        'GNC': [find_best_model(f) for f in greedyNC_metrics_files],
-        'GNC_nocov': [find_best_model(f) for f in greedyNC_metrics_files_fair],
+        # 'GNC': [find_best_model(f) for f in greedyNC_metrics_files],
+        # 'GNC_nocov': [find_best_model(f) for f in greedyNC_metrics_files_fair],
         # 'greedyC_group' : [find_best_model(f) for f in greedyC_group_metric_files],
         # 'random' : [find_best_model(f) for f in random_metric_files],
-        'MAB' : [find_best_model(f) for f in bandit_metric_files],
+        # 'MAB' : [find_best_model(f) for f in bandit_metric_files],
         # 'MAB_fairness' : [find_best_model(f) for f in bandit_metric_files_fair],
         # 'stochastic_greedyNC' : [find_best_model(f) for f in stochastic_greedyNC_metric_files],
         # 'k_centers_group' : [find_best_model(f) for f in k_centers_group_metric_files],
-        'k_centersNC' : [find_best_model(f) for f in k_centersNC_metric_files]
-    }
+        # 'k_centersNC' : [find_best_model(f) for f in k_centersNC_metric_files]
+    # }
 
     # score_data = { 
     #     'greedyC_random' : [score_method(a, m, params) for a,m in zip(coreset_data['greedyC_random'], model_data['greedyC_random'])],
@@ -509,19 +522,19 @@ if __name__=="__main__":
     # }
     
     # # algo_type : [[class_wise_acc for dist = i] for i in distritbution_req]
-    class_wise_accuracy_data = {
-        'GC': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files],
+    # class_wise_accuracy_data = {
+        # 'C-GFKC': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files],
         # 'GCR_fairness': [get_class_wise_accuracy(f, params) for f in greedyC_random_metrics_files_fair],
         # 'greedyC_group' : [get_class_wise_accuracy(f, params) for f in greedyC_group_metric_files],
-        'GNC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
-        'GNC_nocov' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files_fair],
+        # 'GFKC' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files],
+        # 'GFKC_nocov' : [get_class_wise_accuracy(f, params) for f in greedyNC_metrics_files_fair],
         # 'random' : [get_class_wise_accuracy(f, params) for f in random_metric_files],
-        'MAB' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files],
+        # 'FKCBandit' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files],
         # 'MAB_fairness' : [get_class_wise_accuracy(f, params) for f in bandit_metric_files_fair],
         # 'stochastic_greedyNC' : [get_class_wise_accuracy(f, params) for f in stochastic_greedyNC_metric_files],
         # 'KCG' : [get_class_wise_accuracy(f, params) for f in k_centers_group_metric_files],
-        'KCenters' : [get_class_wise_accuracy(f, params) for f in k_centersNC_metric_files],
-    }
+        # 'KCenters' : [get_class_wise_accuracy(f, params) for f in k_centersNC_metric_files],
+    # }
 
     # location = '/localdisk3/data-selection/data/metadata/{0}/train.csv'.format(params.dataset)
     # df = pd.read_csv(location)
@@ -538,11 +551,11 @@ if __name__=="__main__":
     # plot_coreset_metrics(data=coreset_data, params=params)
     # plot_ml_metrics(data=model_data, params=params)
     # plot_score(data=score_data, params=params)
-    plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
+    # plot_class_wise_acc(data=class_wise_accuracy_data, params=params)
     # plot_tsne()
-    generate_csv_dict(coreset_data, params)
-    print()
-    generate_csv_ml_data(model_data, params)
+    # generate_csv_dict(coreset_data, params)
+    # print()
+    # generate_csv_ml_data(model_data, params)
 
     # # NAS Experiments
     # nas_sorted = find_nas_model(params)

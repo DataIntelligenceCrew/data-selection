@@ -62,8 +62,9 @@ TEST_IMG_DIR = '/localdisk3/data-selection/data/datasets/{0}/test/'
 
 # paths for runs/
 # (dataset_name, coverage_factor, distribution_req, algo_type)
-METRIC_FILE = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}_gd.txt'
+METRIC_FILE = '/localdisk3/data-selection/data/runs/metric_files/final/{0}_{1}_{2}_{3}_{4}.txt'
 METRIC_FILE2 = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}.txt'
+METRIC_FILE3 = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}_gd.txt'
 SOLUTION_FILENAME = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}_gd.txt'
 SOLUTION_FILENAME2 = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}.txt'
 METRIC_FILE_GROUP = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}.txt'

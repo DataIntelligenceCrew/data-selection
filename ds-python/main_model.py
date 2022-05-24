@@ -57,7 +57,35 @@ def get_dataloader(params, test=False):
     dataset = datasets.ImageFolder(loc, transform=transform)
     print(dataset.class_to_idx)
     return data.DataLoader(dataset, shuffle=True, pin_memory=True, num_workers=8, drop_last=True, batch_size=params.batch_size)
-    
+
+
+class TensorDataset(data.Dataset):
+    def __init__(self, images, labels): # images: n x c x h x w tensor
+        self.images = images.detach().float()
+        self.labels = labels.detach()
+
+    def __getitem__(self, index):
+        return self.images[index], self.labels[index]
+
+    def __len__(self):
+        return self.images.shape[0]
+
+def get_dc_dataloader(params):
+    if params.dataset == 'fashion-mnist':
+        dataset_name = 'FashionMNIST'
+    else:
+        dataset_name = params.dataset.upper()
+
+    location = os.path.join("/localdisk3/data-selection/dataset-condensation/result/", 'res_%s_%s_%s_%dipc.pt'%('DC', dataset_name, 'ConvNet', params.distribution_req))
+
+    results = torch.load(location)
+    data_save = results['data']
+    image_syn_train, label_syn_train = data_save[0][0], data_save[0][1]
+    dst_syn_train = TensorDataset(image_syn_train, label_syn_train)
+    trainloader = data.DataLoader(dst_syn_train, batch_size=params.batch_size, shuffle=True, num_workers=8)
+
+    return trainloader
+
 def get_model_metric_file(params):
     if params.coreset == 1:
         return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
@@ -85,7 +113,11 @@ def train_and_test(model, params):
     print('model initialized')
     print(model)
     
-    train_dataloader = get_dataloader(params)
+    if params.algo_type == 'dc':
+        train_dataloader = get_dc_dataloader(params)
+    else:
+        train_dataloader = get_dataloader(params)
+
     print('training dataloader created')
 
     if params.model == 'resnet34':
@@ -254,16 +286,20 @@ if __name__=="__main__":
     parser.add_argument('--seed', type=int, default=1234, help="seed to init torch")
 
     # params for data description
-    parser.add_argument('--dataset', type=str, default="lfw")
+    parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="greedyNC")
+    parser.add_argument('--algo_type', type=str, default="dc")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=50)
+    parser.add_argument('--distribution_req', type=int, default=100)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
     parser.add_argument('--model_type', type=str, default='resnet-18')
     # parse all parameters
     params = parser.parse_args()
 
+    if params.algo_type == 'greedyNC_fair':
+        params.coverage_factor = 0
+        params.algo_type = 'greedyNC'
+        
     # toDo: add other datasets
     if params.dataset == 'cifar10':
         channel = 3
