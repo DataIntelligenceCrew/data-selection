@@ -35,8 +35,16 @@ def get_dataloader(params, test=False):
     elif params.dataset == 'mnist':
         mean = [0.1307]
         std = [0.3081]
-        transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
-    
+        transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
+    elif params.dataset == 'fashion-mnist':
+        mean = [0.2861]
+        std = [0.3530]
+        transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)])
+        
+    elif params.dataset == 'lfw':
+        transform = transforms.Compose([transforms.CenterCrop((178, 178)),
+                                       transforms.Resize((128, 128)),
+                                       transforms.ToTensor()])
     loc = None
     if test:
         loc = TEST_IMG_DIR.format(params.dataset)
@@ -47,16 +55,50 @@ def get_dataloader(params, test=False):
             loc = INPUT_IMG_DIR_FULLDATA.format(params.dataset)
     print(loc)
     dataset = datasets.ImageFolder(loc, transform=transform)
+    print(dataset.class_to_idx)
     return data.DataLoader(dataset, shuffle=True, pin_memory=True, num_workers=8, drop_last=True, batch_size=params.batch_size)
-    
+
+
+class TensorDataset(data.Dataset):
+    def __init__(self, images, labels): # images: n x c x h x w tensor
+        self.images = images.detach().float()
+        self.labels = labels.detach()
+
+    def __getitem__(self, index):
+        return self.images[index], self.labels[index]
+
+    def __len__(self):
+        return self.images.shape[0]
+
+def get_dc_dataloader(params):
+    if params.dataset == 'fashion-mnist':
+        dataset_name = 'FashionMNIST'
+    else:
+        dataset_name = params.dataset.upper()
+
+    location = os.path.join("/localdisk3/data-selection/dataset-condensation/result/", 'res_%s_%s_%s_%dipc.pt'%('DC', dataset_name, 'ConvNet', params.distribution_req))
+
+    results = torch.load(location)
+    data_save = results['data']
+    image_syn_train, label_syn_train = data_save[0][0], data_save[0][1]
+    dst_syn_train = TensorDataset(image_syn_train, label_syn_train)
+    trainloader = data.DataLoader(dst_syn_train, batch_size=params.batch_size, shuffle=True, num_workers=8)
+
+    return trainloader
+
 def get_model_metric_file(params):
-    return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+    if params.coreset == 1:
+        return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+    else:
+        return FULL_DATA_RESULTS.format(params.dataset)
 
 def get_model_id(params):
     if params.model == 'alexnet':
         return ALEXNET_MODEL_ID.format(params.num_epochs, params.lr, params.batch_size, params.seed)
     elif params.model == 'convnet':
         return CONVNET_MODEL_ID.format(params.net_width, params.net_depth, params.net_norm, params.net_act, params.net_pooling, params.num_epochs, params.lr, params.batch_size, params.seed)
+    elif params.model == 'resnet34':
+        return RESNET34_MODEL_ID.format(params.num_epochs, params.lr, params.batch_size, params.seed)
 
 def train_and_test(model, params):
     tblog_path, checkpoint_dir = get_model_dump_paths(params)
@@ -71,11 +113,17 @@ def train_and_test(model, params):
     print('model initialized')
     print(model)
     
-    train_dataloader = get_dataloader(params)
+    if params.algo_type == 'dc':
+        train_dataloader = get_dc_dataloader(params)
+    else:
+        train_dataloader = get_dataloader(params)
+
     print('training dataloader created')
 
-
-    optimizer = optim.SGD(params=model.parameters(), lr=params.lr)
+    if params.model == 'resnet34':
+        optimizer = optim.Adam(params=model.parameters(), lr=params.lr)
+    else:
+        optimizer = optim.SGD(params=model.parameters(), lr=params.lr)
     print('optimizer created')
 
     print('starting training...')
@@ -86,7 +134,10 @@ def train_and_test(model, params):
             imgs, classes = imgs.to(device), classes.to(device)
 
             # calculate loss
-            output = model(imgs)
+            if params.model == 'resnet34':
+                output, _ = model(imgs)
+            else:
+                output = model(imgs)
             loss = F.cross_entropy(output, classes)
 
             # update the parameters
@@ -107,7 +158,7 @@ def train_and_test(model, params):
                     tbwriter.add_scalar('accuracy', accuracy.item(), total_steps)
 
             # print out gradient values and parameter average values
-            if total_steps % 100 == 0:
+            if total_steps % 1000 == 0:
                 with torch.no_grad():
                     # print and save the grad of the parameters
                     # print and save the values
@@ -150,7 +201,10 @@ def train_and_test(model, params):
         num_samples = 0
         for imgs, classes in test_dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
-            output = model(imgs)
+            if params.model == 'resnet34':
+                output, _ = model(imgs)
+            else:
+                output = model(imgs)
             _, preds = torch.max(output, 1)
             accuracy = torch.sum(preds == classes)
             num_correct += accuracy
@@ -189,7 +243,11 @@ def class_wise_test_acc(model, params):
         class_wise_samples = [0] * params.num_classes
         for imgs, classes in test_dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
-            output = model(imgs)
+            if params.model == 'resnet34':
+                output, _ = model(imgs)
+            else:
+                output = model(imgs)
+
             _, preds = torch.max(output, 1)
             for c in range(params.num_classes):
                 class_wise_correct[c] += torch.sum((preds == classes) * (classes == c))
@@ -197,7 +255,8 @@ def class_wise_test_acc(model, params):
         
         for c in range(params.num_classes):
             class_wise_accs[c][i] = float(class_wise_correct[c]) / float(class_wise_samples[c]) * 100
-    
+            # print('Number of Points in class {0}: {1}'.format(c, class_wise_samples[c]))
+
     class_wise_accs = np.mean(class_wise_accs, axis=1)
     print(class_wise_accs)
     metric_file = get_model_metric_file(params)
@@ -214,29 +273,33 @@ if __name__=="__main__":
     
     # params for ConvNet
     parser.add_argument('--net_width', type=int, default=256)
-    parser.add_argument('--net_depth', type=int, default=3)
+    parser.add_argument('--net_depth', type=int, default=4)
     parser.add_argument('--net_act', type=str, default="leakyrelu")
     parser.add_argument('--net_norm', type=str, default="batchnorm")
-    parser.add_argument('--net_pooling', type=str, default="maxpooling")
+    parser.add_argument('--net_pooling', type=str, default="avgpooling")
 
     # params for model training
-    parser.add_argument('--num_runs', type=int, default=20, help="number of runs for model testing")
-    parser.add_argument('--num_epochs', type=int, default=100, help="Number of training epochs")
-    parser.add_argument('--batch_size', type=int, default=128, help="batch size for model training")
-    parser.add_argument('--lr', type=float, default=0.01, help="learning rate for model training")
+    parser.add_argument('--num_runs', type=int, default=2, help="number of runs for model testing")
+    parser.add_argument('--num_epochs', type=int, default=200, help="Number of training epochs")
+    parser.add_argument('--batch_size', type=int, default=64, help="batch size for model training")
+    parser.add_argument('--lr', type=float, default=0.02, help="learning rate for model training")
     parser.add_argument('--seed', type=int, default=1234, help="seed to init torch")
 
     # params for data description
     parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--coreset', type=int, default=1)
-    parser.add_argument('--algo_type', type=str, default="stochastic_greedyNC")
+    parser.add_argument('--algo_type', type=str, default="dc")
     parser.add_argument('--coverage_factor', type=int, default=30)
-    parser.add_argument('--distribution_req', type=int, default=500)
+    parser.add_argument('--distribution_req', type=int, default=100)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
-    parser.add_argument('--model_type', type=str, default='resnet')
+    parser.add_argument('--model_type', type=str, default='resnet-18')
     # parse all parameters
     params = parser.parse_args()
 
+    if params.algo_type == 'greedyNC_fair':
+        params.coverage_factor = 0
+        params.algo_type = 'greedyNC'
+        
     # toDo: add other datasets
     if params.dataset == 'cifar10':
         channel = 3
@@ -246,22 +309,37 @@ if __name__=="__main__":
     elif params.dataset == 'mnist':
         channel = 1
         im_size = (28, 28)
+        params.num_classes = 10
         num_classes = 10
+    elif params.dataset == 'lfw':
+        params.num_classes = 2
+        im_size = (128, 128)
+        num_classes = 2
+        channel = 3
+    elif params.dataset == 'fashion-mnist':
+        channel = 1
+        im_size = (28, 28)
+        num_classes = 10
+        params.num_classes = 10
 
 
     tblog_path, checkpoint_dir = get_model_dump_paths(params)
     model_id = get_model_id(params)
     model_path = os.path.join(checkpoint_dir, '{0}.pt'.format(model_id))
 
-    # if not isfile(model_path):
+    if not isfile(model_path):
     # TODO: add other networks
-    model = None
-    if params.model == 'alexnet':
-        model = networks.AlexNet(num_classes)
-    elif params.model == 'convnet':
-        model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
+        model = None
+        if params.model == 'alexnet':
+            model = networks.AlexNet(num_classes)
+        elif params.model == 'convnet':
+            model = networks.ConvNet(channel, num_classes, params.net_width, params.net_depth, params.net_act, params.net_norm, params.net_pooling, im_size)
+        elif params.model == 'resnet34':
+            model = networks.resnet34()
+        elif params.model == 'resnet50':
+            model = networks.ResNet50(num_classes)
 
-    model = model.to(device)
-    model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
-    train_and_test(model, params)
-    class_wise_test_acc(model, params)
+        model = model.to(device)
+        model = torch.nn.parallel.DataParallel(model, device_ids=DEVICE_IDS)
+        train_and_test(model, params)
+        class_wise_test_acc(model, params)

@@ -10,6 +10,7 @@ import sklearn
 from PIL import Image
 from img2vec_pytorch import Img2Vec
 import json
+import matplotlib.pyplot as plt
 
 def load_lfw():
     location = '/localdisk3/data-selection/data/datasets/LFW/attr.txt'
@@ -82,6 +83,8 @@ def create_config_file(attributes):
 
 def get_row(row_id, attributes, data):
     row_data = list()
+    # print(*attributes, sep='\n')
+    # print(data)
     for attrib in attributes:
         try:
             row_data.append(data[attrib][row_id])
@@ -89,6 +92,7 @@ def get_row(row_id, attributes, data):
             print(attrib)
     return row_data
 
+# def make_data_frame(data, attributes, params):
 
 def get_fv(row_data, model_name):
     person_name = row_data[0].replace(" ", "_")
@@ -114,6 +118,12 @@ def create_data_rowwise(attributes, data):
     pickle.dump(data, f)
     f.close()
 
+
+def constraints_atributes():
+    data, attributes = load_from_disk()
+    for attrib in attributes[2:]:
+        print()
+
 if __name__ == '__main__':
     # data = load_lfw()
     # print_stats(data)
@@ -134,16 +144,32 @@ if __name__ == '__main__':
     #     f.close()
     # create_config_file(attributes)
     # create_data_rowwise(attributes[2:], data)
-    location = '/localdisk3/data-selection/data/metadata/lfw/labels.obj'
-    f = open(location, 'rb')
-    labels = pickle.load(f)
-    f.close()
+    # location = '/localdisk3/data-selection/data/metadata/lfw/labels.obj'
+    # f = open(location, 'rb')
+    # labels = pickle.load(f)
+    # f.close()
     # print()
     # print(get_row(0, attributes, data))
         
 
     # row0 = get_row(0, attributes, data)
     # print(get_fv(row0, 'resnet-18'))
+    attrib_count = []
+    for attrib in attributes[2:]:
+        count = data[attrib].count(1)
+        print("------{0}-----".format(attrib))
+        print("Number of Data Points: {0}\n".format(count))
+        attrib_count.append(count)
+    # print()    
+    # print(min(attrib_count))
+    # plt.plot(attributes[2:], attrib_count, 'o--')
+    # plt.xlabel('Labels')
+    # plt.ylabel('Number of Data Points')
+    # # plt.xticks(attributes[2:], rotation='vertical')
+    # plt.show()
+    # plt.savefig('./figures/lfw_distribution.png')
+    # plt.cla()
+    # plt.clf()
 
     
     

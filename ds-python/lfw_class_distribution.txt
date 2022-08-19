@@ -1,0 +1,219 @@
+------Male-----
+Number of Data Points: 7912
+
+------Asian-----
+Number of Data Points: 5989
+
+------White-----
+Number of Data Points: 7257
+
+------Black-----
+Number of Data Points: 6063
+
+------Baby-----
+Number of Data Points: 6380
+
+------Child-----
+Number of Data Points: 6483
+
+------Youth-----
+Number of Data Points: 6199
+
+------Middle Aged-----
+Number of Data Points: 6273
+
+------Senior-----
+Number of Data Points: 6414
+
+------Black Hair-----
+Number of Data Points: 6061
+
+------Blond Hair-----
+Number of Data Points: 6270
+
+------Brown Hair-----
+Number of Data Points: 6865
+
+------Bald-----
+Number of Data Points: 6222
+
+------No Eyewear-----
+Number of Data Points: 7847
+
+------Eyeglasses-----
+Number of Data Points: 5478
+
+------Sunglasses-----
+Number of Data Points: 5915
+
+------Mustache-----
+Number of Data Points: 6112
+
+------Smiling-----
+Number of Data Points: 5924
+
+------Frowning-----
+Number of Data Points: 7161
+
+------Chubby-----
+Number of Data Points: 6441
+
+------Blurry-----
+Number of Data Points: 6305
+
+------Harsh Lighting-----
+Number of Data Points: 5717
+
+------Flash-----
+Number of Data Points: 5638
+
+------Soft Lighting-----
+Number of Data Points: 7293
+
+------Outdoor-----
+Number of Data Points: 6570
+
+------Curly Hair-----
+Number of Data Points: 6940
+
+------Wavy Hair-----
+Number of Data Points: 6951
+
+------Straight Hair-----
+Number of Data Points: 6270
+
+------Receding Hairline-----
+Number of Data Points: 7191
+
+------Bangs-----
+Number of Data Points: 6111
+
+------Sideburns-----
+Number of Data Points: 6745
+
+------Fully Visible Forehead-----
+Number of Data Points: 7640
+
+------Partially Visible Forehead-----
+Number of Data Points: 6983
+
+------Obstructed Forehead-----
+Number of Data Points: 6245
+
+------Bushy Eyebrows-----
+Number of Data Points: 7007
+
+------Arched Eyebrows-----
+Number of Data Points: 6192
+
+------Narrow Eyes-----
+Number of Data Points: 6748
+
+------Eyes Open-----
+Number of Data Points: 6653
+
+------Big Nose-----
+Number of Data Points: 6752
+
+------Pointy Nose-----
+Number of Data Points: 6523
+
+------Big Lips-----
+Number of Data Points: 6549
+
+------Mouth Closed-----
+Number of Data Points: 6487
+
+------Mouth Slightly Open-----
+Number of Data Points: 5983
+
+------Mouth Wide Open-----
+Number of Data Points: 6055
+
+------Teeth Not Visible-----
+Number of Data Points: 7171
+
+------No Beard-----
+Number of Data Points: 6585
+
+------Goatee-----
+Number of Data Points: 6753
+
+------Round Jaw-----
+Number of Data Points: 7400
+
+------Double Chin-----
+Number of Data Points: 6641
+
+------Wearing Hat-----
+Number of Data Points: 5772
+
+------Oval Face-----
+Number of Data Points: 6459
+
+------Square Face-----
+Number of Data Points: 6592
+
+------Round Face-----
+Number of Data Points: 6415
+
+------Color Photo-----
+Number of Data Points: 6320
+
+------Posed Photo-----
+Number of Data Points: 6371
+
+------Attractive Man-----
+Number of Data Points: 6522
+
+------Attractive Woman-----
+Number of Data Points: 5964
+
+------Indian-----
+Number of Data Points: 6341
+
+------Gray Hair-----
+Number of Data Points: 6550
+
+------Bags Under Eyes-----
+Number of Data Points: 6442
+
+------Heavy Makeup-----
+Number of Data Points: 5435
+
+------Rosy Cheeks-----
+Number of Data Points: 6958
+
+------Shiny Skin-----
+Number of Data Points: 6312
+
+------Pale Skin-----
+Number of Data Points: 6656
+
+------5 o' Clock Shadow-----
+Number of Data Points: 6732
+
+------Strong Nose-Mouth Lines-----
+Number of Data Points: 6438
+
+------Wearing Lipstick-----
+Number of Data Points: 5219
+
+------Flushed Face-----
+Number of Data Points: 6520
+
+------High Cheekbones-----
+Number of Data Points: 6061
+
+------Brown Eyes-----
+Number of Data Points: 6662
+
+------Wearing Earrings-----
+Number of Data Points: 5482
+
+------Wearing Necktie-----
+Number of Data Points: 6825
+
+------Wearing Necklace-----
+Number of Data Points: 5814
+

@@ -57,18 +57,41 @@ def get_posting_lists(params, partition_data, model_name):
     
     return partition_posting_list
 
-def get_full_data_posting_list(params, model_name):
+def get_full_data_posting_list_imagenet(params, model_name):
     feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset, model_name), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
     posting_list = dict()
     xb = feature_vectors.astype('float32')
     xb[:, 0] += np.arange(N) / 1000
-    faiss_index = faiss.IndexFlatL2(d)
-    faiss.normalize_L2(x=xb)
+
+    Xt = np.random.random((1000000, d)).astype(np.float32)  # 10000 vectors for training
+    # Param of PQ
+    M = 16  # The number of sub-vector. Typically this is 8, 16, 32, etc.
+    nbits = 8 # bits per sub-vector. This is typically 8, so that each sub-vec is encoded by 1 byte
+    # Param of IVF
+    nlist = 10000  # The number of cells (space partition). Typical value is sqrt(N)
+    # Param of HNSW
+    hnsw_m = 32  # The number of neighbors for HNSW. This is typically 32
+
+    # Setup
+    quantizer = faiss.IndexHNSWFlat(d, hnsw_m)
+    faiss_index = faiss.IndexIVFPQ(quantizer, d, nlist, M, nbits)
+    faiss_index.verbose = True
+    # Train
+    faiss_index.train(Xt)
+
+    # Add
     faiss_index.add(xb)
+
+    # Search
+    faiss_index.nprobe = 16  # Runtime param. The number of cells that are visited for search.
+
     print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
-    # for larger index, search in batches 
+    # limits, D, I = faiss_index.range_search(xb, params.coverage_threshold)
+    # for i in range(xb.shape[0]):
+    #     posting_list[i] = set(I[limits[i] : limits[i+1]])
+    # try this if the above doesn't work.
     batch_size = 1000
     for i in range(0, xb.shape[0], batch_size):
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
@@ -80,14 +103,68 @@ def get_full_data_posting_list(params, model_name):
                 posting_list[i+j] = pl
         except IndexError:
             break
+    posting_list_file = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
+    with open(posting_list_file, 'w') as f:
+        for key, value in posting_list.items():
+            f.write(str(key) + ' : ' + str(value) + '\n')
+    f.close()
+    return posting_list
+
+
+def get_full_data_posting_list(params, model_name):
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset, model_name), 'rb'))
+    d = feature_vectors.shape[1]
+    N = feature_vectors.shape[0]
+    posting_list = dict()
+    xb = feature_vectors.astype('float32')
+    xb[:, 0] += np.arange(N) / 1000
+    faiss_index = faiss.IndexFlatL2(d)
+    faiss.normalize_L2(x=xb)
+    faiss_index.add(xb)
+    print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
+    # loc = "/localdisk3/data-selection/data/metadata/imagenet/faiss_index"
+    # f = open(loc, 'wb')
+    # f = open(loc, 'rb')
+    # faiss_index = pickle.load(f)
+    # f.close()
+    # pickle.dump(faiss_index, f, protocol=4)
+    # print('successfully saved faiss index')
+    # print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
+    limits, D, I = faiss_index.range_search(xb[0:3], params.coverage_threshold)
+    # for j in range(2):
+    #     pl = set(I[limits[j] : limits[j+1]])
+    #     posting_list[0+j] = pl
+    # print(posting_list)
+    # for larger index, search in batches 
+    batch_size = 1000
+    for i in range(0, xb.shape[0], batch_size):
+        # faiss_index = faiss.IndexFlatL2(d)
+        # faiss.normalize_L2(x=xb)
+        # faiss_index.add(xb)
+        # print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
+        limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
+        # faiss_index.reset()
+        # print(i)
+        try:
+            for j in range(batch_size):
+                # print(j)
+                pl = set(I[limits[j] : limits[j+1]])
+                posting_list[i+j] = pl
+        except IndexError:
+            break
+    # posting_list_file = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
+    # with open(posting_list_file, 'w') as f:
+    #     for key, value in posting_list.items():
+    #         f.write(str(key) + ' : ' + str(value) + '\n')
+    # f.close()
     return posting_list
 
 def write_posting_lists(params, posting_list_data, model_name):
     location = POSTING_LIST_LOC_GROUP.format(params.dataset, params.coverage_threshold, params.partitions, model_name)
     os.makedirs(location, exist_ok=True)
     for i in range(params.partitions):
-        # posting_list_file = location + 'posting_list_' + str(i) + '.txt'
-        posting_list_file = location + 'posting_list.txt'
+        posting_list_file = location + 'posting_list_' + str(i) + '.txt'
+        # posting_list_file = location + 'posting_list.txt'
         with open(posting_list_file, 'w') as f:
             for key, value in posting_list_data[i].items():
                 f.write(str(key) + ' : ' + str(value) + '\n')
@@ -144,12 +221,12 @@ def get_lfw_dr_config():
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='mnist', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     params = parser.parse_args()
     
-    params.dataset = 'lfw'
+    # params.dataset = 'lfw'
 
     if params.dataset == 'mnist':
         params.dataset_size = 60000
@@ -179,7 +256,27 @@ if __name__=='__main__':
     # attrib_config = get_lfw_dr_config()
     # print(attrib_config)
     
-    pl = get_full_data_posting_list(params, 'resnet-18')
+    label_file = open(LABELS_FILE_LOC.format(params.dataset), 'r')
+    lines = label_file.readlines()
+    labels = dict()
+
+    for l in lines:
+        txt = l.split(":")
+        point = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if label not in labels:
+            labels[label] = list()
+        
+        labels[label].append(point)
+    
+
+    partitions = create_partitions(params, labels, random_partition=False)
+    posting_list_data = [get_posting_lists(params, p, 'resnet-18') for p in partitions]
+    write_posting_lists(params, posting_list_data, 'resnet-18')
+
+
+
+    # pl = get_full_data_posting_list(params, 'resnet-18')
 
 
 

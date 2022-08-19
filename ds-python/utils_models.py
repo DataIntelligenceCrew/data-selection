@@ -18,6 +18,9 @@ def getfilename(id, size=10000):
     return "data_batch_" + str(batch_id) + "_index_" + str(index_id) + ".png" 
 
 
+def get_mnist_filename(id):
+    return "{0}.png".format(id)
+
 def copy_images(point_files, classes_files, class_names, params, full_data_loc):
     TRAIN_IMG_DIR = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
     os.makedirs(TRAIN_IMG_DIR, exist_ok=True)
@@ -42,13 +45,13 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
 
     # data selection parameters
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='fashion-mnist', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyC_group', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
-    parser.add_argument('--distribution_req', type=int, default=100, help='number of samples ')
+    parser.add_argument('--algo_type', type=str, default='MAB', help='which algorithm to use [greedyNC, greedyC, MAB, random, herding, k_center, forgetting]')
+    parser.add_argument('--distribution_req', type=int, default=200, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
-    parser.add_argument('--model_type', type=str, default='resnet')
+    parser.add_argument('--model_type', type=str, default='resnet-18')
     params = parser.parse_args()
 
     full_data_loc = INPUT_IMG_DIR_FULLDATA.format(params.dataset)
@@ -69,7 +72,7 @@ if __name__=="__main__":
         coreset.add(point)
 
 
-    coreset_point_files = [getfilename(x) for x in coreset]
+    coreset_point_files = [get_mnist_filename(x) for x in coreset]
 
     copy_images(coreset_point_files, classes_files, class_names, params, full_data_loc)
     print('Done Copying Images for Filename:{0}'.format(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)))
