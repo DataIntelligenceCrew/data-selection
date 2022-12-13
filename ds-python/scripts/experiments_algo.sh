@@ -6,7 +6,7 @@ for DIST in 50 100 200 300 400 500 600 700 800 900
 do
     for C in 0.99 0.95 0.85 0.8 0.75
     do
-        for ALG in 'greedyNC' 'greedyC_random' 'MAB' 'k_centersNC'
+        for ALG in 'greedyNC'
         do
             python3 ../main_algo.py \
                     --coverage_threshold $C \

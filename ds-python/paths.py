@@ -51,7 +51,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # paths for model-data/
 MODEL_OUTPUT_DIR = '/localdisk3/data-selection/data/model-data/{0}/{1}/{2}/{3}/{4}/'
+MODEL_OUTPUT_DIR2 = '/localdisk3/data-selection/data/model-data/{0}/{1}/{2}/{3}/{4}/{5}'
 INPUT_IMG_DIR_CORESET = '/localdisk3/data-selection/data/model-data/{0}/{1}/{2}/{3}/train/'
+INPUT_IMG_DIR_CORESET2 = '/localdisk3/data-selection/data/model-data/{0}/{1}/{2}/{3}/{4}/train/'
 INPUT_IMG_DIR_FULLDATA = '/localdisk3/data-selection/data/datasets/{0}/train/'
 ALEXNET_MODEL_ID = 'alexnet_epochs_{0}_lr_{1}_bs_{2}_seed{3}'
 RESNET34_MODEL_ID = 'resnet34_epochs_{0}_lr_{1}_bs_{2}_seed{3}'
@@ -63,10 +65,10 @@ TEST_IMG_DIR = '/localdisk3/data-selection/data/datasets/{0}/test/'
 # paths for runs/
 # (dataset_name, coverage_factor, distribution_req, algo_type)
 METRIC_FILE = '/localdisk3/data-selection/data/runs/metric_files/new_runs/{0}_{1}_{2}_{3}_{4}.txt'
-METRIC_FILE2 = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}.txt'
+METRIC_FILE2 = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}_{5}.txt'
 METRIC_FILE3 = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}_gd.txt'
 SOLUTION_FILENAME = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}_gd.txt'
-SOLUTION_FILENAME2 = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}.txt'
+SOLUTION_FILENAME2 = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}_{5}.txt'
 METRIC_FILE_GROUP = '/localdisk3/data-selection/data/runs/metric_files/{0}_{1}_{2}_{3}_{4}.txt'
 SOLUTION_FILENAME_GROUP = '/localdisk3/data-selection/data/runs/solution_files/{0}_{1}_{2}_{3}_{4}.txt'
 NAS_EXP_FILE = '/localdisk3/data-selection/data/runs/metric_files/nas_dataset_{0}_dr_{1}.txt'

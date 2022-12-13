@@ -13,6 +13,7 @@ import argparse
 import json
 import sqlite3
 from sqlite3 import Error
+import matplotlib.pyplot as plt
 
 def create_partitions(params, lables, random_partition=False):
     labels_dict = lables
@@ -32,6 +33,76 @@ def create_partitions(params, lables, random_partition=False):
         paritions = [v for v in labels_dict.values()]
         return paritions
         
+
+def create_partitions_using_samples(params, full_data_posting_list, number_of_partitions=10):
+    delta = full_data_posting_list.keys()
+    l = number_of_partitions
+    # init stage
+    rho = 0.1
+    posting_list_size_data = dict()
+    for k,v in full_data_posting_list.items():
+        posting_list_size_data[k] = len(v)
+    # use K-centers to find the l points to start with 
+    from algorithms import k_centersNC
+    top_l, score, time = k_centersNC(l, params.dataset, params.dataset_size, params.model_type)
+    
+    # descend_posting_size_list = [key for key, value in sorted(posting_list_size_data.items(), key=lambda x: (-x[1], x[0]))]
+    # top_l = descend_posting_size_list[:l + 1]
+    top_l = list(top_l)
+    for n in top_l:
+        print("{0} : {1}".format(n, posting_list_size_data[n]))
+
+    partitions = dict()
+    already_added = set()
+    for i in range(l):
+        # partitions[i] = list()
+        init_node = top_l[i]
+        init_nb = set(random.sample(full_data_posting_list[i], int(rho * float(len(full_data_posting_list[i]))))).difference(already_added)
+        partitions[i] = list(init_nb)
+        partitions[i].append(init_node)
+        already_added.add(init_node)
+        already_added = already_added.union(init_nb)
+
+    # sample stage
+    gamma = 0.1
+    jump_rate = 10000
+    def gamma_scheduler(iteration):
+        return (iteration) / (iteration + jump_rate)
+
+
+    def sample_scorer(point_id, partition_id):
+        nb_score = ((len(full_data_posting_list[point_id].intersection(set(partitions[partition_id])))) / (len(full_data_posting_list[point_id])))
+        size_score = 1 / (len(partitions[partition_id]) + 1)
+        return gamma * nb_score + (1 - gamma) * size_score
+
+    gamma_trend = list()
+    delta = list(set(delta).difference(already_added))
+    for p, idx in enumerate(delta):
+        # calculate which partition does it belong to.
+        partition_scores = [sample_scorer(p, i) for i in range(l)]
+        part_id = partition_scores.index(max(partition_scores))
+        partitions[part_id].append(p)
+        gamma_trend.append(gamma)
+        # gamma = gamma_scheduler(idx)
+    
+
+    part_sizes = [len(partitions[part]) for part in partitions.keys()]
+    print(part_sizes)
+    x = np.arange(len(gamma_trend))
+    plt.plot(x, gamma_trend, 'o-')
+    plt.xlabel('iterations')
+    plt.ylabel('gamma value')
+    plt.title('Gamma Trend vs Iteration for Jump Rate={0}'.format(jump_rate))
+    plt.tight_layout()
+    plt.show()
+    plt.savefig('./figures/gamma_trend_jump_rate_{0}.png'.format(jump_rate))
+    plt.cla()
+    plt.clf()
+    return partitions
+
+
+    
+
 
 
 def get_posting_lists(params, partition_data, model_name):
@@ -130,7 +201,7 @@ def get_full_data_posting_list(params, model_name):
     # pickle.dump(faiss_index, f, protocol=4)
     # print('successfully saved faiss index')
     # print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
-    limits, D, I = faiss_index.range_search(xb[0:3], params.coverage_threshold)
+    # limits, D, I = faiss_index.range_search(xb[0:3], params.coverage_threshold)
     # for j in range(2):
     #     pl = set(I[limits[j] : limits[j+1]])
     #     posting_list[0+j] = pl

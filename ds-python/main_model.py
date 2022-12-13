@@ -19,7 +19,7 @@ from tensorboardX import SummaryWriter
 
 
 def get_model_dump_paths(params):
-    output_path = MODEL_OUTPUT_DIR.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type, params.model)
+    output_path = MODEL_OUTPUT_DIR2.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type, params.model, params.coverage_threshold)
     tblog_path = output_path + 'tblogs/'
     checkpoint_path = output_path + 'checkpoints/'
     os.makedirs(output_path, exist_ok=True)
@@ -50,7 +50,8 @@ def get_dataloader(params, test=False):
         loc = TEST_IMG_DIR.format(params.dataset)
     else:
         if params.coreset == 1:
-            loc = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
+            # loc = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
+            loc = INPUT_IMG_DIR_CORESET2.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type, params.coverage_threshold)
         elif params.coreset == 0:
             loc = INPUT_IMG_DIR_FULLDATA.format(params.dataset)
     print(loc)
@@ -88,7 +89,8 @@ def get_dc_dataloader(params):
 
 def get_model_metric_file(params):
     if params.coreset == 1:
-        return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+        # return METRIC_FILE.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+        return METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)
     else:
         return FULL_DATA_RESULTS.format(params.dataset)
 
@@ -291,6 +293,7 @@ if __name__=="__main__":
     parser.add_argument('--algo_type', type=str, default="dc")
     parser.add_argument('--coverage_factor', type=int, default=30)
     parser.add_argument('--distribution_req', type=int, default=100)
+    parser.add_argument('--coverage_threshold', type=float, default=0.9)
     parser.add_argument('--partitions', type=int, default=10, help='number of partitions')
     parser.add_argument('--model_type', type=str, default='resnet-18')
     # parse all parameters

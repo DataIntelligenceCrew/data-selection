@@ -22,7 +22,8 @@ def get_mnist_filename(id):
     return "{0}.png".format(id)
 
 def copy_images(point_files, classes_files, class_names, params, full_data_loc):
-    TRAIN_IMG_DIR = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
+    # TRAIN_IMG_DIR = INPUT_IMG_DIR_CORESET.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type)
+    TRAIN_IMG_DIR = INPUT_IMG_DIR_CORESET2.format(params.dataset, params.distribution_req, params.coverage_factor, params.algo_type, params.coverage_threshold)
     os.makedirs(TRAIN_IMG_DIR, exist_ok=True)
 
     for name in class_names:
@@ -64,7 +65,7 @@ if __name__=="__main__":
         classes_files[name] = onlyfiles
     
 
-    coreset_file = open(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type), 'r')
+    coreset_file = open(SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type), 'r')
     lines = coreset_file.readlines()
     coreset = set()
     for l in lines:
@@ -72,7 +73,7 @@ if __name__=="__main__":
         coreset.add(point)
 
 
-    coreset_point_files = [get_mnist_filename(x) for x in coreset]
+    coreset_point_files = [getfilename(x) for x in coreset]
 
     copy_images(coreset_point_files, classes_files, class_names, params, full_data_loc)
-    print('Done Copying Images for Filename:{0}'.format(SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)))
+    print('Done Copying Images for Filename:{0}'.format(SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)))

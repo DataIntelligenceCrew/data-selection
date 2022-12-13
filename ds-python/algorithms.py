@@ -211,25 +211,25 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     start_time = time.time()
     delta_size = dataset_size
     print(delta_size)
-    # delta = set(posting_list.keys())
-    # for key, value in posting_list.items():
-    #     arr = np.zeros(delta_size)
-    #     arr[list(value)] = 1
-    #     posting_list[key] = arr
-    delta = set()
-    posting_list_loc = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
-    f = open(posting_list_loc, 'r')
-    lines = f.readlines()
-    for line in lines:
-        txt = line.split(':')
-        key = int(txt[0].strip())
-        print(txt[1])
-        value = [int(v.strip()) for v in txt[1]]
+    delta = set(posting_list.keys())
+    for key, value in posting_list.items():
         arr = np.zeros(delta_size)
         arr[list(value)] = 1
         posting_list[key] = arr
-        delta.add(key)
-    f.close()
+    # delta = set()
+    # posting_list_loc = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
+    # f = open(posting_list_loc, 'r')
+    # lines = f.readlines()
+    # for line in lines:
+    #     txt = line.split(':')
+    #     key = int(txt[0].strip())
+    #     print(txt[1])
+    #     value = [int(v.strip()) for v in txt[1]]
+    #     arr = np.zeros(delta_size)
+    #     arr[list(value)] = 1
+    #     posting_list[key] = arr
+    #     delta.add(key)
+    # f.close()
 
     # class labels for points
     if dataset_name == 'lfw':

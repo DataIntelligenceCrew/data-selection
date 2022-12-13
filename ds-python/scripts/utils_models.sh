@@ -1,16 +1,16 @@
 #!/bin/sh
 
-for DIST in 50 100 200 300 500 700 900 
+for DIST in 50 100 200 300 400 500 600 700 800 900 
 do
-    for CF in 30
+    for C in 0.99 0.95 0.85 0.8 0.75
     do
-        for ALG in 'MAB' 
+        for ALG in 'MAB' 'greedyC_random' 
         do
-            python3 ../utils_models.py --dataset 'fashion-mnist' \
-                                --coverage_threshold 0.9 \
+            python3 ../utils_models.py --dataset 'cifar10' \
+                                --coverage_threshold $C \
                                 --partitions 10 \
                                 --algo_type $ALG \
-                                --coverage_factor $CF \
+                                --coverage_factor 30 \
                                 --distribution_req $DIST
         done
     done

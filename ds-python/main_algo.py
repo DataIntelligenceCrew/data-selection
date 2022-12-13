@@ -66,7 +66,7 @@ def run_algo(params, dr=None):
             posting_list = get_full_data_posting_list(params, params.model_type)
         else:
             posting_list = get_full_data_posting_list(params, params.model_type)
-        posting_list = []    
+               
         s, cscore, res_time = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
         solution_data.append((s, cscore, res_time))
     
@@ -102,6 +102,30 @@ def run_algo(params, dr=None):
         # delete all spawned processes
         for p in processes:
             p.join()
+
+    elif params.algo_type == 'greedyC_sample':
+        dist_req = [math.ceil(params.distribution_req) / params.partitions] * params.num_classes
+        full_data_posting_list = get_full_data_posting_list(params, params.model_type)
+        partition_data = create_partitions_using_samples(params, full_data_posting_list, number_of_partitions=10)
+        # spawn processes based on number of partitions
+        # q = multiprocessing.Queue()
+        # processes = []
+        # for i in range(params.partitions):
+        #     p = multiprocessing.Process(
+        #         target=greedyC_random,
+        #         args=(params.coverage_factor, dist_req, q, params.dataset, params.dataset_size, partition_data[i], params.model_type, params.coverage_threshold, params.num_classes)
+        #     )
+        #     processes.append(p)
+        #     p.start()
+
+        # # collect data from all processes
+        # for p in processes:
+        #     sol_data = q.get()
+        #     solution_data.append(sol_data)
+
+        # # delete all spawned processes
+        # for p in processes:
+        #     p.join()
     
     elif params.algo_type == 'random':
         if params.dataset == 'lfw':
@@ -180,7 +204,7 @@ def run_algo(params, dr=None):
     print('Time Taken:{0}'.format(response_time))
     print('Solution Size: {0}'.format(len(coreset)))
     # report metrics
-    metric_file_name = METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+    metric_file_name = METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)
     with open(metric_file_name, 'w') as f:
         f.write(
             'Dataset Size: {0}\nCoreset Size: {1}\nCoverage Score: {2}\nTime Taken: {3}\n'.format(
@@ -193,7 +217,7 @@ def run_algo(params, dr=None):
     f.close()
 
     # log coreset points
-    solution_file_name = SOLUTION_FILENAME.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.model_type)
+    solution_file_name = SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)
     with open(solution_file_name, 'w') as f:
         for s in coreset:
             f.write("{0}\n".format(s))
@@ -207,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='k_centers_group', help='which algorithm to use')
+    parser.add_argument('--algo_type', type=str, default='greedyC_sample', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
