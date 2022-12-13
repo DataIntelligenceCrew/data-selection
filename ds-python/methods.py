@@ -10,6 +10,7 @@ Methods to generate FKC Coresets
 import time 
 import random 
 import numpy as np
+import faiss
 from paths import * 
 from utils_algo import * 
 
@@ -103,7 +104,7 @@ def gfkc(K, Q, dataset_name, dataset_size, posting_lists, num_classes):
 
     return coreset, response_time
     
-def cgfkc(part_id, solution_queue, K, Q, dataset_name, partitions, dataset_size, C, model_name, num_classes, partition_data):
+def cgfkc(solution_queue, K, Q, dataset_name, dataset_size, C, model_name, num_classes, partition_data):
     start_time = time.time()
     label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
     params = lambda : None
@@ -155,4 +156,4 @@ def cgfkc(part_id, solution_queue, K, Q, dataset_name, partitions, dataset_size,
     end_time = time.time()
     print(len(coreset))
     response_time = end_time - start_time
-    q.put((coreset, response_time))
+    solution_queue.put((coreset, response_time))
