@@ -62,6 +62,31 @@ def generate_coreset(params, dr=None):
         coreset, response_time = gfkc(params.coverage_factor, dist_req, params.dataset_name, params.dataset_size, posting_list, params.num_classes)
         solution_data.append((coreset, response_time))
     
+    elif params.algo_type =='two_phase':
+        if params.dataset.lower() == 'lfw':
+            # dist_req = get_lfw_dr_config()
+            # dist_req = [params.distribution_req] * params.num_classes
+            # dist_req = [0] * params.num_classes
+            # for idx in LFW_LABELS.values():
+            #     dist_req[idx] = params.distribution_req
+            pass
+
+        else:
+            dist_req = [0] * params.num_classes
+        # if dr:
+        #     dist_req = dr
+        if params.dataset == 'imagenet':
+            posting_list = get_full_data_posting_list(params, params.model_type)
+        else:
+            posting_list = get_full_data_posting_list(params, params.model_type)
+        
+        coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset_name, params.dataset_size, posting_list, params.num_classes)
+        if dr:
+            dist_req = dr
+        else:
+            dist_req  [params.distribution_req] * params.num_classes
+        coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset_name, params.num_classes)
+        solution_data.append((coreset, response_time1 + response_time2))
     elif params.algo_type == 'cgfkc':
         dist_req = [math.ceil(params.distribution_req) / params.partitions] * params.num_classes
         partition_data = create_partitions(params, labels, random_partition=True)

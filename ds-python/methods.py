@@ -13,7 +13,7 @@ import numpy as np
 import faiss
 from paths import * 
 from utils_algo import * 
-
+from queue import PriorityQueue
 
 
 '''
@@ -39,7 +39,6 @@ computes the fairness score for the point
 '''
 def fairness_score(fairness_tracker, group_list):
     return np.dot(fairness_tracker.T, group_list)
-
 
 
 def gfkc(K, Q, dataset_name, dataset_size, posting_lists, num_classes):
@@ -157,3 +156,107 @@ def cgfkc(solution_queue, K, Q, dataset_name, dataset_size, C, model_name, num_c
     print(len(coreset))
     response_time = end_time - start_time
     solution_queue.put((coreset, response_time))
+
+
+
+
+def cov_points(i, S, posting_list):
+    number_points = [x for x in S if i in posting_list[x]]
+    return len(number_points)
+
+def universe(L, S, K, posting_list):
+    N_l = list()
+    for l in L:
+        for x in posting_list[l]:
+            N_l.append(x)
+    affected_points = [x for x in N_l if cov_points(x, S.difference(L)) <= K]
+    return set(affected_points)
+
+
+def set_cover(U, coverage_factor, candidates, posting_list, dataset_size):
+    CC = np.empty(dataset_size)
+    CC[list(U)] = coverage_factor
+    coreset = set()
+    while (not check_for_zeros(CC)) and len(coreset) < len(candidates):
+        best_point, max_score = -1, float('-inf')
+        for r in candidates.difference(coreset):
+            score_point = coverage_score(CC, posting_list[r])
+            if score_point > max_score:
+                best_point = r
+            
+            if best_point == -1:
+                print("cannot find a point")
+                break
+            
+            coreset.add(best_point)
+            CC = np.clip(np.subtract(CC, posting_list[r]), 0, None)
+    
+    return coreset
+
+
+def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset_name, num_classes):
+    
+    '''
+    coverage_coreset = run the gfkc with dist_req = 0
+    write a subroutine for:
+        - set cover
+        - finding the universe of a point 
+    start the swapping 
+    '''
+    start_time = time.time()
+    delta = set(posting_list.keys())
+    delta_minus_coreset = delta.difference(coverage_coreset)
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    current_group_req = np.zeros(num_classes)
+     # class labels for points
+    labels = label_file.readlines()
+    labels_dict = dict()    
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if key in coverage_coreset:
+            current_group_req[label] += 1
+        if key in posting_list:
+            labels_dict[key] = label
+    
+    curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
+    g_extra =  [i for i,v in enumerate(curr_coverage_coreset_group_dist) if v < 0]
+    g_left = [i for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
+
+    L = [l for l in coverage_coreset if labels_dict[l] in g_extra]
+    R = [r for r in delta_minus_coreset if labels_dict[r] in g_left]
+
+    L = set(L)
+    R = set(R)
+    P_l = PriorityQueue()
+
+    for l in L:
+        P_l.put(len(universe(set(l), coverage_coreset, K, posting_list)), l)
+    
+    # TODO: remove points from P_l if s_g > l_g
+
+    while not P_l.empty():
+        swap_candidate = P_l.get()
+        cand_id = swap_candidate[1]
+        r_star = set_cover(universe(set(cand_id), coverage_coreset), 1, R, posting_list, dataset_size)
+        R = R.difference(r_star)
+        if len(r_star) > 0:
+            coverage_coreset = coverage_coreset.union(r_star)
+            coverage_coreset.remove(cand_id)
+    
+    # TODO: for groups that still have points left, add from the posting list 
+    
+
+
+
+    end_time = time.time()
+    return coreset, end_time - start_time
+
+
+
+
+
+
+
+
