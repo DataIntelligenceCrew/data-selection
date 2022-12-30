@@ -210,7 +210,8 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
     current_group_req = np.zeros(num_classes)
      # class labels for points
     labels = label_file.readlines()
-    labels_dict = dict()    
+    labels_dict = dict()
+    labels_inverted_index = dict() 
     for l in labels:
         txt = l.split(':')
         key = int(txt[0].strip())
@@ -219,6 +220,9 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
             current_group_req[label] += 1
         if key in posting_list:
             labels_dict[key] = label
+            if label not in labels_inverted_index:
+                labels_inverted_index[label] = list()
+            labels_inverted_index[label].append(key)
     
     curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
     g_extra =  [i for i,v in enumerate(curr_coverage_coreset_group_dist) if v < 0]
@@ -246,10 +250,22 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
             coverage_coreset.remove(cand_id)
     
     # TODO: for groups that still have points left, add from the posting list 
+    current_group_req = np.zeros(num_classes)
+    for p in coverage_coreset:
+        current_group_req[labels_dict[p]] += 1
     
+    curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
+    g_left = [(i,v) for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
 
-
-
+    for groups in g_left:
+        group_id = groups[0]
+        s_g = groups[1]
+        possible_candidates = [posting_list[s].append(s) for s in labels_inverted_index[group_id]]
+        min_pl_sort = sorted(possible_candidates, key=len)
+        for p in min_pl_sort[:s_g]:
+            coverage_coreset.add(p[-1])
+    
+    coreset = coverage_coreset
     end_time = time.time()
     return coreset, end_time - start_time
 
