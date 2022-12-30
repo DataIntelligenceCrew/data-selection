@@ -22,7 +22,7 @@ TODO:  need to see using np.any()
 '''
 def check_for_zeros(a):
     for e in a:
-        if a > 0:
+        if e > 0:
             return False
     return True
 

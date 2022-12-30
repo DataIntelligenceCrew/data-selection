@@ -59,7 +59,7 @@ def generate_coreset(params, dr=None):
         else:
             posting_list = get_full_data_posting_list(params, params.model_type)
         
-        coreset, response_time = gfkc(params.coverage_factor, dist_req, params.dataset_name, params.dataset_size, posting_list, params.num_classes)
+        coreset, response_time = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
         solution_data.append((coreset, response_time))
     
     elif params.algo_type =='two_phase':
@@ -80,12 +80,12 @@ def generate_coreset(params, dr=None):
         else:
             posting_list = get_full_data_posting_list(params, params.model_type)
         
-        coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset_name, params.dataset_size, posting_list, params.num_classes)
+        coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
         if dr:
             dist_req = dr
         else:
-            dist_req  [params.distribution_req] * params.num_classes
-        coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset_name, params.num_classes)
+            dist_req = [params.distribution_req] * params.num_classes
+        coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset, params.num_classes)
         solution_data.append((coreset, response_time1 + response_time2))
     elif params.algo_type == 'cgfkc':
         dist_req = [math.ceil(params.distribution_req) / params.partitions] * params.num_classes
@@ -95,7 +95,7 @@ def generate_coreset(params, dr=None):
         for i in range(params.partitions):
             p = multiprocessing.Process(
                 target=cgfkc,
-                args=(solution_queue, params.coverage_factor, dist_req, params.dataset_name, params.dataset_size, params.coverage_threshold, params.model_type, params.num_classes, partition_data)
+                args=(solution_queue, params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, params.model_type, params.num_classes, partition_data)
             )
         
         for p in threads:
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyC_sample', help='which algorithm to use')
+    parser.add_argument('--algo_type', type=str, default='two_phase', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
