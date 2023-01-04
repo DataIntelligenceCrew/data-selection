@@ -169,7 +169,7 @@ def universe(L, S, K, posting_list):
     for l in L:
         for x in posting_list[l]:
             N_l.append(x)
-    affected_points = [x for x in N_l if cov_points(x, S.difference(L)) <= K]
+    affected_points = [x for x in N_l if cov_points(x, S.difference(L), posting_list) <= K]
     return set(affected_points)
 
 
@@ -226,6 +226,7 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
     
     curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
     g_extra =  [i for i,v in enumerate(curr_coverage_coreset_group_dist) if v < 0]
+    g_extra_points = {i : -v for i, v in enumerate(curr_coverage_coreset_group_dist) if v < 0}
     g_left = [i for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
 
     L = [l for l in coverage_coreset if labels_dict[l] in g_extra]
@@ -234,21 +235,46 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
     L = set(L)
     R = set(R)
     P_l = PriorityQueue()
-
+    u_l_dict = {}
     for l in L:
-        P_l.put(len(universe(set(l), coverage_coreset, K, posting_list)), l)
+        s = set()
+        s.add(l)
+        u_l = universe(s, coverage_coreset, K, posting_list)
+        u_l_dict[l] = u_l
+        P_l.put((len(u_l), l))
     
-    # TODO: remove points from P_l if s_g > l_g
-
+    print('Possible number of replacement points: {0}'.format(P_l.qsize()))
+    P_l_pruning_tracker = {i : 0 for i in g_extra}
+    P_l_pruned = PriorityQueue()
     while not P_l.empty():
-        swap_candidate = P_l.get()
+        next_cand = P_l.get()
+        point_id = next_cand[1]
+        label_id = labels_dict[point_id]
+        if P_l_pruning_tracker[label_id] <= g_extra_points[label_id]:
+            P_l_pruning_tracker[label_id] += 1
+            P_l_pruned.put(next_cand)
+        
+
+    print('Possible number of replacement points after pruning: {0}'.format(P_l_pruned.qsize()))
+    # TODO: remove points from P_l if s_g > l_g
+    fairness_not_satisfied = True
+    while not P_l_pruned.empty() and fairness_not_satisfied:
+        swap_candidate = P_l_pruned.get()
         cand_id = swap_candidate[1]
-        r_star = set_cover(universe(set(cand_id), coverage_coreset), 1, R, posting_list, dataset_size)
+        r_star = set_cover(u_l_dict[cand_id], 1, R, posting_list, dataset_size)
         R = R.difference(r_star)
         if len(r_star) > 0:
             coverage_coreset = coverage_coreset.union(r_star)
             coverage_coreset.remove(cand_id)
-    
+
+        current_group_req = np.zeros(num_classes)
+        for p in coverage_coreset:
+            current_group_req[labels_dict[p]] += 1
+        curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
+        g_left = [(i,v) for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
+        if len(g_left) == 0:
+            fairness_not_satisfied = False
+
     # TODO: for groups that still have points left, add from the posting list 
     current_group_req = np.zeros(num_classes)
     for p in coverage_coreset:

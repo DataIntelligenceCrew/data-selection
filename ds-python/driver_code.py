@@ -4,6 +4,7 @@ import multiprocessing
 import argparse
 import faiss
 from methods import *
+from algorithms import *
 from paths import *
 from utils_algo import *
 
@@ -80,11 +81,17 @@ def generate_coreset(params, dr=None):
         else:
             posting_list = get_full_data_posting_list(params, params.model_type)
         
-        coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
+        # coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
+        coverage_coreset, _ , response_time1 = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
         if dr:
             dist_req = dr
         else:
             dist_req = [params.distribution_req] * params.num_classes
+        
+        # print(type(posting_list))
+        # posting_list = get_full_data_posting_list(params, params.model_type)
+        # print(type(posting_list))
+        # print(type(coverage_coreset))
         coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset, params.num_classes)
         solution_data.append((coreset, response_time1 + response_time2))
     elif params.algo_type == 'cgfkc':

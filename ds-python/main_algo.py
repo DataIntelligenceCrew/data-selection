@@ -231,7 +231,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyC_sample', help='which algorithm to use')
+    parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
