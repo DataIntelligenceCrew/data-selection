@@ -94,6 +94,37 @@ def generate_coreset(params, dr=None):
         # print(type(coverage_coreset))
         coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset, params.num_classes)
         solution_data.append((coreset, response_time1 + response_time2))
+    elif params.algo_type =='two_phase_union':
+        if params.dataset.lower() == 'lfw':
+            # dist_req = get_lfw_dr_config()
+            # dist_req = [params.distribution_req] * params.num_classes
+            # dist_req = [0] * params.num_classes
+            # for idx in LFW_LABELS.values():
+            #     dist_req[idx] = params.distribution_req
+            pass
+
+        else:
+            dist_req = [0] * params.num_classes
+        # if dr:
+        #     dist_req = dr
+        if params.dataset == 'imagenet':
+            posting_list = get_full_data_posting_list(params, params.model_type)
+        else:
+            posting_list = get_full_data_posting_list(params, params.model_type)
+        
+        # coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
+        coverage_coreset, _ , response_time1 = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
+        if dr:
+            dist_req = dr
+        else:
+            dist_req = [params.distribution_req] * params.num_classes
+        
+        # print(type(posting_list))
+        # posting_list = get_full_data_posting_list(params, params.model_type)
+        # print(type(posting_list))
+        # print(type(coverage_coreset))
+        coreset, response_time2 = two_phase_union(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset, params.num_classes)
+        solution_data.append((coreset, response_time1 + response_time2))
     elif params.algo_type == 'cgfkc':
         dist_req = [math.ceil(params.distribution_req) / params.partitions] * params.num_classes
         partition_data = create_partitions(params, labels, random_partition=True)
@@ -142,7 +173,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='two_phase', help='which algorithm to use')
+    parser.add_argument('--algo_type', type=str, default='two_phase_union', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')

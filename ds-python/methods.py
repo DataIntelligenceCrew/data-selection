@@ -193,6 +193,26 @@ def set_cover(U, coverage_factor, candidates, posting_list, dataset_size):
     
     return coreset
 
+def set_cover_union(U, CC, candidates, posting_list):
+    # CC = np.empty(dataset_size)
+    # CC[list(U)] = coverage_factor
+    coreset = set()
+    while (not check_for_zeros(CC)) and len(coreset) < len(candidates):
+        best_point, max_score = -1, float('-inf')
+        for r in candidates.difference(coreset):
+            score_point = coverage_score(CC, posting_list[r])
+            if score_point > max_score:
+                best_point = r
+            
+            if best_point == -1:
+                print("cannot find a point")
+                break
+            
+            coreset.add(best_point)
+            CC = np.clip(np.subtract(CC, posting_list[r]), 0, None)
+    
+    return coreset
+
 
 def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset_name, num_classes):
     
@@ -256,7 +276,6 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
         
 
     print('Possible number of replacement points after pruning: {0}'.format(P_l_pruned.qsize()))
-    # TODO: remove points from P_l if s_g > l_g
     fairness_not_satisfied = True
     while not P_l_pruned.empty() and fairness_not_satisfied:
         swap_candidate = P_l_pruned.get()
@@ -275,7 +294,6 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
         if len(g_left) == 0:
             fairness_not_satisfied = False
 
-    # TODO: for groups that still have points left, add from the posting list 
     current_group_req = np.zeros(num_classes)
     for p in coverage_coreset:
         current_group_req[labels_dict[p]] += 1
@@ -301,4 +319,93 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
 
 
 
+def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset_name, num_classes):
+    
+    '''
+    coverage_coreset = run the gfkc with dist_req = 0
+    write a subroutine for:
+        - set cover
+        - finding the universe of a point 
+    start the swapping 
+    '''
+    start_time = time.time()
+    delta = set(posting_list.keys())
+    delta_minus_coreset = delta.difference(coverage_coreset)
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    current_group_req = np.zeros(num_classes)
+     # class labels for points
+    labels = label_file.readlines()
+    labels_dict = dict()
+    labels_inverted_index = dict() 
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if key in coverage_coreset:
+            current_group_req[label] += 1
+        if key in posting_list:
+            labels_dict[key] = label
+            if label not in labels_inverted_index:
+                labels_inverted_index[label] = list()
+            labels_inverted_index[label].append(key)
+    
+    curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
+    g_extra =  [i for i,v in enumerate(curr_coverage_coreset_group_dist) if v < 0]
+    g_extra_points = {i : -v for i, v in enumerate(curr_coverage_coreset_group_dist) if v < 0}
+    g_left = [i for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
 
+    L = [l for l in coverage_coreset if labels_dict[l] in g_extra]
+    R = [r for r in delta_minus_coreset if labels_dict[r] in g_left]
+
+    L = set(L)
+    R = set(R)
+    P_l = PriorityQueue()
+    u_l_dict = {}
+    for l in L:
+        s = set()
+        s.add(l)
+        u_l = universe(s, coverage_coreset, K, posting_list)
+        u_l_dict[l] = u_l
+        P_l.put((len(u_l), l))
+    
+    print('Possible number of replacement points: {0}'.format(P_l.qsize()))
+    P_l_pruning_tracker = {i : 0 for i in g_extra}
+    L_swappable = set()
+    CC = np.zeros(dataset_size)
+    while not P_l.empty():
+        next_cand = P_l.get()
+        point_id = next_cand[1]
+        label_id = labels_dict[point_id]
+        if P_l_pruning_tracker[label_id] <= g_extra_points[label_id]:
+            P_l_pruning_tracker[label_id] += 1
+            # P_l_pruned.put(next_cand)
+            L_swappable.add(point_id)
+            CC[list(u_l_dict[point_id])] += 1
+        
+    print(len(L_swappable))
+    r_star = set_cover_union(L_swappable, CC, R, posting_list)
+    R = R.difference(r_star)
+    if len(r_star) > 0:
+        coverage_coreset = coverage_coreset.difference(L_swappable)
+        coverage_coreset = coverage_coreset.union(r_star)
+
+    print(len(r_star))
+    current_group_req = np.zeros(num_classes)
+    for p in coverage_coreset:
+        current_group_req[labels_dict[p]] += 1
+    
+    curr_coverage_coreset_group_dist = np.subtract(dist_req, current_group_req)
+    g_left = [(i,v) for i, v in enumerate(curr_coverage_coreset_group_dist) if v > 0]
+
+    for groups in g_left:
+        group_id = groups[0]
+        print(group_id)
+        s_g = int(groups[1])
+        possible_candidates = [list(np.append(posting_list[s], s).astype(int)) for s in labels_inverted_index[group_id]]
+        min_pl_sort = sorted(possible_candidates, key=len)
+        for p in min_pl_sort[:s_g]:
+            coverage_coreset.add(p[-1])
+    
+    coreset = coverage_coreset
+    end_time = time.time()
+    return coreset, end_time - start_time
