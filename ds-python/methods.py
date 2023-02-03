@@ -361,6 +361,7 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
     R = set(R)
     P_l = PriorityQueue()
     u_l_dict = {}
+#     parallelize this loop
     for l in L:
         s = set()
         s.add(l)
