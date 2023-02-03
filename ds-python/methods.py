@@ -383,6 +383,11 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
             CC[list(u_l_dict[point_id])] += 1
         
     print(len(L_swappable))
+#     CC_points : {i : CC[i] > 0}
+#     for r in R:
+#       if posting_list[r].intersection(CC_points) is not None:
+#           ==> r can cover some points and hence it is a possible swap candidate
+#     how many such r in R exits?
     r_star = set_cover_union(L_swappable, CC, R, posting_list)
     R = R.difference(r_star)
     if len(r_star) > 0:
