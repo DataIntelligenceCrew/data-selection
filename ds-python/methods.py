@@ -383,7 +383,20 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
             L_swappable.add(point_id)
             CC[list(u_l_dict[point_id])] += 1
         
-    print(len(L_swappable))
+#     print(len(L_swappable))
+    print('Number of points in L_swappable: {0}'.format(len(L_swappable)))
+    print('Points in L_swappable: ')
+    print(L_swappable)
+    
+    CC_points = [i for i, v in enumerate(CC) if v > 0]
+    
+    count_r = 0
+    for r in R:
+        if posting_list[r].intersection(CC_points) is not None:
+            count_r += 1
+    
+    print('Number of possible swap candidates: {0}'.format(count_r))
+    
 #     CC_points : {i : CC[i] > 0}
 #     for r in R:
 #       if posting_list[r].intersection(CC_points) is not None:
