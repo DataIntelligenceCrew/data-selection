@@ -1,0 +1,9 @@
+Running Algorithm: two_phase_union
+Dataset:cifar10
+Distribution Requirement:20
+Coverage Factor:30
+Coverage Threshold:0.9
+
+successfully built faiss index (size : 50000)
+50000
+111

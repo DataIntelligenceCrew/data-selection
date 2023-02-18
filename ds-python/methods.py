@@ -161,13 +161,14 @@ def cgfkc(solution_queue, K, Q, dataset_name, dataset_size, C, model_name, num_c
 
 
 def cov_points(i, S, posting_list):
-    number_points = [x for x in S if i in posting_list[x]]
+    number_points = [x for x in S if i in np.flatnonzero(posting_list[x]).flatten()]
     return len(number_points)
 
 def universe(L, S, K, posting_list):
     N_l = list()
     for l in L:
-        for x in posting_list[l]:
+        posting_list_l_set = set(np.flatnonzero(posting_list[l]).flatten())
+        for x in posting_list_l_set:
             N_l.append(x)
     affected_points = [x for x in N_l if cov_points(x, S.difference(L), posting_list) <= K]
     return set(affected_points)
@@ -201,6 +202,8 @@ def set_cover_union(U, CC, candidates, posting_list):
         best_point, max_score = -1, float('-inf')
         for r in candidates.difference(coreset):
             score_point = coverage_score(CC, posting_list[r])
+            print(score_point)
+            print(r)
             if score_point > max_score:
                 best_point = r
             
@@ -314,9 +317,132 @@ def two_phase(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset
     return coreset, end_time - start_time
 
 
+def coverage_v2(i, S, posting_list):
+    representatives = [x for x in S if i in posting_list[x]]
+    return len(representatives)
+
+def universe_v2(L, S, posting_list, K):
+    affected_points = set()
+    for l in L:
+        for x in posting_list[l]:
+            coverage_v2_score = coverage_v2(x, S.difference(L), posting_list)
+            if coverage_v2_score <= K:
+                affected_points.add(x)
+    
+    return affected_points
 
 
+def check_coreset(coreset, posting_list, dist_req, K, num_classes, labels_dict):
+    delta = set(posting_list.keys())
+    for d in delta:
+        if len(posting_list[d].intersection(coreset)) > K:
+            return False
+    current_group_req = np.zeros(num_classes)
+    for c in coreset:
+        current_group_req[labels_dict[c]] += 1
+    
+    coreset_group_count = np.subtract(dist_req, current_group_req)
+    for i in coreset_group_count:
+        if i > 0:
+            return False
+    
+    return True
 
+
+def two_phase_v2(coverage_coreset:set, posting_list:dict, K:int, dist_req, dataset_size:int, dataset_name:str, num_classes:int):
+    start_time = time.time()
+
+    delta = set(posting_list.keys())
+    delta_minus_coreset = delta.difference(coverage_coreset)
+    label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
+    current_group_req = np.zeros(num_classes)
+    labels = label_file.readlines()
+    labels_inverted_index = {}
+    labels_dict = {}
+    for l in labels:
+        txt = l.split(':')
+        key = int(txt[0].strip())
+        label = int(txt[1].strip())
+        if label not in labels_inverted_index.keys():
+            labels_inverted_index[label] = list()
+        labels_inverted_index[label].append(key)
+        labels_dict[key] = label
+        if key in coverage_coreset:
+            current_group_req[label] += 1
+    label_file.close()
+
+    s_star_group_count = np.subtract(dist_req, current_group_req)
+    g_extra = {}
+    g_left = {}
+
+    for i, v in enumerate(s_star_group_count):
+        if v < 0:
+            g_extra[i] = int(-v) 
+        if v > 0:
+            g_left[i] = int(v)
+
+
+    # L = [l for l in coverage_coreset if labels_dict[l] in g_extra.keys()]
+    R = [r for r in delta_minus_coreset if labels_dict[r] in g_left.keys()]
+
+    # L = set(L)
+    R = set(R)
+
+    # print('number of possible swap candidates from S*: {0}'.format(len(L)))
+    print('number of possible swap in candidates: {0}'.format(len(R)))
+
+    possible_L = {}
+    for l in coverage_coreset:
+        group = labels_dict[l]
+        if group in g_extra.keys():
+            if group not in possible_L.keys():
+                possible_L[group] = list()
+            
+            possible_L[group].append(l)
+    
+    L_pruned = set()
+    universe_dict = {}
+    for key, value in possible_L.items():
+        if value is not None:
+            random_sample = random.sample(value, g_extra[key])
+            for s in random_sample:
+                L_pruned.add(s)
+                s_set = set()
+                s_set.add(s)
+                universe_s = universe_v2(s_set, coverage_coreset, posting_list, K)
+                universe_dict[s] = universe_s
+
+    # print(universe_dict)
+    R_temp = set()
+    for r in R:
+        for l in L_pruned:
+            if r in posting_list[l]:
+                R_temp.add(r)
+    
+    # print(len(R_temp))
+    possible_R = {}
+    for r in R_temp:
+        group = labels_dict[r]
+        if group in g_left.keys():
+            if group not in possible_R.keys():
+                possible_R[group] = list()
+            
+            possible_R[group].append(r)
+    
+    R_pruned = set()
+    for key, value in possible_R.items():
+        if value is not None:
+            random_sample = random.sample(value, g_left[key])
+            for s in random_sample:
+                R_pruned.add(s)
+    
+
+    coreset = coverage_coreset.difference(L_pruned)
+    coreset = coreset.union(R_pruned)
+
+    assert check_coreset(coreset, posting_list, dist_req, K, num_classes, labels_dict)
+    end_time = time.time()
+    return coreset, end_time - start_time
 
 
 def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, dataset_name, num_classes):
@@ -328,6 +454,7 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
         - finding the universe of a point 
     start the swapping 
     '''
+    # print(type(posting_list[0]))
     start_time = time.time()
     delta = set(posting_list.keys())
     delta_minus_coreset = delta.difference(coverage_coreset)
@@ -368,11 +495,12 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
         u_l = universe(s, coverage_coreset, K, posting_list)
         u_l_dict[l] = u_l
         P_l.put((len(u_l), l))
-    
+    print(u_l_dict)
     print('Possible number of replacement points: {0}'.format(P_l.qsize()))
     P_l_pruning_tracker = {i : 0 for i in g_extra}
     L_swappable = set()
-    CC = np.zeros(dataset_size)
+    # CC = np.zeros(dataset_size)
+    CC = [0] * dataset_size
     while not P_l.empty():
         next_cand = P_l.get()
         point_id = next_cand[1]
@@ -381,18 +509,23 @@ def two_phase_union(posting_list, coverage_coreset, K, dist_req, dataset_size, d
             P_l_pruning_tracker[label_id] += 1
             # P_l_pruned.put(next_cand)
             L_swappable.add(point_id)
-            CC[list(u_l_dict[point_id])] += 1
+            for i in u_l_dict[point_id]:
+                CC[i] += 1
+            # CC[list(u_l_dict[point_id])] += 1
+            # print(CC[list(u_l_dict[point_id])])
         
 #     print(len(L_swappable))
     print('Number of points in L_swappable: {0}'.format(len(L_swappable)))
     print('Points in L_swappable: ')
     print(L_swappable)
-    
-    CC_points = [i for i, v in enumerate(CC) if v > 0]
-    
+    # print('CC: {0}'.format(CC))
+    CC = np.array(CC)
+    CC_points = set(np.flatnonzero(CC).flatten())
+    print(CC_points)
     count_r = 0
     for r in R:
-        if posting_list[r].intersection(CC_points) is not None:
+        posting_list_r_set = set(np.flatnonzero(posting_list[r]).flatten())
+        if posting_list_r_set.intersection(CC_points) is not None:
             count_r += 1
     
     print('Number of possible swap candidates: {0}'.format(count_r))
