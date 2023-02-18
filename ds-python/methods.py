@@ -335,8 +335,11 @@ def universe_v2(L, S, posting_list, K):
 def check_coreset(coreset, posting_list, dist_req, K, num_classes, labels_dict):
     delta = set(posting_list.keys())
     for d in delta:
-        if len(posting_list[d].intersection(coreset)) > K:
+        coverage_score = coverage_v2(d, coreset, posting_list)
+        if coverage_score < K:
+            print('coverage failed')
             return False
+        
     current_group_req = np.zeros(num_classes)
     for c in coreset:
         current_group_req[labels_dict[c]] += 1
@@ -344,6 +347,7 @@ def check_coreset(coreset, posting_list, dist_req, K, num_classes, labels_dict):
     coreset_group_count = np.subtract(dist_req, current_group_req)
     for i in coreset_group_count:
         if i > 0:
+            print('fairness failed')
             return False
     
     return True
