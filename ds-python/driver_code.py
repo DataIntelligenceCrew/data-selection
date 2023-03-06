@@ -95,38 +95,38 @@ def generate_coreset(params, dr=None):
         coreset, response_time2 = two_phase(posting_list, coverage_coreset, params.coverage_factor, dist_req, params.dataset_size, params.dataset, params.num_classes)
         solution_data.append((coreset, response_time1 + response_time2))
     elif params.algo_type =='two_phase_union':
-        # if params.dataset.lower() == 'lfw':
-        #     # dist_req = get_lfw_dr_config()
-        #     # dist_req = [params.distribution_req] * params.num_classes
-        #     # dist_req = [0] * params.num_classes
-        #     # for idx in LFW_LABELS.values():
-        #     #     dist_req[idx] = params.distribution_req
-        #     pass
+        if params.dataset.lower() == 'lfw':
+            # dist_req = get_lfw_dr_config()
+            # dist_req = [params.distribution_req] * params.num_classes
+            # dist_req = [0] * params.num_classes
+            # for idx in LFW_LABELS.values():
+            #     dist_req[idx] = params.distribution_req
+            pass
 
-        # else:
-        #     dist_req = [0] * params.num_classes
-        # # if dr:
-        # #     dist_req = dr
-        # if params.dataset == 'imagenet':
-        #     posting_list = get_full_data_posting_list(params, params.model_type)
-        # else:
-        #     posting_list = get_full_data_posting_list(params, params.model_type)
+        else:
+            dist_req = [0] * params.num_classes
+        # if dr:
+        #     dist_req = dr
+        if params.dataset == 'imagenet':
+            posting_list = get_full_data_posting_list(params, params.model_type)
+        else:
+            posting_list = get_full_data_posting_list(params, params.model_type)
         
-        # # coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
-        # coverage_coreset, _ , response_time1 = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
+        # coverage_coreset, response_time1 = gfkc(params.coverage_factor, dist_req, params.dataset, params.dataset_size, posting_list, params.num_classes)
+        coverage_coreset, _ , response_time1 = greedyNC(params.coverage_factor, dist_req, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
         # with open('coverage_coreset_test.txt', 'w') as f:
         #     for s in coverage_coreset:
         #         f.write("{0}\n".format(s))
         # f.close()
         # print('coreset written to file')
-        response_time1 = 0
-        coverage_coreset = set()
-        f = open('coverage_coreset_test.txt', 'r')
-        lines = f.readlines()
-        for l in lines:
-            point = int(l.strip())
-            coverage_coreset.add(point)
-        f.close()
+        # response_time1 = 0
+        # coverage_coreset = set()
+        # f = open('coverage_coreset_test.txt', 'r')
+        # lines = f.readlines()
+        # for l in lines:
+        #     point = int(l.strip())
+        #     coverage_coreset.add(point)
+        # f.close()
         if dr:
             dist_req = dr
         else:
@@ -181,6 +181,13 @@ def generate_coreset(params, dr=None):
     f.close()
 
 
+    solution_file_name = SOLUTION_FILENAME2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)
+    with open(solution_file_name, 'w') as f:
+        for s in coreset:
+            f.write("{0}\n".format(s))
+    f.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -189,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--algo_type', type=str, default='two_phase_union', help='which algorithm to use')
-    parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
+    parser.add_argument('--distribution_req', type=int, default=200, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
     parser.add_argument('--k', type=int, default=0, help='number of centers for k_centersNC')

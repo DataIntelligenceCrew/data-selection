@@ -223,11 +223,11 @@ def get_full_data_posting_list(params, model_name):
                 posting_list[i+j] = pl
         except IndexError:
             break
-    # posting_list_file = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
-    # with open(posting_list_file, 'w') as f:
-    #     for key, value in posting_list.items():
-    #         f.write(str(key) + ' : ' + str(value) + '\n')
-    # f.close()
+    posting_list_file = POSTING_LIST_LOC.format(params.dataset, params.coverage_threshold, model_name)
+    with open(posting_list_file, 'w') as f:
+        for key, value in posting_list.items():
+            f.write(str(key) + ' : ' + str(value) + '\n')
+    f.close()
     return posting_list
 
 def write_posting_lists(params, posting_list_data, model_name):
@@ -292,7 +292,7 @@ def get_lfw_dr_config():
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='mnist', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     params = parser.parse_args()
@@ -327,27 +327,28 @@ if __name__=='__main__':
     # attrib_config = get_lfw_dr_config()
     # print(attrib_config)
     
-    label_file = open(LABELS_FILE_LOC.format(params.dataset), 'r')
-    lines = label_file.readlines()
-    labels = dict()
+    # label_file = open(LABELS_FILE_LOC.format(params.dataset), 'r')
+    # lines = label_file.readlines()
+    # labels = dict()
 
-    for l in lines:
-        txt = l.split(":")
-        point = int(txt[0].strip())
-        label = int(txt[1].strip())
-        if label not in labels:
-            labels[label] = list()
+    # for l in lines:
+    #     txt = l.split(":")
+    #     point = int(txt[0].strip())
+    #     label = int(txt[1].strip())
+    #     if label not in labels:
+    #         labels[label] = list()
         
-        labels[label].append(point)
+    #     labels[label].append(point)
     
 
-    partitions = create_partitions(params, labels, random_partition=False)
-    posting_list_data = [get_posting_lists(params, p, 'resnet-18') for p in partitions]
-    write_posting_lists(params, posting_list_data, 'resnet-18')
+    # partitions = create_partitions(params, labels, random_partition=False)
+    # posting_list_data = [get_posting_lists(params, p, 'resnet-18') for p in partitions]
+    # write_posting_lists(params, posting_list_data, 'resnet-18')
 
 
 
-    # pl = get_full_data_posting_list(params, 'resnet-18')
+    pl = get_full_data_posting_list(params, 'resnet-18')
+    # write_posting_lists(params, pl, 'resnet-18')
 
 
 

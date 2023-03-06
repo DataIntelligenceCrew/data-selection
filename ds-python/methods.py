@@ -368,8 +368,8 @@ def two_phase_v2(coverage_coreset:set, posting_list:dict, K:int, dist_req, datas
         key = int(txt[0].strip())
         label = int(txt[1].strip())
         if label not in labels_inverted_index.keys():
-            labels_inverted_index[label] = list()
-        labels_inverted_index[label].append(key)
+            labels_inverted_index[label] = set()
+        labels_inverted_index[label].add(key)
         labels_dict[key] = label
         if key in coverage_coreset:
             current_group_req[label] += 1
@@ -396,6 +396,7 @@ def two_phase_v2(coverage_coreset:set, posting_list:dict, K:int, dist_req, datas
     print('number of possible swap in candidates: {0}'.format(len(R)))
 
     possible_L = {}
+    swap_out_cands = 0
     for l in coverage_coreset:
         group = labels_dict[l]
         if group in g_extra.keys():
@@ -403,46 +404,64 @@ def two_phase_v2(coverage_coreset:set, posting_list:dict, K:int, dist_req, datas
                 possible_L[group] = list()
             
             possible_L[group].append(l)
+            swap_out_cands += 1
     
-    L_pruned = set()
-    universe_dict = {}
-    for key, value in possible_L.items():
-        if value is not None:
-            random_sample = random.sample(value, g_extra[key])
-            for s in random_sample:
-                L_pruned.add(s)
-                s_set = set()
-                s_set.add(s)
-                universe_s = universe_v2(s_set, coverage_coreset, posting_list, K)
-                universe_dict[s] = universe_s
+    print('number of swap out candidates: {0}'.format(swap_out_cands))
+    
+    if swap_out_cands > 0:
 
-    # print(universe_dict)
-    R_temp = set()
-    for r in R:
-        for l in L_pruned:
-            if r in posting_list[l]:
-                R_temp.add(r)
-    
-    # print(len(R_temp))
-    possible_R = {}
-    for r in R_temp:
-        group = labels_dict[r]
-        if group in g_left.keys():
-            if group not in possible_R.keys():
-                possible_R[group] = list()
-            
-            possible_R[group].append(r)
-    
-    R_pruned = set()
-    for key, value in possible_R.items():
-        if value is not None:
-            random_sample = random.sample(value, g_left[key])
-            for s in random_sample:
-                R_pruned.add(s)
-    
+        L_pruned = set()
+        universe_dict = {}
+        for key, value in possible_L.items():
+            if value is not None:
+                random_sample = random.sample(value, g_extra[key])
+                for s in random_sample:
+                    L_pruned.add(s)
+                    s_set = set()
+                    s_set.add(s)
+                    universe_s = universe_v2(s_set, coverage_coreset, posting_list, K)
+                    universe_dict[s] = universe_s
 
-    coreset = coverage_coreset.difference(L_pruned)
-    coreset = coreset.union(R_pruned)
+        print(universe_dict)
+        R_temp = set()
+        for r in R:
+            for l in L_pruned:
+                if r in posting_list[l]:
+                    R_temp.add(r)
+                    # print('here')
+        
+        # print(len(R_temp))
+        possible_R = {}
+        for r in R_temp:
+            group = labels_dict[r]
+            if group in g_left.keys():
+                if group not in possible_R.keys():
+                    possible_R[group] = list()
+                
+                possible_R[group].append(r)
+        # print(possible_R)
+        R_pruned = set()
+        for key, value in possible_R.items():
+            if value is not None:
+                print('Group {0}, Number of Points needed: {1}'.format(key, g_left[key]))
+                random_sample = random.sample(value, g_left[key])
+                for s in random_sample:
+                    R_pruned.add(s)
+        
+
+        coreset = coverage_coreset.difference(L_pruned)
+        coreset = coreset.union(R_pruned)
+    else:
+        to_be_added = set()
+        for group_id, nps in g_left.items():
+            possible_points = labels_inverted_index[group_id].difference(coverage_coreset)
+            replacement_points = set(random.sample(possible_points, nps))
+            to_be_added = to_be_added.union(replacement_points)
+
+        
+        coreset = coverage_coreset.union(to_be_added)
+        
+
 
     assert check_coreset(coreset, posting_list, dist_req, K, num_classes, labels_dict)
     end_time = time.time()

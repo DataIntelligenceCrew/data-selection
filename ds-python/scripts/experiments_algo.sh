@@ -6,9 +6,9 @@ for DIST in 50 100 200 300 400 500 600 700 800 900
 do
     for C in 0.99 0.95 0.85 0.8 0.75
     do
-        for ALG in 'greedyNC'
+        for ALG in 'two_phase_union'
         do
-            python3 ../main_algo.py \
+            python3 ../driver_code.py \
                     --coverage_threshold $C \
                     --partitions 10 \
                     --algo_type $ALG \

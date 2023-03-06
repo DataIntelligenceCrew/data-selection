@@ -75,7 +75,7 @@ NAS_EXP_FILE = '/localdisk3/data-selection/data/runs/metric_files/nas_dataset_{0
 FULL_DATA_RESULTS = '/localdisk3/data-selection/data/runs/metric_files/full_dataset_{0}.txt'
 # paths for metadata/
 FEATURE_VECTOR_LOC = '/localdisk3/data-selection/data/metadata/{0}/vectors-{1}'
-POSTING_LIST_LOC = '/localdisk3/data-selection/data/metadata/{0}/{1}/{2}/'
+POSTING_LIST_LOC = '/localdisk3/data-selection/data/metadata/{0}/{1}/{2}.txt'
 POSTING_LIST_LOC_GROUP = '/localdisk3/data-selection/data/metadata/{0}/{1}/{2}/{3}/'
 LABELS_FILE_LOC = '/localdisk3/data-selection/data/metadata/{0}/labels.txt'
 
