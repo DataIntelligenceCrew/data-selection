@@ -1,6 +1,6 @@
 import pandas as pd 
 import datetime
-
+from geopy.distance import geodesic
 
 
 '''
@@ -179,12 +179,53 @@ def datetime_index(data, PUtime_diff, DOtime_diff):
     
     f.close()
 
-def location_index():
-    pass
+def location_index(PU_dist_threshold, DO_dist_threshold):
+    data = load_data_from_disk()
+    # data = load_small_data()
+    result = {}
 
+    for d1 in data:
+        d1_PU_lat = float(d1[18])
+        d1_PU_long = float(d1[17])
+        d1_DO_lat = float(d1[20])
+        d1_DO_long = float(d1[19])
+        d1_PU = (d1_PU_lat, d1_PU_long)
+        d1_DO = (d1_DO_lat, d1_DO_long)
+        d1_ID = d1[21]
+        if d1_ID not in result.keys():
+            result[d1_ID] = set()
+        
+        result[d1_ID].add(d1_ID)
+        for d2 in data:
+            d2_ID = d2[21]
+            if d2_ID not in result[d1_ID]:
+                d2_PU_lat = float(d2[18])
+                d2_PU_long = float(d2[17])
+                d2_DO_lat = float(d2[20])
+                d2_DO_long = float(d2[19])
+
+                d2_PU = (d2_PU_lat, d2_PU_long)
+                d2_DO = (d2_DO_lat, d2_DO_long)
+
+                PU_distance = geodesic(d1_PU, d2_PU).miles
+                DO_distance = geodesic(d1_DO, d2_DO).miles
+
+                if PU_distance <= PU_dist_threshold and DO_distance <= DO_dist_threshold:
+                    result[d1_ID].add(d2_ID)
+                    if d2_ID not in result.keys():
+                        result[d2_ID] = set()
+                    
+                    result[d2_ID].add(d1_ID)
+
+    with open('/localdisk3/nyc_2018_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
+        for key, value in result.items():
+            f.write(str(key) + ' : ' + str(value) + '\n')
+    
+    f.close()
 
 
 if __name__ == '__main__':
     # load_data()
-    data = datetime_format()
-    datetime_index(data, 300, 420)
+    # data = datetime_format()
+    # datetime_index(data, 300, 420)
+    location_index(1, 1)
