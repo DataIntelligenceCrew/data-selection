@@ -27,7 +27,7 @@ LOC = "/localdisk3/imagenet21k_resized/imagenet21k_train/"
 
 def get_data_stats():
     subfolders = [f.path for f in os.scandir(LOC) if f.is_dir()]
-    print(len(subfolders))
+    # print(len(subfolders))
     img2vec = Img2Vec(cuda=True, model='resnet-18')
     feature_vectors = np.ones((11060223, MODELS['resnet-18']))
     subfolder_index = {}
@@ -49,10 +49,10 @@ def get_data_stats():
             feature_vectors[file_idx] = vec
             labels_dict[file_idx] = idx
             imagename_idx[file_idx] = join(subfold, f)
-            # print(file_idx)
+            print(file_idx)
             file_idx += 1
         print("done with fodler number : {0}".format(idx))
-
+    print(feature_vectors.shape)
     f_loc = FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18')
     labels_loc = "/localdisk3/data-selection/data/metadata/imagenet/labels.txt"
     subfolder_indx_loc = "/localdisk3/data-selection/data/metadata/imagenet/subfolder_idx"

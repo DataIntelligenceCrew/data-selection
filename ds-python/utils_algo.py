@@ -14,6 +14,7 @@ import json
 import sqlite3
 from sqlite3 import Error
 import matplotlib.pyplot as plt
+import tqdm
 
 def create_partitions(params, lables, random_partition=False):
     labels_dict = lables
@@ -132,7 +133,8 @@ def get_full_data_posting_list_imagenet(params, model_name):
     feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format(params.dataset, model_name), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
-    posting_list = dict()
+    print(N)
+    posting_list = {}
     xb = feature_vectors.astype('float32')
     xb[:, 0] += np.arange(N) / 1000
 
@@ -157,6 +159,8 @@ def get_full_data_posting_list_imagenet(params, model_name):
 
     # Search
     faiss_index.nprobe = 16  # Runtime param. The number of cells that are visited for search.
+    f = open("/localdisk3/data-selection/data/metadata/imagenet/faiss_index_full", 'wb')
+    pickle.dump(faiss_index, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
     # limits, D, I = faiss_index.range_search(xb, params.coverage_threshold)
@@ -164,9 +168,10 @@ def get_full_data_posting_list_imagenet(params, model_name):
     #     posting_list[i] = set(I[limits[i] : limits[i+1]])
     # try this if the above doesn't work.
     batch_size = 1000
+    progress_bar = tqdm.tqdm(total=xb.shape[0], position=0)
     for i in range(0, xb.shape[0], batch_size):
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], params.coverage_threshold)
-        print(i)
+        # print(i)
         try:
             for j in range(batch_size):
                 # print(j)
@@ -174,6 +179,7 @@ def get_full_data_posting_list_imagenet(params, model_name):
                 posting_list[i+j] = pl
         except IndexError:
             break
+        progress_bar.update(1)
     posting_list_file = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
     with open(posting_list_file, 'w') as f:
         for key, value in posting_list.items():
@@ -292,7 +298,7 @@ def get_lfw_dr_config():
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
+    parser.add_argument('--dataset', type=str, default='imagenet', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     params = parser.parse_args()
@@ -347,7 +353,8 @@ if __name__=='__main__':
 
 
 
-    pl = get_full_data_posting_list(params, 'resnet-18')
+    # pl = get_full_data_posting_list(params, 'resnet-18')
+    get_full_data_posting_list_imagenet(params, "resnet-18")
     # write_posting_lists(params, pl, 'resnet-18')
 
 

@@ -1,7 +1,9 @@
 import pandas as pd 
 import datetime
 from geopy.distance import geodesic
-
+import tqdm
+import pprint
+import pymongo
 
 '''
 https://www.kaggle.com/competitions/nyc-taxi-trip-duration/data?select=train.zip
@@ -38,15 +40,18 @@ attribute_index = {
     'tolls_amount' : 14,
     'improvement_surcharge' : 15,
     'total_amount' : 16,
-    'PULong' : 17,
-    'PULat' : 18,
-    'DOLong' : 19,
-    'DOLat' : 20,
-    'ID' : 21
+    'congestion_surcharge' : 17,
+    'airport_fee' : 18,
+    'PULong' : 19,
+    'PULat' : 20,
+    'DOLong' : 21,
+    'DOLat' : 22,
+    'ID' : 23
 }
 
 def load_data():
-    file_loc = '/localdisk3/nyc_2018.csv'
+    # file_loc = '/localdisk3/nyc_2018.csv'
+    file_loc = '/localdisk3/nyc_yellowtaxidata_2021-09.csv'
     # df = pd.read_csv(file_loc, nrows=1000)
     # print(df.head())
     # print(df.keys())
@@ -88,12 +93,11 @@ def load_data():
     # print(updated_data[1])
     print(len(data))
     print(len(updated_data))
-    with open('/localdisk3/nyc_2018_updated.csv', 'w') as out:
+    with open('/localdisk3/nyc_2021-09_updated.csv', 'w') as out:
         for d in updated_data:
             out.write(','.join(str(i) for i in d))
             out.write('\n')
     out.close()
-
 
 
 def load_small_data():
@@ -110,7 +114,8 @@ def load_small_data():
 
 
 def load_data_from_disk():
-    file_loc = '/localdisk3/nyc_2018_updated.csv'
+    # file_loc = '/localdisk3/nyc_2018_updated.csv'
+    file_loc = '/localdisk3/nyc_2021-09_updated.csv'
     f = open(file_loc, 'r')
     lines = f.readlines()
     data = [line.strip() for line in lines]
@@ -122,21 +127,22 @@ def load_data_from_disk():
 
 def datetime_format():
     data = load_data_from_disk()
-    format = "%m/%d/%Y %I:%M:%S %p"
-    print(data[0][1:3])
-    pickupdatetime = data[0][1]
-    dropoffdatetime = data[0][2]
-    pickupmydate = datetime.datetime.strptime(pickupdatetime, format)
-    dropoffmydate = datetime.datetime.strptime(dropoffdatetime, format)
-    delta = dropoffmydate - pickupmydate
-    print(pickupmydate)
-    print(dropoffmydate)
-    print(delta.total_seconds())
+    # format = "%m/%d/%Y %I:%M:%S %p"
+    format = "%Y-%m-%d %H:%M:%S"
+    # print(data[0][1:3])
+    # pickupdatetime = data[0][1]
+    # dropoffdatetime = data[0][2]
+    # pickupmydate = datetime.datetime.strptime(pickupdatetime, format)
+    # dropoffmydate = datetime.datetime.strptime(dropoffdatetime, format)
+    # delta = dropoffmydate - pickupmydate
+    # print(pickupmydate)
+    # print(dropoffmydate)
+    # print(delta.total_seconds())
     datetime_data = [] 
     # each element is a list of form: [ID, pickup_datetime, dropoff_datetime, timediff(seconds)]
 
     for d in data:
-        ID = d[21]
+        ID = d[23]
         pickupdatetime = d[1]
         dropoffdatetime = d[2]
         pickupmydate = datetime.datetime.strptime(pickupdatetime, format)
@@ -149,6 +155,7 @@ def datetime_format():
 
 def datetime_index(data, PUtime_diff, DOtime_diff):
     result = {}
+    intervals_progress = tqdm.tqdm(total=len(data), position=0)
     for d1 in data:
         d1_ID =  d1[0]
         d1_pickup_datetime = d1[1]
@@ -171,9 +178,10 @@ def datetime_index(data, PUtime_diff, DOtime_diff):
                     if d2_ID not in result.keys():
                         result[d2_ID] = set()
                     result[d2_ID].add(d1_ID)
-    
+        intervals_progress.update(1)
 
-    with open('/localdisk3/nyc_2018_time_sim_PU_{0}_DO_{1}.txt'.format(PUtime_diff, DOtime_diff), 'w') as f:
+    # with open('/localdisk3/nyc_2018_time_sim_PU_{0}_DO_{1}.txt'.format(PUtime_diff, DOtime_diff), 'w') as f:
+    with open('/localdisk3/nyc_2021-09_time_sim_PU_{0}_DO_{1}.txt'.format(PUtime_diff, DOtime_diff), 'w') as f:
         for key, value in result.items():
             f.write(str(key) + ' : ' + str(value) + '\n')
     
@@ -183,26 +191,26 @@ def location_index(PU_dist_threshold, DO_dist_threshold):
     data = load_data_from_disk()
     # data = load_small_data()
     result = {}
-
+    intervals_progress = tqdm.tqdm(total=len(data), position=0)
     for d1 in data:
-        d1_PU_lat = float(d1[18])
-        d1_PU_long = float(d1[17])
-        d1_DO_lat = float(d1[20])
-        d1_DO_long = float(d1[19])
+        d1_PU_lat = float(d1[20])
+        d1_PU_long = float(d1[19])
+        d1_DO_lat = float(d1[22])
+        d1_DO_long = float(d1[21])
         d1_PU = (d1_PU_lat, d1_PU_long)
         d1_DO = (d1_DO_lat, d1_DO_long)
-        d1_ID = d1[21]
+        d1_ID = d1[23]
         if d1_ID not in result.keys():
             result[d1_ID] = set()
         
         result[d1_ID].add(d1_ID)
         for d2 in data:
-            d2_ID = d2[21]
+            d2_ID = d2[23]
             if d2_ID not in result[d1_ID]:
-                d2_PU_lat = float(d2[18])
-                d2_PU_long = float(d2[17])
-                d2_DO_lat = float(d2[20])
-                d2_DO_long = float(d2[19])
+                d2_PU_lat = float(d2[20])
+                d2_PU_long = float(d2[19])
+                d2_DO_lat = float(d2[22])
+                d2_DO_long = float(d2[21])
 
                 d2_PU = (d2_PU_lat, d2_PU_long)
                 d2_DO = (d2_DO_lat, d2_DO_long)
@@ -216,16 +224,67 @@ def location_index(PU_dist_threshold, DO_dist_threshold):
                         result[d2_ID] = set()
                     
                     result[d2_ID].add(d1_ID)
+        intervals_progress.update(1)
 
-    with open('/localdisk3/nyc_2018_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
+    with open('/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
+    # with open('/localdisk3/nyc_2018_dist_sim_PU_{0}_DO_{1}_small.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
         for key, value in result.items():
             f.write(str(key) + ' : ' + str(value) + '\n')
     
     f.close()
 
+def convert_to_geojson(pickup=True):
+    data = load_data_from_disk()
+    geo_data = []
+    for d in data:
+        d_ID = d[23]
+        d_PU_lat = float(d[20])
+        d_PU_long = float(d[19])
+        d_DO_lat = float(d[22])
+        d_DO_long = float(d[21])
+        if pickup:
+            temp = {"location" : {'type' : 'Point', 'coordinates' : [d_PU_long, d_PU_lat]}, "name" : d_ID}
+        else:
+            temp = {"location" : {'type' : 'Point', 'coordinates' : [d_DO_long, d_DO_lat]}, "name" : d_ID}
+        geo_data.append(temp)
+    
+    return geo_data
+
+def mongo_geoindex():
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mydb = myclient["geodatabase"]
+    print(myclient.list_database_names())
+    places_pickup = mydb["places_pickup"]
+    mydb.places_picup.drop()
+    mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
+    data_pickup = convert_to_geojson()
+    mydb.places_pickup.insert_many(data_pickup)
+    for doc in mydb.places_pickup.find({"location" : {
+        "$nearSphere" : {
+            "$geometry" : {
+                "type" : "Point",
+                "coordinates" : [-73.9651742350916, 40.7565891857642]
+            },
+            "$maxDistance" : 1}}}):
+        pprint.pprint(doc)
+
+
+
+def load_parquet_data():
+    file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
+    df = pd.read_parquet(file_loc, engine='pyarrow')
+    # print(df.head())
+    # print(df.size)
+    df_sampled = df.sample(70000)
+    print(df_sampled.size)
+    print(df_sampled.keys())
+    df_sampled.to_csv('/localdisk3/nyc_yellowtaxidata_2021-09.csv', encoding='utf-8', index=False)
 
 if __name__ == '__main__':
+    # load_parquet_data()
     # load_data()
     # data = datetime_format()
     # datetime_index(data, 300, 420)
-    location_index(1, 1)
+    # location_index(1, 1)
+    mongo_geoindex()
+    
