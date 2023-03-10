@@ -250,25 +250,69 @@ def convert_to_geojson(pickup=True):
     
     return geo_data
 
-def mongo_geoindex():
+def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
     mydb = myclient["geodatabase"]
     print(myclient.list_database_names())
+    
     places_pickup = mydb["places_pickup"]
-    mydb.places_picup.drop()
+    places_dropoff = mydb["places_dropoff"]
+    
+    mydb.places_dropoff.drop()
+    mydb.places_pickup.drop()
+    
     mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
     data_pickup = convert_to_geojson()
     mydb.places_pickup.insert_many(data_pickup)
-    for doc in mydb.places_pickup.find({"location" : {
-        "$nearSphere" : {
-            "$geometry" : {
-                "type" : "Point",
-                "coordinates" : [-73.9651742350916, 40.7565891857642]
-            },
-            "$maxDistance" : 1}}}):
-        pprint.pprint(doc)
 
+    mydb.places_dropoff.create_index([( "location", pymongo.GEOSPHERE )])
+    data_dropoff = convert_to_geojson(pickup=False)
+    mydb.places_dropoff.insert_many(data_dropoff)
 
+    result = {}
+    progress_bar = tqdm.tqdm(total=len(data_pickup), position=0)
+    for d_PU, d_DO in zip(data_pickup, data_dropoff):
+        pickup_coordinates = d_PU['location']['coordinates']
+        dropoff_coordinates = d_DO['location']['coordinates']
+        data_id = d_PU['name']
+        check_id = d_DO['name']
+        assert data_id == check_id
+        temp_pu_results = set()
+        temp_do_results = set()
+        for doc in mydb.places_pickup.find({"location" : {
+            "$nearSphere" : {
+                "$geometry" : {
+                    "type" : "Point",
+                    "coordinates" : pickup_coordinates
+                },
+                "$maxDistance" : PU_dist_threshold}}}):
+            # pprint.pprint(doc)
+            temp_pu_results.add(doc['name'])
+        
+        for doc in mydb.places_dropoff.find({"location" : {
+            "$nearSphere" : {
+                "$geometry" : {
+                    "type" : "Point",
+                    "coordinates" : dropoff_coordinates
+                },
+                "$maxDistance" : DO_dist_threshold}}}):
+            # pprint.pprint(doc)
+            temp_do_results.add(doc['name'])
+
+        result[data_id] = temp_pu_results.intersection(temp_do_results)
+        progress_bar.update(1)
+
+    with open('/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
+        for key, value in result.items():
+            f.write(str(key) + ' : ' + str(value) + '\n')
+    
+    f.close()
+
+def parse_geojson():
+    geo_data = convert_to_geojson()
+    for d in geo_data:
+        print(d['location']['coordinates'])
+        break
 
 def load_parquet_data():
     file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
@@ -286,5 +330,6 @@ if __name__ == '__main__':
     # data = datetime_format()
     # datetime_index(data, 300, 420)
     # location_index(1, 1)
-    mongo_geoindex()
+    mongo_geoindex(1,1)
+    # parse_geojson()
     
