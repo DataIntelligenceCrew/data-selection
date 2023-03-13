@@ -210,11 +210,17 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
     '''
     start_time = time.time()
     delta_size = dataset_size
+    solution = set() # solution set 
     print(delta_size)
     delta = set(posting_list.keys())
+    sparse_points = list()
     for key, value in posting_list.items():
         arr = np.zeros(delta_size)
         arr[list(value)] = 1
+        if len(value) < coverage_factor:
+            sparse_points.append(key)
+            solution.add(key)
+            solution = solution.union(value)
         posting_list[key] = arr
     # delta = set()
     # posting_list_loc = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
@@ -237,6 +243,11 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         labels_dict = dict()
         for i in range(delta_size):
             labels_dict[i] = np.array(get_row(i, attributes, data)[3:])
+    
+    elif dataset_name == 'nyc_taxicab':
+        labels_dict = {}
+        for d in delta:
+            labels_dict[d] = 1
     else:
         label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
         # label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
@@ -255,16 +266,23 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
 
     CC = np.empty(delta_size) # coverage tracker
     CC[list(delta)] = coverage_factor
+    CC[sparse_points] = 0
+    with open('nyc_sparsepoints_cf_{0}.txt'.format(coverage_factor), 'w') as f:
+        for p in sparse_points:
+            f.write('{0}\n'.format(str(p)))
+    f.close()
+    print('Number of sparse points for CF:{0} is {1}'.format(coverage_factor, len(sparse_points)))
     GC = np.array(distribution_req) # group count tracker
-    solution = set() # solution set 
     # main loop
     iters = 0
-    while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
+    # while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
+    while (not check_for_zeros(CC)) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
         for p in delta.difference(solution):
             # print(iters)
-            p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+            # p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+            p_score = coverage_score(CC, posting_list[p])
             if p_score > max_score:
                 max_score = p_score
                 best_point = p
@@ -276,7 +294,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
         solution.add(best_point)
         
         CC = np.subtract(CC, posting_list[best_point])
-        GC = np.subtract(GC, labels_dict[best_point])
+        # GC = np.subtract(GC, labels_dict[best_point])
         if coverage_factor == 0:
             CC = np.clip(np.subtract(CC, posting_list[best_point]), 0, None)
         

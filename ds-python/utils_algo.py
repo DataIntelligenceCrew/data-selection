@@ -138,30 +138,31 @@ def get_full_data_posting_list_imagenet(params, model_name):
     xb = feature_vectors.astype('float32')
     xb[:, 0] += np.arange(N) / 1000
 
-    Xt = np.random.random((1000000, d)).astype(np.float32)  # 10000 vectors for training
-    # Param of PQ
-    M = 16  # The number of sub-vector. Typically this is 8, 16, 32, etc.
-    nbits = 8 # bits per sub-vector. This is typically 8, so that each sub-vec is encoded by 1 byte
-    # Param of IVF
-    nlist = 10000  # The number of cells (space partition). Typical value is sqrt(N)
-    # Param of HNSW
-    hnsw_m = 32  # The number of neighbors for HNSW. This is typically 32
+    # Xt = np.random.random((1000000, d)).astype(np.float32)  # 10000 vectors for training
+    # # Param of PQ
+    # M = 16  # The number of sub-vector. Typically this is 8, 16, 32, etc.
+    # nbits = 8 # bits per sub-vector. This is typically 8, so that each sub-vec is encoded by 1 byte
+    # # Param of IVF
+    # nlist = 10000  # The number of cells (space partition). Typical value is sqrt(N)
+    # # Param of HNSW
+    # hnsw_m = 32  # The number of neighbors for HNSW. This is typically 32
 
-    # Setup
-    quantizer = faiss.IndexHNSWFlat(d, hnsw_m)
-    faiss_index = faiss.IndexIVFPQ(quantizer, d, nlist, M, nbits)
-    faiss_index.verbose = True
-    # Train
-    faiss_index.train(Xt)
+    # # Setup
+    # quantizer = faiss.IndexHNSWFlat(d, hnsw_m)
+    # faiss_index = faiss.IndexIVFPQ(quantizer, d, nlist, M, nbits)
+    # faiss_index.verbose = True
+    # # Train
+    # faiss_index.train(Xt)
 
-    # Add
-    faiss_index.add(xb)
+    # # Add
+    # faiss_index.add(xb)
 
-    # Search
-    faiss_index.nprobe = 16  # Runtime param. The number of cells that are visited for search.
-    f = open("/localdisk3/data-selection/data/metadata/imagenet/faiss_index_full", 'wb')
-    pickle.dump(faiss_index, f, protocol=pickle.HIGHEST_PROTOCOL)
+    # # Search
+    # faiss_index.nprobe = 16  # Runtime param. The number of cells that are visited for search.
+    # f = open("/localdisk3/data-selection/data/metadata/imagenet/faiss_index_full", 'wb')
+    # pickle.dump(faiss_index, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+    faiss_index = pickle.load(open("/localdisk3/data-selection/data/metadata/imagenet/faiss_index_full", 'rb'))
     print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
     # limits, D, I = faiss_index.range_search(xb, params.coverage_threshold)
     # for i in range(xb.shape[0]):
@@ -178,7 +179,7 @@ def get_full_data_posting_list_imagenet(params, model_name):
                 pl = set(I[limits[j] : limits[j+1]])
                 posting_list[i+j] = pl
         except IndexError:
-            break
+            continue
         progress_bar.update(1)
     posting_list_file = "/localdisk3/data-selection/data/metadata/imagenet/posting_list.txt"
     with open(posting_list_file, 'w') as f:
@@ -292,7 +293,21 @@ def get_lfw_dr_config():
     return attrib_config
     
     
-
+def get_posting_list_nyc_dist():
+    dist_pl_loc = '/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(1, 1)
+    f2 = open(dist_pl_loc, 'r')
+    dist_lines = f2.readlines()
+    dist_data = [line.strip().replace('{', '').replace('}', '') for line in dist_lines]
+    f2.close()
+    result = {}
+    for d in dist_data:
+        pl = d.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").replace("'", '').strip()) for v in value]
+        result[key] = set(value)
+        # print(values[0])
+    return result
 
 
 

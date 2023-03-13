@@ -4,7 +4,9 @@ from geopy.distance import geodesic
 import tqdm
 import pprint
 import pymongo
-
+import matplotlib.pyplot as plt 
+import numpy as np
+import statistics
 '''
 https://www.kaggle.com/competitions/nyc-taxi-trip-duration/data?select=train.zip
 
@@ -80,7 +82,8 @@ def load_data():
 
     # print(lat_long_tuples[data[1][7]])
     updated_data = []
-    for i,d in enumerate(data):
+    i = 0
+    for d in data:
         PU_ID = d[7]
         DO_ID = d[8]
         if PU_ID in lat_long_tuples.keys() and DO_ID in lat_long_tuples.keys():
@@ -89,6 +92,7 @@ def load_data():
             lat_long = [PU_long_lat[0], PU_long_lat[1], DO_long_lat[0], DO_long_lat[1]]
             d = d + lat_long + [i]
             updated_data.append(d)
+            i += 1
     
     # print(updated_data[1])
     print(len(data))
@@ -260,7 +264,9 @@ def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
     
     mydb.places_dropoff.drop()
     mydb.places_pickup.drop()
-    
+    mydb.places_pickup.drop_index("location")
+    mydb.places_dropoff.drop_index("location")
+
     mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
     data_pickup = convert_to_geojson()
     mydb.places_pickup.insert_many(data_pickup)
@@ -308,6 +314,65 @@ def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
     
     f.close()
 
+
+
+def combine_posting_lists(PUtime_diff, DOtime_diff, PU_dist_threshold, DO_dist_threshold):
+    result = {}
+    time_pl_loc = '/localdisk3/nyc_2021-09_time_sim_PU_{0}_DO_{1}.txt'.format(PUtime_diff, DOtime_diff)
+    dist_pl_loc = '/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold)
+    f1 = open(time_pl_loc, 'r')
+    time_lines = f1.readlines()
+    time_data = [line.strip().replace('{', '').replace('}', '') for line in time_lines]
+    f1.close()
+
+
+    f2 = open(dist_pl_loc, 'r')
+    dist_lines = f2.readlines()
+    dist_data = [line.strip().replace('{', '').replace('}', '') for line in dist_lines]
+    f2.close()
+
+    # print(time_data[0])
+    # print(dist_data[0])
+
+    time_dict = convert_to_dict(time_data)
+    dist_dict = convert_to_dict(dist_data)
+
+    time_distribution = [len(v) for v in time_dict.values()]
+    dist_distribution = [len(v) for v in dist_dict.values()]
+    print('Statistics for dist PL : \nMaximum:{0}\nMinimum:{1}\nMean:{2}'.format(max(dist_distribution), min(dist_distribution), statistics.mean(dist_distribution)))
+    N = len(dist_distribution)
+    t = np.arange(N)
+    plt.bar(t, dist_distribution)
+    plt.show()
+    plt.savefig('./figures/nyc_dist_distribution.png')
+    plt.cla()
+    plt.clf()
+
+    # print(time_dict)
+    # print(dist_dict)
+    # for key, value in time_dict.items():
+    #     result[key] = value.intersection(dist_dict[key])
+    
+    # with open('/localdisk3/nyc_2021-09_combined_sim_PU_{0}_DO_{1}_PUt_{2}_DOt_{3}.txt'.format(PU_dist_threshold, DO_dist_threshold, PUtime_diff, DOtime_diff), 'w') as f:
+    #     for key, value in result.items():
+    #         f.write(str(key) + ' : ' + str(value) + '\n')
+    
+    # f.close()
+
+
+
+def convert_to_dict(data):
+    result = {}
+    for d in data:
+        pl = d.split(':')
+        key = int(pl[0])
+        value = pl[1].split(',')
+        value = [int(v.replace("{", "").replace("}", "").replace("'", '').strip()) for v in value]
+        result[key] = set(value)
+        # print(values[0])
+    return result
+
+
 def parse_geojson():
     geo_data = convert_to_geojson()
     for d in geo_data:
@@ -326,10 +391,11 @@ def load_parquet_data():
 
 if __name__ == '__main__':
     # load_parquet_data()
-    # load_data()
-    # data = datetime_format()
-    # datetime_index(data, 300, 420)
+    load_data()
+    data = datetime_format()
+    datetime_index(data, 300, 420)
     # location_index(1, 1)
     mongo_geoindex(1,1)
     # parse_geojson()
+    # combine_posting_lists(300, 420, 1, 1)
     

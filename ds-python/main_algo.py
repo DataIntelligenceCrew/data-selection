@@ -49,7 +49,8 @@ def run_algo(params, dr=None):
 
     solution_data = []
     # TODO: add other methods
-    labels = get_label_dict(params.dataset)
+    if params.dataset != 'nyc_taxicab':
+        labels = get_label_dict(params.dataset)
     if params.algo_type == 'greedyNC':
         if params.dataset.lower() == 'lfw':
             # dist_req = get_lfw_dr_config()
@@ -64,6 +65,8 @@ def run_algo(params, dr=None):
             dist_req = dr
         if params.dataset == 'imagenet':
             posting_list = get_full_data_posting_list(params, params.model_type)
+        elif params.dataset == 'nyc_taxicab':
+            posting_list = get_posting_list_nyc_dist()
         else:
             posting_list = get_full_data_posting_list(params, params.model_type)
                
@@ -228,12 +231,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # data selection parameters
-    parser.add_argument('--dataset', type=str, default='cifar10', help='dataset to use')
-    parser.add_argument('--coverage_threshold', type=float, default=0.9, help='coverage threshold to generate metadata')
+    parser.add_argument('--dataset', type=str, default='nyc_taxicab', help='dataset to use')
+    parser.add_argument('--coverage_threshold', type=float, default=1, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use')
-    parser.add_argument('--distribution_req', type=int, default=20, help='number of samples ')
-    parser.add_argument('--coverage_factor', type=int, default=30, help='defining the coverage factor')
+    parser.add_argument('--distribution_req', type=int, default=0, help='number of samples ')
+    parser.add_argument('--coverage_factor', type=int, default=10, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
     parser.add_argument('--k', type=int, default=0, help='number of centers for k_centersNC')
     params = parser.parse_args()
@@ -256,6 +259,9 @@ if __name__ == "__main__":
     elif params.dataset == 'imagenet':
         params.dataset_size = 11060223
         params.num_classes = 10450
+    elif params.dataset == 'nyc_taxicab':
+        params.dataset_size = 68792
+        params.num_classes = 1
     
     ## cifar10
     # k_to_dr = { 1077 : 50,  
