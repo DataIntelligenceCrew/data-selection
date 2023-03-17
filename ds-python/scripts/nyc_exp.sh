@@ -2,7 +2,7 @@
 
 
 
-for DR in 10 20 30 40 50
+for DR in 5 10 20 
 do 
     python3 ../main_algo.py \
             --coverage_factor $DR

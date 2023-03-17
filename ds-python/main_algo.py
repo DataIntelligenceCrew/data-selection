@@ -260,7 +260,7 @@ if __name__ == "__main__":
         params.dataset_size = 11060223
         params.num_classes = 10450
     elif params.dataset == 'nyc_taxicab':
-        params.dataset_size = 68792
+        params.dataset_size = 69122
         params.num_classes = 1
     
     ## cifar10

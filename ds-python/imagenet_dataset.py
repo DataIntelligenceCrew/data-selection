@@ -93,5 +93,10 @@ if __name__ == '__main__':
     #     f.write('{0} : {1}\n'.format(i, int(label_dict[i])))
     
     # f.close()
-    get_data_stats()
+    # get_data_stats()
+    f = open('/localdisk3/data-selection/data/metadata/imagenet/0.9/resnet-18.txt', 'r')
+    lines = f.readlines()
+    f.close()
+    last_index = lines[-1].strip().split(':')[0]
+    print(last_index)
     # pickel_test()

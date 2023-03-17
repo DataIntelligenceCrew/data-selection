@@ -87,12 +87,13 @@ def load_data():
         PU_ID = d[7]
         DO_ID = d[8]
         if PU_ID in lat_long_tuples.keys() and DO_ID in lat_long_tuples.keys():
-            PU_long_lat = lat_long_tuples[PU_ID]
-            DO_long_lat = lat_long_tuples[DO_ID]
-            lat_long = [PU_long_lat[0], PU_long_lat[1], DO_long_lat[0], DO_long_lat[1]]
-            d = d + lat_long + [i]
-            updated_data.append(d)
-            i += 1
+            if len(d[3]) > 0: 
+                PU_long_lat = lat_long_tuples[PU_ID]
+                DO_long_lat = lat_long_tuples[DO_ID]
+                lat_long = [PU_long_lat[0], PU_long_lat[1], DO_long_lat[0], DO_long_lat[1]]
+                d = d + lat_long + [i]
+                updated_data.append(d)
+                i += 1
     
     # print(updated_data[1])
     print(len(data))
@@ -383,19 +384,21 @@ def load_parquet_data():
     file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
     df = pd.read_parquet(file_loc, engine='pyarrow')
     # print(df.head())
-    # print(df.size)
+    print(df.shape[0])
+    df = df.dropna()
+    print(df.shape[0])
     df_sampled = df.sample(70000)
     print(df_sampled.size)
     print(df_sampled.keys())
-    df_sampled.to_csv('/localdisk3/nyc_yellowtaxidata_2021-09.csv', encoding='utf-8', index=False)
+    # df_sampled.to_csv('/localdisk3/nyc_yellowtaxidata_2021-09.csv', encoding='utf-8', index=False)
 
 if __name__ == '__main__':
-    # load_parquet_data()
-    load_data()
-    data = datetime_format()
-    datetime_index(data, 300, 420)
+    load_parquet_data()
+    # load_data()
+    # data = datetime_format()
+    # datetime_index(data, 300, 420)
     # location_index(1, 1)
-    mongo_geoindex(1,1)
+    # mongo_geoindex(1,1)
     # parse_geojson()
     # combine_posting_lists(300, 420, 1, 1)
     
