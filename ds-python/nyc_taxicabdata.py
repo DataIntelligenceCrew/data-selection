@@ -400,6 +400,8 @@ def data_into_zones():
     # print(df['borough'].unique())
     data_file_loc = '/localdisk3/nyc_yellowtaxidata_2021-09.csv'
     data = pd.read_csv(data_file_loc)
+    # file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
+    # data = pd.read_parquet(file_loc, engine='pyarrow')
     data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='PULocationID', right_on='LocationID')).drop('LocationID', axis=1)
     data = data.rename({'borough' : 'PUBorough'}, axis=1)
     data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='DOLocationID', right_on='LocationID')).drop('LocationID', axis=1)
@@ -413,19 +415,19 @@ def data_into_zones():
     data = pd.DataFrame(pd.merge(data, lat_long_df[['location_i', 'X', 'Y']], left_on='DOLocationID', right_on='location_i' )).drop('location_i', axis=1)
     data = data.rename({'X' : 'DOLong', 'Y' : 'DOLat'}, axis=1)
     # print(data.shape[0])
-    # data= data.dropna()
-    # print(data.shape[0])
+    data= data.dropna()
+    print(data.shape[0])
     # print(data.keys())
-    data_grouped_PU = data.groupby(['PUBorough']).count().to_dict()
-    print(data_grouped_PU['VendorID'])
+    # data_grouped_PU = data.groupby(['PUBorough']).count().to_dict()
+    # print(data_grouped_PU['VendorID'])
 
-    data_grouped_DO = data.groupby(['DOBorough']).count().to_dict()
-    print(data_grouped_DO['VendorID'])
+    # data_grouped_DO = data.groupby(['DOBorough']).count().to_dict()
+    # print(data_grouped_DO['VendorID'])
 
     data_grouped_both = data.groupby(['PUBorough', 'DOBorough']).count().to_dict()
     print(data_grouped_both['VendorID'])
 
-    data.to_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', encoding='utf-8')
+    # data.to_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', encoding='utf-8')
 if __name__ == '__main__':
     # load_parquet_data()
     # load_data()

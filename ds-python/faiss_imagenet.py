@@ -10,8 +10,9 @@ import math
 import statistics
 import sqlite3 
 from json import dumps 
+import psycopg2
 
-feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
+
 
 
 
@@ -69,6 +70,7 @@ feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet
 '''
 
 def quantized_index():
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
     d = feature_vectors.shape[1]
     print(d)
     N = feature_vectors.shape[0]
@@ -119,6 +121,7 @@ def init_db():
 
 
 def quantized_index_range_search_sql():
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
     nlist = int(math.sqrt(N))
@@ -157,6 +160,7 @@ def quantized_index_range_search_sql():
 
 
 def quantized_index_range_search():
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
     nlist = int(math.sqrt(N))
@@ -201,6 +205,7 @@ def quantized_index_range_search():
 
 
 def sq_paramter():
+    feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
     d = feature_vectors.shape[1]
     N = feature_vectors.shape[0]
     nlist = int(math.sqrt(N))
@@ -214,9 +219,9 @@ def sq_paramter():
     faiss_index.train(xb)
     print('Faiss Trained')
     faiss_index.add(xb)
-    print(int(nlist/128))
+    # print(int(nlist/128))
     faiss_index.nprobe = 8
-    batch_size = 1000
+    batch_size = 10
     posting_list= {}
     for i in range(0, xb.shape[0], batch_size):
         start_time = time.time()
@@ -238,8 +243,9 @@ def sq_paramter():
         #     break
         # progress_bar.update(batch_size)
     print(end_time-start_time)
-    print(len(posting_list[0]))
-    print(posting_list[0])
+    # print(len(posting_list[0]))
+    # print(posting_list[0])
+    return posting_list
 # def pca_index():
 #     pass
 
@@ -274,6 +280,36 @@ def sq_paramter():
 #     avg_relative_error = ((xb - x2)**2).sum() / (xb ** 2).sum()
 #     print(avg_relative_error)
 
+def psql_db(posting_list):
+    conn = None 
+    try:
+        conn = psycopg2.connect(
+            database="pmundra"
+        )
+        cur = conn.cursor()
+        print('PostgreSQL database version:')
+        # cur.execute('SELECT version()')
+        # cur.execute('CREATE TABLE postingList9(id INTEGER, pl INTEGER[]);')
+        # for key, value in posting_list.items():
+        #     v = [int(vl) for vl in value]
+        #     cur.execute("INSERT INTO postinglist9(id , pl) VALUES(%s, %s);",(key, v, ))
+        # conn.commit()
+        cur.execute("select * from postinglist9;")
+        records = cur.fetchall()
+        for row in records:
+            print('ID:{0}\nPL{1}'.format(row[0], row[1]))
+        # db_version = cur.fetchone()
+        # print(db_version)
+        cur.close()
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    
+    finally:
+        if conn is not None:
+            conn.close()
+            print('database connection closed')
+
 
 
 
@@ -283,7 +319,10 @@ if __name__ == '__main__':
     # composable_test(100)
     # quantized_index()
     # quantized_index_range_search()
-    init_db()
+    # init_db()
+    # posting_list = sq_paramter()
+    posting_list= None
+    psql_db(posting_list)
     # sq_paramter()
     # scalar_quantizer()
     # p = [True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]
