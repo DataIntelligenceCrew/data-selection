@@ -8,6 +8,8 @@ import tqdm
 import random 
 import math 
 import statistics
+import sqlite3 
+from json import dumps 
 
 feature_vectors = pickle.load(open(FEATURE_VECTOR_LOC.format('imagenet', 'resnet-18'), 'rb'))
 
@@ -104,7 +106,54 @@ def quantized_index():
     print(duration)
     print(statistics.mean(D_above_cf))
 
+'''
 
+Try it with postgress, as it sa an array datatype. 
+'''
+
+def init_db():
+    con = sqlite3.connect("/localdisk3/data-selection/data/metadata/imagenet/0.9/posting_list.db")
+    cursor = con.cursor()
+    print('DB init')
+    query = "CREATE TABLE posting_list(int ID, )"
+
+
+def quantized_index_range_search_sql():
+    d = feature_vectors.shape[1]
+    N = feature_vectors.shape[0]
+    nlist = int(math.sqrt(N))
+    nbit = faiss.ScalarQuantizer.QT_8bit
+    xb = feature_vectors.astype('float32')
+    xb[:, 0] += np.arange(N) / 1000
+
+    coarse_quantizer = faiss.IndexFlatL2(d)
+    faiss_index = faiss.IndexIVFScalarQuantizer(coarse_quantizer, d, nlist, nbit, faiss.METRIC_L2)
+    faiss.normalize_L2(x=xb)
+    faiss_index.train(xb)
+    print('Faiss Trained')
+    faiss_index.add(xb)
+    faiss_index.nprobe = 16
+    print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
+    batch_size = 1000
+    progress_bar = tqdm.tqdm(total=N, position=0)
+    posting_list = {}
+
+    for i in range(0, xb.shape[0], batch_size):
+        # start_time = time.time()
+        limits, D, I = faiss_index.range_search(xb[i:i+batch_size], 0.9)
+        # end_time = time.time()
+        try:
+            for j in range(batch_size):
+                # print(j)
+                pl = set(I[limits[j] : limits[j+1]])
+                # posting_list[i+j] = pl
+                key = i+j
+                value = pl
+
+        except IndexError:
+            break
+        progress_bar.update(batch_size)
+        # break 
 
 
 def quantized_index_range_search():
@@ -233,7 +282,8 @@ if __name__ == '__main__':
     # composable_test(50)
     # composable_test(100)
     # quantized_index()
-    quantized_index_range_search()
+    # quantized_index_range_search()
+    init_db()
     # sq_paramter()
     # scalar_quantizer()
     # p = [True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]

@@ -392,8 +392,42 @@ def load_parquet_data():
     print(df_sampled.keys())
     # df_sampled.to_csv('/localdisk3/nyc_yellowtaxidata_2021-09.csv', encoding='utf-8', index=False)
 
+
+def data_into_zones():
+    file_loc = '/localdisk3/taxi_zones.csv'
+    zone_df = pd.read_csv(file_loc)
+    # print(df.keys())
+    # print(df['borough'].unique())
+    data_file_loc = '/localdisk3/nyc_yellowtaxidata_2021-09.csv'
+    data = pd.read_csv(data_file_loc)
+    data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='PULocationID', right_on='LocationID')).drop('LocationID', axis=1)
+    data = data.rename({'borough' : 'PUBorough'}, axis=1)
+    data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='DOLocationID', right_on='LocationID')).drop('LocationID', axis=1)
+    data = data.rename({'borough' : 'DOBorough'}, axis=1)
+    # print(data.keys())
+    lat_long_file = '/localdisk3/nyc_tlc_latlong.csv'
+    lat_long_df = pd.read_csv(lat_long_file)
+    # print(lat_long_df.keys())
+    data = pd.DataFrame(pd.merge(data, lat_long_df[['location_i', 'X', 'Y']], left_on='PULocationID', right_on='location_i' )).drop('location_i', axis=1)
+    data = data.rename({'X' : 'PULong', 'Y' : 'PULat'}, axis=1)
+    data = pd.DataFrame(pd.merge(data, lat_long_df[['location_i', 'X', 'Y']], left_on='DOLocationID', right_on='location_i' )).drop('location_i', axis=1)
+    data = data.rename({'X' : 'DOLong', 'Y' : 'DOLat'}, axis=1)
+    # print(data.shape[0])
+    # data= data.dropna()
+    # print(data.shape[0])
+    # print(data.keys())
+    data_grouped_PU = data.groupby(['PUBorough']).count().to_dict()
+    print(data_grouped_PU['VendorID'])
+
+    data_grouped_DO = data.groupby(['DOBorough']).count().to_dict()
+    print(data_grouped_DO['VendorID'])
+
+    data_grouped_both = data.groupby(['PUBorough', 'DOBorough']).count().to_dict()
+    print(data_grouped_both['VendorID'])
+
+    data.to_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', encoding='utf-8')
 if __name__ == '__main__':
-    load_parquet_data()
+    # load_parquet_data()
     # load_data()
     # data = datetime_format()
     # datetime_index(data, 300, 420)
@@ -401,4 +435,4 @@ if __name__ == '__main__':
     # mongo_geoindex(1,1)
     # parse_geojson()
     # combine_posting_lists(300, 420, 1, 1)
-    
+    data_into_zones()
