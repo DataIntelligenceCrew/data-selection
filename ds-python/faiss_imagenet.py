@@ -167,7 +167,9 @@ def quantized_index_range_search():
     nbit = faiss.ScalarQuantizer.QT_8bit
     xb = feature_vectors.astype('float32')
     xb[:, 0] += np.arange(N) / 1000
-
+    conn = psycopg2.connect(database="pmundra")
+    cur = conn.cursor()
+    print('Database connection established')
     coarse_quantizer = faiss.IndexFlatL2(d)
     faiss_index = faiss.IndexIVFScalarQuantizer(coarse_quantizer, d, nlist, nbit, faiss.METRIC_L2)
     faiss.normalize_L2(x=xb)
@@ -179,24 +181,30 @@ def quantized_index_range_search():
     batch_size = 1000
     progress_bar = tqdm.tqdm(total=N, position=0)
     posting_list = {}
-    with open('/localdisk2/faiss_sq_pl_resnet-18_imagenet.txt', 'w') as f:
-        for i in range(0, xb.shape[0], batch_size):
-            # start_time = time.time()
-            limits, D, I = faiss_index.range_search(xb[i:i+batch_size], 0.9)
-            # end_time = time.time()
-            try:
-                for j in range(batch_size):
-                    # print(j)
-                    pl = set(I[limits[j] : limits[j+1]])
-                    # posting_list[i+j] = pl
-                    key = i+j
-                    value = pl
-                    f.write(str(key) + ' : ' + str(value) + '\n')
-            except IndexError:
-                break
-            progress_bar.update(batch_size)
+    # with open('/localdisk2/faiss_sq_pl_resnet-18_imagenet.txt', 'w') as f:
+    for i in range(0, xb.shape[0], batch_size):
+        # start_time = time.time()
+        limits, D, I = faiss_index.range_search(xb[i:i+batch_size], 0.9)
+        # end_time = time.time()
+        try:
+            for j in range(batch_size):
+                # print(j)
+                pl = set(I[limits[j] : limits[j+1]])
+                # posting_list[i+j] = pl
+                key = i+j
+                value = [int(p) for p in pl]
+                # f.write(str(key) + ' : ' + str(value) + '\n')
+                cur.execute("INSERT INTO postinglist9(id , pl) VALUES(%s, %s);",(key, value, ))
+            conn.commit()
+        except IndexError:
+            break
+        progress_bar.update(batch_size)
+    cur.close()
+    if conn is not None:
+        conn.close()
+        print('Database connection closed')
         # break 
-    f.close()
+    # f.close()
     # with open('/localdisk3/data-selection/data/metadata/imagenet/0.9/faiss_sq_pl_resnet-18.txt', 'w') as f:
     #     for key, value in posting_list.items():
     #         f.write(str(key) + ' : ' + str(value) + '\n')
@@ -318,11 +326,11 @@ if __name__ == '__main__':
     # composable_test(50)
     # composable_test(100)
     # quantized_index()
-    # quantized_index_range_search()
+    quantized_index_range_search()
     # init_db()
     # posting_list = sq_paramter()
-    posting_list= None
-    psql_db(posting_list)
+    # posting_list= None
+    # psql_db(posting_list)
     # sq_paramter()
     # scalar_quantizer()
     # p = [True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]
