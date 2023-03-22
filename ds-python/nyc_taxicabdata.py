@@ -22,7 +22,11 @@ attributes
        'dropoff_longitude', 'dropoff_latitude', 'store_and_fwd_flag',
        'trip_duration'
 '''
-
+PU_LONG = 21
+PU_LAT = 22
+DO_LONG = 23
+DO_LAT = 24
+D_ID = 25
 
 attribute_index = {
     'VendorID' : 0,
@@ -120,11 +124,14 @@ def load_small_data():
 
 def load_data_from_disk():
     # file_loc = '/localdisk3/nyc_2018_updated.csv'
-    file_loc = '/localdisk3/nyc_2021-09_updated.csv'
+    # file_loc = '/localdisk3/nyc_2021-09_updated.csv'
+    # file_loc = '/localdisk3/nyc_1mil_2021-09_updated.csv'
+    file_loc = '/localdisk3/nyc_60k_2021-09_updated.csv'
     f = open(file_loc, 'r')
     lines = f.readlines()
     data = [line.strip() for line in lines]
     f.close()
+    del data[0]
     data = [d.split(',') for d in data]
     return data
 
@@ -242,11 +249,11 @@ def convert_to_geojson(pickup=True):
     data = load_data_from_disk()
     geo_data = []
     for d in data:
-        d_ID = d[23]
-        d_PU_lat = float(d[20])
-        d_PU_long = float(d[19])
-        d_DO_lat = float(d[22])
-        d_DO_long = float(d[21])
+        d_ID = d[D_ID]
+        d_PU_lat = float(d[PU_LAT])
+        d_PU_long = float(d[PU_LONG])
+        d_DO_lat = float(d[DO_LAT])
+        d_DO_long = float(d[DO_LONG])
         if pickup:
             temp = {"location" : {'type' : 'Point', 'coordinates' : [d_PU_long, d_PU_lat]}, "name" : d_ID}
         else:
@@ -257,7 +264,7 @@ def convert_to_geojson(pickup=True):
 
 def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-    mydb = myclient["geodatabase"]
+    mydb = myclient["geodatabase2"]
     print(myclient.list_database_names())
     
     places_pickup = mydb["places_pickup"]
@@ -309,7 +316,7 @@ def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
         result[data_id] = temp_pu_results.intersection(temp_do_results)
         progress_bar.update(1)
 
-    with open('/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
+    with open('/localdisk3/nyc_2021-09_60k_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
         for key, value in result.items():
             f.write(str(key) + ' : ' + str(value) + '\n')
     
@@ -398,10 +405,10 @@ def data_into_zones():
     zone_df = pd.read_csv(file_loc)
     # print(df.keys())
     # print(df['borough'].unique())
-    data_file_loc = '/localdisk3/nyc_yellowtaxidata_2021-09.csv'
-    data = pd.read_csv(data_file_loc)
-    # file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
-    # data = pd.read_parquet(file_loc, engine='pyarrow')
+    # data_file_loc = '/localdisk3/nyc_yellowtaxidata_2021-09.csv'
+    # data = pd.read_csv(data_file_loc)
+    file_loc = '/localdisk3/yellow_tripdata_2021-09.parquet'
+    data = pd.read_parquet(file_loc, engine='pyarrow')
     data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='PULocationID', right_on='LocationID')).drop('LocationID', axis=1)
     data = data.rename({'borough' : 'PUBorough'}, axis=1)
     data = pd.DataFrame(pd.merge(data, zone_df[['LocationID', 'borough']], left_on='DOLocationID', right_on='LocationID')).drop('LocationID', axis=1)
@@ -424,17 +431,33 @@ def data_into_zones():
     # data_grouped_DO = data.groupby(['DOBorough']).count().to_dict()
     # print(data_grouped_DO['VendorID'])
 
-    data_grouped_both = data.groupby(['PUBorough', 'DOBorough']).count().to_dict()
-    print(data_grouped_both['VendorID'])
+    # data_grouped_both = data.groupby(['PUBorough', 'DOBorough']).count().to_dict()
+    # print(data_grouped_both['VendorID'])
+    # data = data.loc[data['PUBorough'] == data['DOBorough']]
+    data_sampled = data.sample(1000000)
+    # data_grouped = data_sampled.groupby(['PUBorough', 'DOBorough']).count().to_dict()
+    # print(data_grouped)
 
+    data_sampled.to_csv('/localdisk3/nyc_1mil_2021-09.csv')
     # data.to_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', encoding='utf-8')
+
+
+def clean_1_mil_data():
+    # df = pd.read_csv('/localdisk3/nyc_1mil_2021-09.csv', index_col=0)
+    df = pd.read_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', index_col=0)
+    df['ID'] = df.reset_index().index
+    df = df.loc[:,~df.columns.str.match("Unnamed")]
+    print(df.keys())
+    df.to_csv('/localdisk3/nyc_60k_2021-09_updated.csv', index=False)
+
 if __name__ == '__main__':
     # load_parquet_data()
     # load_data()
     # data = datetime_format()
     # datetime_index(data, 300, 420)
     # location_index(1, 1)
-    # mongo_geoindex(1,1)
+    mongo_geoindex(1,1)
     # parse_geojson()
     # combine_posting_lists(300, 420, 1, 1)
-    data_into_zones()
+    # data_into_zones()
+    # clean_1_mil_data()
