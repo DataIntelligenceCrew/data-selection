@@ -8,6 +8,6 @@ SQ_search = {
 sq_search_set = set(SQ_search[0])
 l2_search_set = set(L2_search[0])
 
-print(len(sq_search_set.difference(l2_search_set)))
+print(len(l2_search_set.intersection(sq_search_set)))
 print(len(l2_search_set))
 print(len(sq_search_set))

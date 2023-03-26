@@ -442,6 +442,49 @@ def data_into_zones():
     # data.to_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', encoding='utf-8')
 
 
+def assign_groups():
+    df = pd.read_csv('/localdisk3/nyc_60k_2021-09_updated.csv')
+    print(df.keys())
+    data_grouped_both = df.groupby(['PUBorough', 'DOBorough']).count().to_dict()
+    # print(data_grouped_both['VendorID'])
+    # df['label'] = df['PUBorough']
+    # query_index = df.query('PUBorough == Manhattan & DOBorough == Bronx')
+    # df['label'] = '6'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Bronx')), 'label'] = '0'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Brooklyn')), 'label'] = '1'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Manhattan')), 'label'] = '2'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Queens')), 'label'] = '3'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Staten Island')), 'label'] = '4'
+    df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'EWR')), 'label'] = '5'
+    # df = df.loc[:,~df.columns.str.match("Unnamed")]
+    df = df[['ID', 'label']]
+    print(df.keys())
+    df.to_csv('/localdisk3/nyc_60k_2021-09_updated_labels.csv', index=False)
+
+
+
+def get_labels_nyc():
+    df = open('/localdisk3/nyc_60k_2021-09_updated_labels.csv', 'r')
+    lines = df.readlines()
+    data = [line.strip() for line in lines]
+    df.close()
+    del data[0]
+    labels_dicts = {}
+    for row in data:
+        # print(row)
+
+        row_s = row.split(',')
+        key = int(row_s[0])
+        try:
+            label = int(row_s[1])
+            if label not in labels_dicts.keys():
+                labels_dicts[label] = list()
+            labels_dicts[label].append(key)
+        except ValueError:
+            continue
+    # print(labels_dicts)
+    return labels_dicts
+
 def clean_1_mil_data():
     # df = pd.read_csv('/localdisk3/nyc_1mil_2021-09.csv', index_col=0)
     df = pd.read_csv('/localdisk3/nyc_yellow_taxidata_2021-09_all_attributes.csv', index_col=0)
@@ -456,8 +499,10 @@ if __name__ == '__main__':
     # data = datetime_format()
     # datetime_index(data, 300, 420)
     # location_index(1, 1)
-    mongo_geoindex(1,1)
+    # mongo_geoindex(1,1)
     # parse_geojson()
     # combine_posting_lists(300, 420, 1, 1)
     # data_into_zones()
     # clean_1_mil_data()
+    # assign_groups()
+    get_labels_nyc()

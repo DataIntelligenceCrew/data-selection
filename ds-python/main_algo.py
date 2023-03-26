@@ -10,6 +10,7 @@ import faiss
 from algorithms import *
 from paths import *
 from utils_algo import *
+import pandas as pd
 
 LFW_LABELS = {'Asian' : 0, 
               'White' : 1, 
@@ -37,6 +38,29 @@ def get_label_dict(dataset_name):
     
     label_file.close()
     return labels_dict
+
+def get_labels_nyc():
+    df = open('/localdisk3/nyc_60k_2021-09_updated_labels.csv', 'r')
+    lines = df.readlines()
+    data = [line.strip() for line in lines]
+    df.close()
+    del data[0]
+    labels_dicts = {}
+    for row in data:
+        # print(row)
+
+        row_s = row.split(',')
+        key = int(row_s[0])
+        try:
+            label = int(row_s[1])
+            if label not in labels_dicts.keys():
+                labels_dicts[label] = list()
+            labels_dicts[label].append(key)
+        except ValueError:
+            continue
+    # print(labels_dicts)
+    counts = {k:len(v) for k,v in labels_dicts.items()}
+    return labels_dicts, counts
 
 def run_algo(params, dr=None):
     print('Running Algorithm: {0}\nDataset:{1}\nDistribution Requirement:{2}\nCoverage Factor:{3}\nCoverage Threshold:{4}\n'.format(

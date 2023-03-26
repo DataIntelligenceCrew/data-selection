@@ -176,13 +176,13 @@ def quantized_index_range_search():
     faiss_index.train(xb)
     print('Faiss Trained')
     faiss_index.add(xb)
-    faiss_index.nprobe = 16
+    faiss_index.nprobe = 8
     print('successfully built faiss index (size : {0})'.format(faiss_index.ntotal))
     batch_size = 1000
     progress_bar = tqdm.tqdm(total=N, position=0)
     posting_list = {}
     # with open('/localdisk2/faiss_sq_pl_resnet-18_imagenet.txt', 'w') as f:
-    for i in range(0, xb.shape[0], batch_size):
+    for i in range(3847000, xb.shape[0], batch_size):
         # start_time = time.time()
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], 0.9)
         # end_time = time.time()
@@ -251,9 +251,9 @@ def sq_paramter():
         #     break
         # progress_bar.update(batch_size)
     print(end_time-start_time)
-    # print(len(posting_list[0]))
-    # print(posting_list[0])
-    return posting_list
+    print(len(posting_list[0]))
+    print(posting_list[0])
+    # return posting_list
 # def pca_index():
 #     pass
 
@@ -326,12 +326,12 @@ if __name__ == '__main__':
     # composable_test(50)
     # composable_test(100)
     # quantized_index()
-    quantized_index_range_search()
+    # quantized_index_range_search()
     # init_db()
     # posting_list = sq_paramter()
     # posting_list= None
     # psql_db(posting_list)
-    # sq_paramter()
+    sq_paramter()
     # scalar_quantizer()
     # p = [True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True, True]
     # print(len(p))
