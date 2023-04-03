@@ -189,6 +189,19 @@ func setMinus(foo map[int]bool, bar map[int]bool) map[int]bool {
 	return result
 }
 
+func findMinMaxKey(m map[int]bool) (int, int) {
+    var min, max int
+    for k := range m {
+        if k < min || min == 0 {
+            min = k
+        }
+        if k > max {
+            max = k
+        }
+    }
+    return min, max
+}
+
 /**
 Everything required to implement priority queue.
 */

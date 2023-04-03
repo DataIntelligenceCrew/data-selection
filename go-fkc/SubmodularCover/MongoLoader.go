@@ -38,6 +38,19 @@ func getEntryFromCursor(cur *mongo.Cursor) Point {
 	return entry
 }
 
+// Get cursor for a set, whose elements are likely to be very densely packed in R
+func getDenseSetCursor(collection *mongo.Collection, set map[int]bool) *mongo.Cursor {
+	min, max := findMinMaxKey(set)
+	setRange := max - min + 1
+	setSize := len(set)
+
+	if float64(setSize) < 0.2 * float64(setRange) {
+		return getSetCursor(collection, set)
+	} else {
+		return getRangeCursor(collection, min, max)
+	}
+}
+
 func getSetCursor(collection *mongo.Collection, set map[int]bool) *mongo.Cursor {
 	return getSliceCursor(collection, mapToSlice(set))
 }
