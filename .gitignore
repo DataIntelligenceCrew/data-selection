@@ -5,3 +5,4 @@ cifar/*
 temp*
 cifar-10-vectors*
 *.db
+*.sh
