@@ -18,16 +18,39 @@ for the purposes of this playground competition. Based on individual trip attrib
 participants should predict the duration of each trip in the test set.
 
 attributes
-'id', 'vendor_id', 'pickup_datetime', 'dropoff_datetime',
-       'passenger_count', 'pickup_longitude', 'pickup_latitude',
-       'dropoff_longitude', 'dropoff_latitude', 'store_and_fwd_flag',
-       'trip_duration'
+,VendorID,
+tpep_pickup_datetime,
+tpep_dropoff_datetime,
+passenger_count,
+trip_distance,
+RatecodeID,
+store_and_fwd_flag,
+PULocationID,
+DOLocationID,
+payment_type,
+fare_amount,
+extra,
+mta_tax,
+tip_amount,
+tolls_amount,
+improvement_surcharge,
+total_amount,
+congestion_surcharge,
+airport_fee,
+PUBorough,
+DOBorough,
+PULong,
+PULat,
+DOLong,
+DOLat,
+ID
+
 '''
-PU_LONG = 21
-PU_LAT = 22
-DO_LONG = 23
-DO_LAT = 24
-D_ID = 25
+PU_LONG = 22
+PU_LAT = 23
+DO_LONG = 24
+DO_LAT = 25
+D_ID = 26
 
 attribute_index = {
     'VendorID' : 0,
@@ -123,11 +146,12 @@ def load_small_data():
 
 
 
-def load_data_from_disk():
+def load_data_from_disk(part_id):
     # file_loc = '/localdisk3/nyc_2018_updated.csv'
     # file_loc = '/localdisk3/nyc_2021-09_updated.csv'
     # file_loc = '/localdisk3/nyc_1mil_2021-09_updated.csv'
-    file_loc = '/localdisk3/nyc_60k_2021-09_updated.csv'
+    # file_loc = '/localdisk3/nyc_60k_2021-09_updated.csv'
+    file_loc = '/localdisk3/data-selection/data/metadata/nyc_taxicab/10/datasets/{0}.csv'.format(part_id)
     f = open(file_loc, 'r')
     lines = f.readlines()
     data = [line.strip() for line in lines]
@@ -246,8 +270,8 @@ def location_index(PU_dist_threshold, DO_dist_threshold):
     
     f.close()
 
-def convert_to_geojson(pickup=True):
-    data = load_data_from_disk()
+def convert_to_geojson(part_id, pickup=True):
+    data = load_data_from_disk(part_id)
     geo_data = []
     for d in data:
         d_ID = d[D_ID]
@@ -263,66 +287,134 @@ def convert_to_geojson(pickup=True):
     
     return geo_data
 
-def mongo_geoindex(PU_dist_threshold, DO_dist_threshold):
+def mongo_geoindex(p, PU_dist_threshold, DO_dist_threshold):
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-    mydb = myclient["geodatabase"]
-    print(myclient.list_database_names())
-    
-    places_pickup = mydb["places_pickup"]
-    places_dropoff = mydb["places_dropoff"]
-    
-    mydb.places_dropoff.drop()
-    mydb.places_pickup.drop()
-    mydb.places_pickup.drop_index("location")
-    mydb.places_dropoff.drop_index("location")
-
-    mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
-    data_pickup = convert_to_geojson()
-    mydb.places_pickup.insert_many(data_pickup)
-
-    mydb.places_dropoff.create_index([( "location", pymongo.GEOSPHERE )])
-    data_dropoff = convert_to_geojson(pickup=False)
-    mydb.places_dropoff.insert_many(data_dropoff)
-
-    result = {}
-    progress_bar = tqdm.tqdm(total=len(data_pickup), position=0)
-    for d_PU, d_DO in zip(data_pickup, data_dropoff):
-        pickup_coordinates = d_PU['location']['coordinates']
-        dropoff_coordinates = d_DO['location']['coordinates']
-        data_id = d_PU['name']
-        check_id = d_DO['name']
-        assert data_id == check_id
-        temp_pu_results = set()
-        temp_do_results = set()
-        for doc in mydb.places_pickup.find({"location" : {
-            "$nearSphere" : {
-                "$geometry" : {
-                    "type" : "Point",
-                    "coordinates" : pickup_coordinates
-                },
-                "$maxDistance" : PU_dist_threshold}}}):
-            # pprint.pprint(doc)
-            temp_pu_results.add(doc['name'])
+    for part_id in range(p):
+        db_name = "geodatabase_{0}".format(part_id)
+        mydb = myclient[db_name]
+        print(myclient.list_database_names())
         
-        for doc in mydb.places_dropoff.find({"location" : {
-            "$nearSphere" : {
-                "$geometry" : {
-                    "type" : "Point",
-                    "coordinates" : dropoff_coordinates
-                },
-                "$maxDistance" : DO_dist_threshold}}}):
-            # pprint.pprint(doc)
-            temp_do_results.add(doc['name'])
+        places_pickup = mydb["places_pickup"]
+        places_dropoff = mydb["places_dropoff"]
+        
+        mydb.places_dropoff.drop()
+        mydb.places_pickup.drop()
+        mydb.places_pickup.drop_index("location")
+        mydb.places_dropoff.drop_index("location")
 
-        result[data_id] = temp_pu_results.intersection(temp_do_results)
-        progress_bar.update(1)
+        mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
+        data_pickup = convert_to_geojson(part_id)
+        mydb.places_pickup.insert_many(data_pickup)
 
-    with open('/localdisk3/nyc_2021-09_60k_dist_sim_PU_{0}_DO_{1}.txt'.format(PU_dist_threshold, DO_dist_threshold), 'w') as f:
-        for key, value in result.items():
-            f.write(str(key) + ' : ' + str(value) + '\n')
-    
-    f.close()
+        mydb.places_dropoff.create_index([( "location", pymongo.GEOSPHERE )])
+        data_dropoff = convert_to_geojson(part_id, pickup=False)
+        mydb.places_dropoff.insert_many(data_dropoff)
 
+        result = {}
+        progress_bar = tqdm.tqdm(total=len(data_pickup), position=0)
+        for d_PU, d_DO in zip(data_pickup, data_dropoff):
+            pickup_coordinates = d_PU['location']['coordinates']
+            dropoff_coordinates = d_DO['location']['coordinates']
+            data_id = d_PU['name']
+            check_id = d_DO['name']
+            assert data_id == check_id
+            temp_pu_results = set()
+            temp_do_results = set()
+            for doc in mydb.places_pickup.find({"location" : {
+                "$nearSphere" : {
+                    "$geometry" : {
+                        "type" : "Point",
+                        "coordinates" : pickup_coordinates
+                    },
+                    "$maxDistance" : PU_dist_threshold}}}):
+                # pprint.pprint(doc)
+                temp_pu_results.add(doc['name'])
+            
+            for doc in mydb.places_dropoff.find({"location" : {
+                "$nearSphere" : {
+                    "$geometry" : {
+                        "type" : "Point",
+                        "coordinates" : dropoff_coordinates
+                    },
+                    "$maxDistance" : DO_dist_threshold}}}):
+                # pprint.pprint(doc)
+                temp_do_results.add(doc['name'])
+
+            result[data_id] = temp_pu_results.intersection(temp_do_results)
+            progress_bar.update(1)
+
+        with open('/localdisk3/data-selection/data/metadata/nyc_taxicab/10/loc_pl/{0}_PU_{1}_DO_{2}.txt'.format(part_id, PU_dist_threshold, DO_dist_threshold), 'w') as f:
+            for key, value in result.items():
+                f.write(str(key) + ' : ' + str(value) + '\n')
+        
+        f.close()
+
+
+
+
+def mongo_geoindex_cross_part(p, p_id, PU_dist_threshold, DO_dist_threshold):
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    N = [n for n in range(p)]
+    N.remove(p_id)
+    for part_id in N:
+        db_name = "geodatabase_{0}".format(part_id)
+        mydb = myclient[db_name]
+        print(myclient.list_database_names())
+        
+        places_pickup = mydb["places_pickup"]
+        places_dropoff = mydb["places_dropoff"]
+        
+        # mydb.places_dropoff.drop()
+        # mydb.places_pickup.drop()
+        # mydb.places_pickup.drop_index("location")
+        # mydb.places_dropoff.drop_index("location")
+
+        # mydb.places_pickup.create_index([( "location", pymongo.GEOSPHERE )])
+        data_pickup = convert_to_geojson(p_id)
+        # mydb.places_pickup.insert_many(data_pickup)
+
+        # mydb.places_dropoff.create_index([( "location", pymongo.GEOSPHERE )])
+        data_dropoff = convert_to_geojson(p_id, pickup=False)
+        # mydb.places_dropoff.insert_many(data_dropoff)
+
+        result = {}
+        progress_bar = tqdm.tqdm(total=len(data_pickup), position=0)
+        for d_PU, d_DO in zip(data_pickup, data_dropoff):
+            pickup_coordinates = d_PU['location']['coordinates']
+            dropoff_coordinates = d_DO['location']['coordinates']
+            data_id = d_PU['name']
+            check_id = d_DO['name']
+            assert data_id == check_id
+            temp_pu_results = set()
+            temp_do_results = set()
+            for doc in mydb.places_pickup.find({"location" : {
+                "$nearSphere" : {
+                    "$geometry" : {
+                        "type" : "Point",
+                        "coordinates" : pickup_coordinates
+                    },
+                    "$maxDistance" : PU_dist_threshold}}}):
+                # pprint.pprint(doc)
+                temp_pu_results.add(doc['name'])
+            
+            for doc in mydb.places_dropoff.find({"location" : {
+                "$nearSphere" : {
+                    "$geometry" : {
+                        "type" : "Point",
+                        "coordinates" : dropoff_coordinates
+                    },
+                    "$maxDistance" : DO_dist_threshold}}}):
+                # pprint.pprint(doc)
+                temp_do_results.add(doc['name'])
+
+            result[data_id] = temp_pu_results.intersection(temp_do_results)
+            progress_bar.update(1)
+
+        with open('/localdisk3/data-selection/data/metadata/nyc_taxicab/10/loc_pl/{3}/{0}_PU_{1}_DO_{2}.txt'.format(p_id, PU_dist_threshold, DO_dist_threshold, part_id), 'w') as f:
+            for key, value in result.items():
+                f.write(str(key) + ' : ' + str(value) + '\n')
+        
+        f.close()
 
 
 def combine_posting_lists(PUtime_diff, DOtime_diff, PU_dist_threshold, DO_dist_threshold):
@@ -444,13 +536,13 @@ def data_into_zones():
 
 
 def assign_groups():
-    df = pd.read_csv('/localdisk3/nyc_1mil_2021-09_updated.csv')
+    df = pd.read_csv('/localdisk3/nyc_60k_2021-09_updated.csv')
     print(df.keys())
     data_grouped_both = df.groupby(['PUBorough', 'DOBorough']).count().to_dict()
     # print(data_grouped_both['VendorID'])
     # df['label'] = df['PUBorough']
     # query_index = df.query('PUBorough == Manhattan & DOBorough == Bronx')
-    df['label'] = '6'
+    # df['label'] = '6'
     df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Bronx')), 'label'] = '0'
     df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Brooklyn')), 'label'] = '1'
     df.loc[((df['PUBorough'] == 'Manhattan') & (df['DOBorough'] == 'Manhattan')), 'label'] = '2'
@@ -460,7 +552,7 @@ def assign_groups():
     # df = df.loc[:,~df.columns.str.match("Unnamed")]
     df = df[['ID', 'label']]
     print(df.keys())
-    df.to_csv('/localdisk3/nyc_1mil_2021-09_updated_labels.csv', index=False)
+    df.to_csv('/localdisk3/nyc_60k_2021-09_updated_labels.csv', index=False)
 
 
 
@@ -519,11 +611,13 @@ if __name__ == '__main__':
     # data = datetime_format()
     # datetime_index(data, 300, 420)
     # location_index(1, 1)
-    # mongo_geoindex(1,1)
+    # mongo_geoindex(10, 1,1)
+    for i in range(10):
+        mongo_geoindex_cross_part(10, i, 1, 1)
     # parse_geojson()
     # combine_posting_lists(300, 420, 1, 1)
     # data_into_zones()
     # clean_1_mil_data()
     # partition_data()
-    assign_groups()
+    # assign_groups()
     # get_labels_nyc()
