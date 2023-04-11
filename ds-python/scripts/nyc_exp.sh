@@ -2,8 +2,12 @@
 
 
 
-for DR in 5 10 20 
+for CF in 5 10 20 
 do 
-    python3 ../main_algo.py \
-            --coverage_factor $DR
+    for DR in 50 100 200 300 400 500
+    do 
+        python3 ../nyc_coreset.py \
+                --coverage_factor $CF \
+                --distribution_req $DR 
+    done 
 done

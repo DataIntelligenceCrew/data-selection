@@ -409,7 +409,7 @@ def get_full_data_posting_list_imagenet_batched(params, model_name, start_index,
     
     
 def get_posting_list_nyc_dist():
-    dist_pl_loc = '/localdisk3/nyc_2021-09_dist_sim_PU_{0}_DO_{1}.txt'.format(1, 1)
+    dist_pl_loc = '/localdisk3/data-selection/data/metadata/nyc_taxicab/sim_PU_1_DO_1.txt'
     f2 = open(dist_pl_loc, 'r')
     dist_lines = f2.readlines()
     dist_data = [line.strip().replace('{', '').replace('}', '') for line in dist_lines]
