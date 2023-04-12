@@ -49,7 +49,7 @@ def run_algo(params, dr, labels_dict):
         ))
     solution_data = []
     if params.algo_type == 'greedyNC':
-        posting_list = get_posting_list_nyc_dist()
+        # posting_list = get_posting_list_nyc_dist()
         s, cscore, res_time = greedyNC_nyc(params.coverage_factor, dr, params.dataset_size, params.num_classes, labels_dict)
         solution_data.append((s, cscore, res_time))
 
@@ -138,20 +138,31 @@ def greedyNC_nyc(coverage_factor, distribution_req, dataset_size, num_classes, l
     while (not check_for_zeros(CC)) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
-        for p in delta.difference(solution):
-            # print(iters)
-            # p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
-            cur.execute('select pl from nyc_postinglist where id=%s', (p, ))
-            row = cur.fetchall()
-            for r in row:
-                pl = list(r[0])
-                posting_list_p = np.zeros(delta_size)
-                posting_list_p[pl] = 1
-            p_score = coverage_score(CC, posting_list_p)
-            if p_score > max_score:
-                max_score = p_score
-                best_point = p
-
+        possible_ids = list(delta.difference(solution))
+        batch_size = 50000
+        for i in range(0, len(possible_ids), batch_size):
+            batch_ids = tuple(possible_ids[i:i+batch_size])
+            posting_list = {}
+            cur.execute('select id, pl from nyc_postinglist where id in %s', (batch_ids, ))
+            records = cur.fetchall()
+            for rows in records:
+                p_id = rows[0]
+                pl = list(rows[1])
+                arr = np.zeros(delta_size)
+                arr[pl] = 1
+                posting_list[p_id] = arr
+            for p in batch_ids:
+                p_score = coverage_score(CC, posting_list[p])
+                if p_score > max_score:
+                    max_score = p_score
+                    best_point = p
+                # p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+                # cur.execute('select pl from nyc_postinglist where id=%s', (p, ))
+                # row = cur.fetchall()
+                # for r in row:
+                #     pl = list(r[0])
+                #     posting_list_p = np.zeros(delta_size)
+                #     posting_list_p[pl] = 1
         if best_point == -1:
             print("cannot find a point")
             break
@@ -180,6 +191,10 @@ def greedyNC_nyc(coverage_factor, distribution_req, dataset_size, num_classes, l
         conn.close()
     return solution, cscore, res_time
 
+
+
+# def best_point_finder(points):
+#     conn = psycopg2.connect(database="pmundra")
 
 def combine_posting_lists():
     N = 10 
@@ -274,8 +289,8 @@ if __name__ == '__main__':
     parser.add_argument('--coverage_threshold', type=float, default=1, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
     parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use')
-    parser.add_argument('--distribution_req', type=int, default=0, help='number of samples ')
-    parser.add_argument('--coverage_factor', type=int, default=10, help='defining the coverage factor')
+    parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
+    parser.add_argument('--coverage_factor', type=int, default=5, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
     parser.add_argument('--k', type=int, default=0, help='number of centers for k_centersNC')
     params = parser.parse_args()

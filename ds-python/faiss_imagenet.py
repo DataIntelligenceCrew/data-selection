@@ -182,7 +182,7 @@ def quantized_index_range_search():
     progress_bar = tqdm.tqdm(total=N - 6979000, position=0)
     posting_list = {}
     # with open('/localdisk2/faiss_sq_pl_resnet-18_imagenet.txt', 'w') as f:
-    for i in range(6979000, xb.shape[0], batch_size):
+    for i in range(6988000, xb.shape[0], batch_size):
         # start_time = time.time()
         limits, D, I = faiss_index.range_search(xb[i:i+batch_size], 0.9)
         # end_time = time.time()
