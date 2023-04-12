@@ -17,7 +17,7 @@ func main() {
 	optimFlag := flag.Int("optim", 0, "optimization mode")
 	threadsFlag := flag.Int("t", 1, "number of threads")
 	dense := flag.Bool("dense", true, "whether the graph is denser than the k-Coverage requirement")
-	eps := flag.Float64("eps", 0.1, "portion of dataset randomly sampled in each iteration of LazyLazy")
+	eps := flag.Float64("eps", 0.1, "parameter used for optimization algorithms")
 	objRatio := flag.Float64("objratio", 0.9, "portion of objective function to be satisfied with LazyLazy before switching to Lazy")
 	iterPrint := flag.Bool("iterprint", true, "whether to report each iteration's progress")
 	//batchSize := flag.Int("batch", 10000, "number of entries to query from MongoDB at once")

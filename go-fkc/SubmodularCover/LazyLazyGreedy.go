@@ -60,7 +60,7 @@ func lazyLazyGreedy(collection *mongo.Collection, coverageTracker []int,
 func lazyLazyWorker(collection *mongo.Collection, candidates map[int]bool, coverageTracker []int,
 	groupTracker []int) *Result {
 	// Query the points in range lo...hi
-	cur := getDenseSetCursor(collection, candidates)
+	cur := getSetCursor(collection, candidates)
 	defer cur.Close(context.Background())
 
 	// Iterate over points found by the query
