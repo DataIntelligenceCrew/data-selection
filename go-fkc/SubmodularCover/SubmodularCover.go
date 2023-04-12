@@ -24,7 +24,8 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 
 	// Initialize trackers
 	n := getCollectionSize(collection)
-	coverageTracker := getCoverageTracker(collection, coverageReq, dense, n)
+	coverageTracker, maximalGain := getCoverageTracker(collection, coverageReq, dense, n)
+	maximalGain += groupReqs[0] // Largest initial gain
 	report("initialized trackers\n", true)
 
 	// Choose algorithm to run
@@ -47,20 +48,24 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 	case 4:
 		result := disCover(collection, coverageTracker, groupReqs, threads, 0.2, print)
 		return result
+	case 5:
+		result := thresholdGreedy(collection, coverageTracker, groupReqs, rangeSet(n), threads, print, eps, maximalGain)
+		return result
 	default:
 		return []int{}
 	}
 }
 
-func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense bool, n int) []int {
+func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense bool, n int) ([]int, int) {
 	if dense {
 		coverageTracker := make([]int, n)
 		for i := 0; i < n; i++ {
 			coverageTracker[i] = coverageReq
 		}
 		//fmt.Println(len(coverageTracker))
-		return coverageTracker
+		return coverageTracker, coverageReq * coverageReq
 	} else {
+		maxGain := 0
 		coverageTracker := make([]int, 0)
 		cur := getFullCursor(collection)
 		defer cur.Close(context.Background())
@@ -74,10 +79,11 @@ func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense boo
 			}
 			thisCoverageReq := min(numNeighbors, coverageReq)
 			coverageTracker = append(coverageTracker, thisCoverageReq)
+			maxGain = max(maxGain, thisCoverageReq)
 			fmt.Printf("\rCoverage tracker iteration %d", i)
 		}
 		fmt.Printf("\n")
-		return coverageTracker
+		return coverageTracker, maxGain
 	}
 }
 
