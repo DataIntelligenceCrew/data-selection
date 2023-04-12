@@ -83,12 +83,14 @@ func handleError(err error) {
 	}
 }
 
-func parseAdjLine(scanner *bufio.Reader, n int) []bool {
+func parseAdjLine(scanner *bufio.Reader, n int) (int, []bool) {
 	ints := make([]int, 0)
+	index := 0
 	for {
 		line, err := scanner.ReadString('\n')
 		handleError(err)
 		split := strings.Split(line, " : ")
+		index, _ = strconv.Atoi(split[0])
 		if len(split) > 1 { // Index on left side
 			line = split[1]
 		}
@@ -114,7 +116,7 @@ func parseAdjLine(scanner *bufio.Reader, n int) []bool {
 	for i := 0; i < len(ints); i++ {
 		matrix[ints[i]] = true
 	}
-	return matrix
+	return index, matrix
 }
 
 func parseGroupLine(scanner *bufio.Reader) int {
@@ -122,6 +124,9 @@ func parseGroupLine(scanner *bufio.Reader) int {
 	handleError(err)
 	line = strings.Trim(line, "\n")
 	parts := strings.Split(line, " : ")
+	if len(parts) < 2 {
+		parts = strings.Split(line, ",")
+	}
 	i, err := strconv.Atoi(parts[1])
 	handleError(err)
 	return i
@@ -137,10 +142,10 @@ func insertIntoCollection(collection *mongo.Collection,
 
 		points := make([]interface{}, batchSize)
 		for j := 0; j < batchSize; j++ {
-			adjList := parseAdjLine(adjFileScanner, n)
+			index, adjList := parseAdjLine(adjFileScanner, n)
 			group := parseGroupLine(groupFileScanner)
 			point := Point{
-				Index:     batchSize*i + j,
+				Index:     index,
 				Group:     group,
 				Neighbors: adjList,
 			}
