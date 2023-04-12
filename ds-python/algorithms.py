@@ -187,7 +187,7 @@ def greedyC_random(coverage_factor, distribution_req, q, dataset_name, dataset_s
     # return solution, posting_list
 
 
-def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, posting_list, num_classes):
+def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_threshold, posting_list, num_classes, labels_dict=None):
     '''
     Computes the greedy fair set cover for the entire dataset
     @params
@@ -245,10 +245,7 @@ def greedyNC(coverage_factor, distribution_req, dataset_name, dataset_size, cov_
             labels_dict[i] = np.array(get_row(i, attributes, data)[3:])
     
     elif dataset_name == 'nyc_taxicab':
-        labels_dict = {}
-        for d in delta:
-            labels_dict[d] = 1
-    else:
+        labels_dict = labels_dict
         label_file = open(LABELS_FILE_LOC.format(dataset_name), 'r')
         # label_ids_to_name = {0 : "airplane", 1 : "automobile", 2 : "bird", 3 : "cat", 4 : "deer", 5 : "dog", 6 : "frog", 7 : "horse", 8 : "ship", 9 : "truck"}
         labels = label_file.readlines()

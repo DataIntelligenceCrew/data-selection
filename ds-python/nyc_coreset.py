@@ -9,6 +9,7 @@ from paths import *
 from utils_algo import *
 import pandas as pd
 import tqdm 
+import psycopg2
 
 
 def get_labels_nyc():
@@ -38,11 +39,18 @@ def get_labels_nyc():
 
 
 
-def run_algo(params, dr):
+def run_algo(params, dr, labels_dict):
+    print('Running Algorithm: {0}\nDataset:{1}\nDistribution Requirement:{2}\nCoverage Factor:{3}\nCoverage Threshold:{4}\n'.format(
+            params.algo_type,
+            params.dataset,
+            params.distribution_req,
+            params.coverage_factor,
+            params.coverage_threshold
+        ))
     solution_data = []
     if params.algo_type == 'greedyNC':
         posting_list = get_posting_list_nyc_dist()
-        s, cscore, res_time = greedyNC(params.coverage_factor, dr, params.dataset, params.dataset_size, params.coverage_threshold, posting_list, params.num_classes)
+        s, cscore, res_time = greedyNC_nyc(params.coverage_factor, dr, params.dataset_size, params.num_classes, labels_dict)
         solution_data.append((s, cscore, res_time))
 
     coreset = set()
@@ -75,6 +83,102 @@ def run_algo(params, dr):
             f.write("{0}\n".format(s))
     f.close()
 
+
+
+def greedyNC_nyc(coverage_factor, distribution_req, dataset_size, num_classes, labels_dict):
+    '''
+    Computes the greedy fair set cover for the entire dataset
+    @params
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list directory
+    @returns
+        solution of the greedy fair set cover that satisfies the coverage and 
+        distribution requirements
+        coverage score for this solution
+        time taken 
+    '''
+    start_time = time.time()
+
+    delta_size = dataset_size
+    solution = set() # solution set 
+    delta = set([i for i in range(dataset_size)])
+    sparse_points = list()
+    conn = psycopg2.connect(database="pmundra")
+    print('database connection to find sparse points')
+    cur = conn.cursor()
+    cur.execute("select * from nyc_postinglist where ARRAY_LENGTH(pl, 1)<%s;", (coverage_factor, ))
+    records = cur.fetchall()
+    for rows in records:
+        p_id = rows[0]
+        id_pl = set(rows[1])
+        sparse_points.append(p_id)
+        solution.add(p_id)
+        solution = solution.union(id_pl)
+    
+    labels_dict_np = dict()
+    for key, values in labels_dict.items():
+        for p in values:
+            arr = np.zeros(num_classes)
+            arr[key] = 1
+            labels_dict_np[p] = arr
+
+    CC = np.empty(delta_size) # coverage tracker
+    CC[list(delta)] = coverage_factor
+    CC[sparse_points] = 0
+    with open('nyc_sparsepoints_cf_{0}.txt'.format(coverage_factor), 'w') as f:
+        for p in sparse_points:
+            f.write('{0}\n'.format(str(p)))
+    f.close()
+    print('Number of sparse points for CF:{0} is {1}'.format(coverage_factor, len(sparse_points)))
+    GC = np.array(distribution_req) # group count tracker
+    # main loop
+    iters = 0
+    # while ((not check_for_zeros(CC)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
+    while (not check_for_zeros(CC)) and len(solution) < len(delta):
+        best_point, max_score = -1, float('-inf')
+        # toDo: optimize this loop using scipy
+        for p in delta.difference(solution):
+            # print(iters)
+            # p_score = coverage_score(CC, posting_list[p]) + distritbution_score(GC, labels_dict[p])
+            cur.execute('select pl from nyc_postinglist where id=%s', (p, ))
+            row = cur.fetchall()
+            for r in row:
+                pl = list(r[0])
+                posting_list_p = np.zeros(delta_size)
+                posting_list_p[pl] = 1
+            p_score = coverage_score(CC, posting_list_p)
+            if p_score > max_score:
+                max_score = p_score
+                best_point = p
+
+        if best_point == -1:
+            print("cannot find a point")
+            break
+        
+        cur.execute('select pl from nyc_postinglist where id=%s', (best_point, ))
+        row = cur.fetchall()
+        for r in row:
+            pl = list(r[0])
+            posting_list_best_point = np.zeros(delta_size)
+            posting_list_best_point[pl] = 1
+
+        solution.add(best_point)
+        
+        CC = np.subtract(CC, posting_list_best_point)
+        GC = np.subtract(GC, labels_dict_np[best_point])
+        if coverage_factor == 0:
+            CC = np.clip(np.subtract(CC, posting_list_best_point), 0, None)
+        
+        iters += 1
+    end_time = time.time()
+    print(len(solution)) 
+    # cscore = calculate_cscore(solution, posting_list, delta_size)
+    cscore = 0
+    res_time = end_time - start_time
+    if conn is not None:
+        conn.close()
+    return solution, cscore, res_time
 
 
 def combine_posting_lists():
@@ -123,6 +227,47 @@ def convert_to_dict(data):
         # print(values[0])
     return result
 
+
+def posting_list_postgress():
+    posting_list = get_posting_list_nyc_dist()
+    conn = None 
+    try:
+        conn = psycopg2.connect(database="pmundra")
+        cur = conn.cursor()
+        print('Database connection established')
+        progress_bar = tqdm.tqdm(total=len(posting_list), position=0)
+        for key, value in posting_list.items():
+            v = [int(vl) for vl in value]
+            cur.execute("INSERT INTO nyc_postinglist(id, pl) VALUES(%s, %s);", (key, v, ))
+            conn.commit()
+            progress_bar.update(1)
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+            print('database connection closed')
+
+
+def test_fetch_db():
+    conn = None 
+    try:
+        conn = psycopg2.connect(database="pmundra")
+        cur = conn.cursor()
+        # cur.execute("select pl from nyc_postinglist where id=%s;", (6, ))
+        cur.execute("select * from nyc_postinglist where ARRAY_LENGTH(pl, 1)<%s LIMIT 5;", (5, ))
+        recs = cur.fetchall()
+        for row in recs:
+            print(row)
+
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+    finally:
+        if conn is not None:
+            conn.close()
+            print('Databse closed')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, default='nyc_taxicab', help='dataset to use')
@@ -138,11 +283,13 @@ if __name__ == '__main__':
     params.dataset_size = 1000000
     params.num_classes = 7
 
-    # labels_dict, counts = get_labels_nyc()
-    # dr = [params.distribution_req] * params.num_classes
-    # dr_updated = [counts[i] if counts[i] < dr[i] else dr[i] for i in range(params.num_classes)]
+    labels_dict, counts = get_labels_nyc()
+    dr = [params.distribution_req] * params.num_classes
+    dr_updated = [counts[i] if counts[i] < dr[i] else dr[i] for i in range(params.num_classes)]
     # print(dr_updated)
 
     # print(counts)
-    # run_algo(params, dr_updated)
-    combine_posting_lists()
+    run_algo(params, dr_updated, labels_dict)
+    # combine_posting_lists()
+    # posting_list_postgress()
+    # test_fetch_db()
