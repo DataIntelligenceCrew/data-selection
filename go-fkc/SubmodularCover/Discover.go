@@ -20,7 +20,7 @@ func disCover(collection *mongo.Collection, coverageTracker []int,
 	for i := 0; i < n; i++ {         // Initial points
 		candidates[i] = true
 	}
-	for i := 0; i < n; i++ {
+	for i := 0; i < len(coreset); i++ {
 		candidates[coreset[i]] = false
 	}
 	lambda := 1.0 / math.Sqrt(float64(threads))
