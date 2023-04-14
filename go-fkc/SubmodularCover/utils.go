@@ -49,7 +49,7 @@ type Point struct {
 	ID        primitive.ObjectID `bson:"_id"`
 	Index     int                `bson:"index"`
 	Group     int                `bson:"group"`
-	Neighbors []bool             `bson:"neighbors"`
+	Neighbors map[int]bool       `bson:"neighbors"`
 }
 
 /**
@@ -190,16 +190,16 @@ func setMinus(foo map[int]bool, bar map[int]bool) map[int]bool {
 }
 
 func findMinMaxKey(m map[int]bool) (int, int) {
-    var min, max int
-    for k := range m {
-        if k < min || min == 0 {
-            min = k
-        }
-        if k > max {
-            max = k
-        }
-    }
-    return min, max
+	var min, max int
+	for k := range m {
+		if k < min || min == 0 {
+			min = k
+		}
+		if k > max {
+			max = k
+		}
+	}
+	return min, max
 }
 
 /**

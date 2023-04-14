@@ -47,8 +47,7 @@ func thresholdGreedy(collection *mongo.Collection, coverageTracker []int, groupT
 		item := heap.Pop(&candidatesPQ).(*Item)
 		index := item.value
 		point := getPointFromDB(collection, item.value)
-		gain := marginalGain(point, coverageTracker, groupTracker, 1)
-		
+		gain := marginalGain(point, coverageTracker, groupTracker)
 
 		nextGain := PeekPriority(&candidatesPQ)
 		// Add any candidate above the threshold
@@ -57,12 +56,12 @@ func thresholdGreedy(collection *mongo.Collection, coverageTracker []int, groupT
 			decrementTrackers(&point, coverageTracker, groupTracker)
 			report("\rIteration "+strconv.Itoa(i)+" complete with marginal gain "+strconv.Itoa(gain)+", remaining candidates: "+strconv.Itoa(len(candidatesPQ)), print)
 			// Decrease threshold if no other point with gain above threshold exists
-			for ; float64(nextGain) < threshold ; {
+			for float64(nextGain) < threshold {
 				threshold *= 1.0 - eps
 			}
 		} else {
 			item := &Item{
-				value: index,
+				value:    index,
 				priority: gain,
 			}
 			heap.Push(&candidatesPQ, item)

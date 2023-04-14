@@ -68,7 +68,7 @@ func lazyLazyWorker(collection *mongo.Collection, candidates map[int]bool, cover
 	for cur.Next(context.Background()) { // Iterate over query results
 		point := getEntryFromCursor(cur)
 		// If the point is a candidate AND it is assigned to this worker thread
-		gain := marginalGain(point, coverageTracker, groupTracker, 1)
+		gain := marginalGain(point, coverageTracker, groupTracker)
 		if gain > result.gain { // Update if better marginal gain found
 			result.index = point.Index
 			result.gain = gain

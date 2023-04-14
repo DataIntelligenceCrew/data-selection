@@ -105,7 +105,6 @@ func parseAdjLine(scanner *bufio.Reader, n int) (int, map[int]bool) {
 		line = strings.Trim(line, "{ }\n")
 		split = strings.Split(line, ", ")
 		for _, v := range split {
-			//fmt.Println(v)
 			n, _ := strconv.Atoi(v)
 			ints[n] = true
 		}
@@ -140,7 +139,6 @@ func parseGroupLine(scanner *bufio.Reader, index int) int {
 func insertIntoCollection(collection *mongo.Collection, adjFileScanner *bufio.Reader, groupFileScanner *bufio.Reader, batchSize int, n int, defaultValue bool) {
 	// Read in first line
 	nextNonEmptyIndex, nextNonEmptyAdjList := parseAdjLine(adjFileScanner, n)
-	fmt.Println(nextNonEmptyIndex, nextNonEmptyAdjList)
 	// Outer loop is for batches
 	for i := 0; true; i++ { // i = batch number
 		points := make([]interface{}, batchSize)
@@ -153,7 +151,6 @@ func insertIntoCollection(collection *mongo.Collection, adjFileScanner *bufio.Re
 					Group:     parseGroupLine(groupFileScanner, k),
 					Neighbors: map[int]bool{k: true},
 				}
-				fmt.Println(point)
 				points[j] = point
 			} else { // index k has other neighbors
 				point := Point{
@@ -161,10 +158,8 @@ func insertIntoCollection(collection *mongo.Collection, adjFileScanner *bufio.Re
 					Group:     parseGroupLine(groupFileScanner, k),
 					Neighbors: nextNonEmptyAdjList,
 				}
-				fmt.Println(point)
 				points[j] = point
 				nextNonEmptyIndex, nextNonEmptyAdjList = parseAdjLine(adjFileScanner, n)
-				fmt.Println(nextNonEmptyIndex, nextNonEmptyAdjList)
 			}
 			// Insert batch into mongo
 			if j == batchSize-1 || !hasNext(adjFileScanner, groupFileScanner) {

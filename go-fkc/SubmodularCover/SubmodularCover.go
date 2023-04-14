@@ -87,51 +87,13 @@ func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense boo
 	}
 }
 
-func marginalGain(point Point, coverageTracker []int, groupTracker []int, threads int) int {
-	numNeighbors := len(point.Neighbors)
-	if threads <= 1 { // Singlethreaded
-		gain := 0
-		for i := 0; i < numNeighbors; i++ { // Marginal gain from k-Coverage
-			if point.Neighbors[i] {
-				gain += coverageTracker[i]
-			}
-		}
-		gain += groupTracker[point.Group] // Marginal gain from group requirement
-		return gain
-	} else { // Multithreaded
-		// Make a list of arguments
-		chunkSize := numNeighbors / threads
-		args := make([][]interface{}, threads)
-		for t := 0; t < threads; t++ {
-			lo := t * chunkSize
-			hi := min(numNeighbors, lo+chunkSize)
-			arg := []interface{}{
-				point.Neighbors[lo:hi],
-				coverageTracker,
-				lo,
-			}
-			args[t] = arg
-		}
-		// Call workers
-		results := concurrentlyExecute(gainWorker, args)
-		// Total up results
-		gain := 0
-		for sum := range results {
-			gain += sum.(int)
-		}
-		gain += groupTracker[point.Group]
-		return gain
+func marginalGain(point Point, coverageTracker []int, groupTracker []int) int {
+	gain := 0
+	for neighbor, _ := range point.Neighbors {
+		gain += coverageTracker[neighbor]
 	}
-}
-
-func gainWorker(adjMatrix []bool, coverageTracker []int, lo int) int {
-	sum := 0
-	for i := lo; i < len(adjMatrix); i++ {
-		if adjMatrix[i] {
-			sum += coverageTracker[lo+i]
-		}
-	}
-	return sum
+	gain += groupTracker[point.Group] // Marginal gain from group requirement
+	return gain
 }
 
 func getMarginalGains(collection *mongo.Collection, coverageTracker []int,
@@ -144,7 +106,7 @@ func getMarginalGains(collection *mongo.Collection, coverageTracker []int,
 	results := make([]*Item, 0)
 	for cur.Next(context.Background()) {
 		point := getEntryFromCursor(cur)
-		gain := marginalGain(point, coverageTracker, groupTracker, 1)
+		gain := marginalGain(point, coverageTracker, groupTracker)
 		item := &Item{
 			value:    point.Index,
 			priority: gain,

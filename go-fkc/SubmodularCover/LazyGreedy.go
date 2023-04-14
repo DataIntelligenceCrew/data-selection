@@ -58,7 +58,7 @@ func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
 			// Get the next candidate point & its marginal gain
 			index := heap.Pop(&candidatesPQ).(*Item).value
 			point := getPointFromDB(collection, index)
-			gain := marginalGain(point, coverageTracker, groupTracker, threads)
+			gain := marginalGain(point, coverageTracker, groupTracker)
 
 			// Optimal element found if it's the last possible option or
 			// if its marginal gain is optimal
