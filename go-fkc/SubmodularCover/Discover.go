@@ -9,13 +9,19 @@ import (
 )
 
 func disCover(collection *mongo.Collection, coverageTracker []int,
-	groupTracker []int, threads int, alpha float64, print bool, k int, n int) []int {
+	groupTracker []int, threads int, alpha float64, print bool, k int, n int, dense bool) []int {
 	fmt.Println("Executing DisCover...")
-	coreset := allBelowCovThreshold(collection, threads, k, n)
-	decrementAllTrackers(collection, coreset, coverageTracker, groupTracker)
+	coreset := make([]int, 0)
+	if !dense {
+		coreset := allBelowCovThreshold(collection, threads, k, n)
+		decrementAllTrackers(collection, coreset, coverageTracker, groupTracker)
+	}
 	candidates := make(map[int]bool) // Using map as a hashset
 	for i := 0; i < n; i++ {         // Initial points
 		candidates[i] = true
+	}
+	for i := 0; i < n; i++ {
+		candidates[coreset[i]] = false
 	}
 	lambda := 1.0 / math.Sqrt(float64(threads))
 

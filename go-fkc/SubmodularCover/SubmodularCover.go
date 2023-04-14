@@ -46,7 +46,7 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 		totalSolution := append(firstStage, secondStage...)
 		return totalSolution
 	case 4:
-		result := disCover(collection, coverageTracker, groupReqs, threads, 0.2, print, coverageReq, n)
+		result := disCover(collection, coverageTracker, groupReqs, threads, 0.2, print, coverageReq, n, dense)
 		return result
 	case 5:
 		result := thresholdGreedy(collection, coverageTracker, groupReqs, rangeSet(n), threads, print, eps, maximalGain)
