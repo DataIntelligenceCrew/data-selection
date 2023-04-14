@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/heap"
-	"fmt"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +15,7 @@ func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
 	groupTracker []int, candidates map[int]bool, constraint int, threads int,
 	print bool) []int {
 	report("Executing lazy greedy algorithm...\n", print)
-	fmt.Println("remaining score: ", remainingScore(coverageTracker, groupTracker))
+	report("remaining score: "+strconv.Itoa(remainingScore(coverageTracker, groupTracker)), print)
 
 	// Initialize sets
 	n := len(candidates)

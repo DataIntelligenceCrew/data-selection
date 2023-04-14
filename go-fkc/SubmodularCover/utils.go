@@ -148,6 +148,21 @@ func splitSet(set map[int]bool, threads int) []map[int]bool {
 	return result
 }
 
+func splitSetToSlice(set map[int]bool, threads int) [][]int {
+	result := make([][]int, threads)
+	countPerSplit := (len(set) / threads) + 1
+	for i := 0; i < threads; i++ {
+		result[i] = make([]int, countPerSplit)
+	}
+	i := 0
+	for key := range set {
+		assign := i / countPerSplit
+		result[assign] = append(result[assign], key)
+		i++
+	}
+	return result
+}
+
 func subSampleSet(set map[int]bool, size int) map[int]bool {
 	result := make(map[int]bool, size)
 	i := 0

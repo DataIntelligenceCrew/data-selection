@@ -9,10 +9,10 @@ import (
 )
 
 func disCover(collection *mongo.Collection, coverageTracker []int,
-	groupTracker []int, threads int, alpha float64, print bool) []int {
+	groupTracker []int, threads int, alpha float64, print bool, k int, n int) []int {
 	fmt.Println("Executing DisCover...")
-	coreset := make([]int, 0)
-	n := getCollectionSize(collection)
+	coreset := allBelowCovThreshold(collection, threads, k, n)
+	decrementAllTrackers(collection, coreset, coverageTracker, groupTracker)
 	candidates := make(map[int]bool) // Using map as a hashset
 	for i := 0; i < n; i++ {         // Initial points
 		candidates[i] = true
@@ -81,5 +81,5 @@ func greeDi(candidates map[int]bool, coverageTracker []int, groupTracker []int,
 	}
 
 	// Run centralized greedy on the filtered candidates
-	return lazyGreedy(collection, coverageTracker, groupTracker, filteredCandidates, cardinalityConstraint, threads, false)
+	return lazyLazyGreedy(collection, coverageTracker, groupTracker, filteredCandidates, cardinalityConstraint, threads, false, 0.1, 1.0)
 }

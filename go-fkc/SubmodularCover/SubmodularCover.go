@@ -46,7 +46,7 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 		totalSolution := append(firstStage, secondStage...)
 		return totalSolution
 	case 4:
-		result := disCover(collection, coverageTracker, groupReqs, threads, 0.2, print)
+		result := disCover(collection, coverageTracker, groupReqs, threads, 0.2, print, coverageReq, n)
 		return result
 	case 5:
 		result := thresholdGreedy(collection, coverageTracker, groupReqs, rangeSet(n), threads, print, eps, maximalGain)
@@ -131,13 +131,56 @@ func decrementTrackers(point *Point, coverageTracker []int, groupTracker []int) 
 	groupTracker[gr] = max(0, val-1)
 }
 
-func decrementAllTrackers(points []Point, coverageTracker []int, groupTracker []int) {
+func decrementAllTrackers(collection *mongo.Collection, points []int, coverageTracker []int, groupTracker []int) {
 	for i := 0; i < len(points); i++ {
-		point := points[i]
+		point := getPointFromDB(collection, points[i])
 		decrementTrackers(&point, coverageTracker, groupTracker)
 	}
 }
 
 func remainingScore(coverageTracker []int, groupTracker []int) int {
 	return sum(coverageTracker) + sum(groupTracker)
+}
+
+// Return all points whose coverage is below k
+func allBelowCovThreshold(collection *mongo.Collection, threads int, k int, n int) []int {
+	chunkSize := n / threads
+	args := make([][]interface{}, threads)
+	for t := 0; t < threads; t++ {
+		lo := t * chunkSize
+		hi := lo + chunkSize - 1
+		arg := []interface{}{
+			collection,
+			lo,
+			hi,
+			k,
+		}
+		args[t] = arg
+	}
+	results := concurrentlyExecute(belowCovTreshold, args)
+	ret := make([]int, 0)
+	for r := range results {
+		if res, ok := r.([]int); ok {
+			for i := 0; i < len(res); i++ {
+				ret = append(ret, res[i])
+			}
+		} else {
+			fmt.Println("Interpret error")
+		}
+	}
+	return ret
+}
+
+func belowCovTreshold(collection *mongo.Collection, lo int, hi int, k int) []int {
+	ret := make([]int, 0)
+	cur := getRangeCursor(collection, lo, hi)
+	defer cur.Close(context.Background())
+
+	for cur.Next(context.Background()) {
+		point := getEntryFromCursor(cur)
+		if len(point.Neighbors) < k {
+			ret = append(ret, point.Index)
+		}
+	}
+	return ret
 }
