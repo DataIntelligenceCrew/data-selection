@@ -30,7 +30,7 @@ type Point struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	Index     int                `bson:"index"`
 	Group     int                `bson:"group"`
-	Neighbors []bool             `bson:"neighbors"`
+	Neighbors map[int]bool       `bson:"neighbors"`
 }
 
 func main() {
@@ -40,7 +40,8 @@ func main() {
 	adjFileName := flag.String("adjfile", "test1.txt", "File containing adjacency lists")
 	groupFileName := flag.String("groupfile", "test2.txt", "File containing group assignments")
 	batchSize := flag.Int("batch", 1000, "DB batch size")
-	n := flag.Int("n", 50000, "total number of points in dataset")
+	n := flag.Int("n", 50000, "Number of points in dataset")
+	defaultValue := flag.Bool("defaultvalue", true, "The more common value in sparse vector")
 	flag.Parse()
 
 	// Access DB & files
@@ -51,7 +52,7 @@ func main() {
 	defer adjFile.Close()
 	defer groupFile.Close()
 
-	insertIntoCollection(collection, adjFileScanner, groupFileScanner, *batchSize, *n)
+	insertIntoCollection(collection, adjFileScanner, groupFileScanner, *batchSize, *n, *defaultValue)
 	createIndex(collection)
 }
 
@@ -83,15 +84,17 @@ func handleError(err error) {
 	}
 }
 
-func parseAdjLine(scanner *bufio.Reader, n int) (int, []bool) {
-	ints := make([]int, 0)
+func parseAdjLine(scanner *bufio.Reader, n int) (int, map[int]bool) {
+	ints := make(map[int]bool, 0)
 	index := 0
 	for {
 		line, err := scanner.ReadString('\n')
-		handleError(err)
+		if err != nil {
+			return -1, map[int]bool{}
+		}
 		split := strings.Split(line, " : ")
 		index, _ = strconv.Atoi(split[0])
-		if len(split) > 1 { // Index on left side
+		if len(split) > 1 {
 			line = split[1]
 		}
 		line = strings.TrimSpace(line)
@@ -102,55 +105,68 @@ func parseAdjLine(scanner *bufio.Reader, n int) (int, []bool) {
 		line = strings.Trim(line, "{ }\n")
 		split = strings.Split(line, ", ")
 		for _, v := range split {
+			//fmt.Println(v)
 			n, _ := strconv.Atoi(v)
-			ints = append(ints, n)
+			ints[n] = true
 		}
 		if breakThisLoop {
 			break
 		}
 	}
-	matrix := make([]bool, n)
-	for i := 0; i < n; i++ {
-		matrix[i] = false
-	}
-	for i := 0; i < len(ints); i++ {
-		matrix[ints[i]] = true
-	}
-	return index, matrix
+	return index, ints
 }
 
-func parseGroupLine(scanner *bufio.Reader) int {
-	line, err := scanner.ReadString('\n')
-	handleError(err)
-	line = strings.Trim(line, "\n")
-	parts := strings.Split(line, " : ")
-	if len(parts) < 2 {
-		parts = strings.Split(line, ",")
-	}
-	i, err := strconv.Atoi(parts[1])
-	handleError(err)
-	return i
-}
-
-func insertIntoCollection(collection *mongo.Collection,
-	adjFileScanner *bufio.Reader, groupFileScanner *bufio.Reader, batchSize int, n int) {
-	// Iterate over line of files
-	for i := 0; true; i++ {
-		if !hasNext(adjFileScanner, groupFileScanner) {
-			return
+func parseGroupLine(scanner *bufio.Reader, index int) int {
+	for {
+		line, err := scanner.ReadString('\n')
+		handleError(err)
+		line = strings.Trim(line, "\n")
+		parts := strings.Split(line, " : ")
+		if len(parts) < 2 {
+			parts = strings.Split(line, ",")
 		}
+		i, err := strconv.Atoi(parts[0])
+		if err != nil { // Skip any metadata lines
+			continue
+		}
+		if i == index {
+			gr, err := strconv.Atoi(parts[1])
+			handleError(err)
+			return gr
+		}
+	}
+}
 
+func insertIntoCollection(collection *mongo.Collection, adjFileScanner *bufio.Reader, groupFileScanner *bufio.Reader, batchSize int, n int, defaultValue bool) {
+	// Read in first line
+	nextNonEmptyIndex, nextNonEmptyAdjList := parseAdjLine(adjFileScanner, n)
+	fmt.Println(nextNonEmptyIndex, nextNonEmptyAdjList)
+	// Outer loop is for batches
+	for i := 0; true; i++ { // i = batch number
 		points := make([]interface{}, batchSize)
-		for j := 0; j < batchSize; j++ {
-			index, adjList := parseAdjLine(adjFileScanner, n)
-			group := parseGroupLine(groupFileScanner)
-			point := Point{
-				Index:     index,
-				Group:     group,
-				Neighbors: adjList,
+		// Inner loop is within a batch
+		for j := 0; j < batchSize; j++ { // j = index within a batch
+			k := i*batchSize + j        // k = index of row
+			if k != nextNonEmptyIndex { // index k is only covered by itself
+				point := Point{
+					Index:     k,
+					Group:     parseGroupLine(groupFileScanner, k),
+					Neighbors: map[int]bool{k: true},
+				}
+				fmt.Println(point)
+				points[j] = point
+			} else { // index k has other neighbors
+				point := Point{
+					Index:     nextNonEmptyIndex,
+					Group:     parseGroupLine(groupFileScanner, k),
+					Neighbors: nextNonEmptyAdjList,
+				}
+				fmt.Println(point)
+				points[j] = point
+				nextNonEmptyIndex, nextNonEmptyAdjList = parseAdjLine(adjFileScanner, n)
+				fmt.Println(nextNonEmptyIndex, nextNonEmptyAdjList)
 			}
-			points[j] = point
-
+			// Insert batch into mongo
 			if j == batchSize-1 || !hasNext(adjFileScanner, groupFileScanner) {
 				_, err := collection.InsertMany(context.Background(), points[:j+1])
 				handleError(err)
