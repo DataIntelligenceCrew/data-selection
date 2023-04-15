@@ -40,7 +40,7 @@ def get_label_dict(dataset_name):
     return labels_dict
 
 def get_labels_nyc():
-    df = open('/localdisk3/nyc_60k_2021-09_updated_labels.csv', 'r')
+    df = open('/localdisk3/nyc_1mil_2021-09_updated_labels.csv', 'r')
     lines = df.readlines()
     data = [line.strip() for line in lines]
     df.close()
