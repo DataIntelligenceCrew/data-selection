@@ -121,7 +121,7 @@ def gfkc_db(cf, dr, dataset_name, dataset_size, num_classes):
 
 
         # parallel
-        batch_size = int(0.1 * len(possible_ids))
+        batch_size = int(0.4 * len(possible_ids))
         partition_points = [tuple(possible_ids[i : i+batch_size]) for i in range(0, len(possible_ids), batch_size)]
         parallel_solutions = []
         q = multiprocessing.Queue()
@@ -161,8 +161,8 @@ def gfkc_db(cf, dr, dataset_name, dataset_size, num_classes):
 
         coreset.add(best_point)
         print(len(coreset))
-        CC[0] = np.clip(np.subtract(CC[0], posting_list_best_point), 0, None)
-        GC[0] = np.clip(np.subtract(GC[0], labels_dict[best_point]), 0, None)
+        # CC[0] = np.clip(np.subtract(CC[0], posting_list_best_point), 0, None)
+        # GC[0] = np.clip(np.subtract(GC[0], labels_dict[best_point]), 0, None)
 
 
     end_time = time.time()

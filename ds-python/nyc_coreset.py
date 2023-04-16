@@ -11,6 +11,13 @@ import pandas as pd
 import tqdm 
 import psycopg2
 import multiprocessing
+import random 
+
+
+
+def partition(list_in, n):
+    random.shuffle(list_in)
+    return [list_in[i::n] for i in range(n)]
 
 def get_labels_nyc():
     df = open('/localdisk3/nyc_1mil_2021-09_updated_labels.csv', 'r')
@@ -50,16 +57,38 @@ def run_algo(params, dr, labels_dict):
     solution_data = []
     if params.algo_type == 'greedyNC':
         # posting_list = get_posting_list_nyc_dist()
-        s, cscore, res_time = greedyNC_nyc(params.coverage_factor, dr, params.dataset_size, params.num_classes, labels_dict)
-        solution_data.append((s, cscore, res_time))
+        s, res_time = greedyNC_nyc(params.coverage_factor, dr, params.dataset_size, params.num_classes, labels_dict)
+        solution_data.append((s, res_time))
+    
+    elif params.algo_type == 'greedyC_random':
+        points = [i for i in range(params.dataset_size)]
+        p = 10
+        paritions_ids = partition(points, p)
+        q = multiprocessing.Queue()
+        processes = []
+        dr = [dr[i] // 10 for i in range(len(dr))]
+        for i in range(p):
+            p = multiprocessing.Process(
+                target=greedyC_random_nyc,
+                args=(params.coverage_factor, dr, params.dataset_size, params.num_classes, labels_dict, paritions_ids[i], q)
+            )
+            processes.append(p)
+            p.start()
+        
+
+        for p in processes:
+            sol_data = q.get()
+            solution_data.append(sol_data)
+        
+        for p in processes:
+            p.join()
+
 
     coreset = set()
-    cscores = 0
     response_time = 0
     for t in solution_data:
         coreset = coreset.union(t[0])
-        cscores += t[1]
-        response_time = max(response_time, t[2])
+        response_time = max(response_time, t[1])
     
     print('Time Taken:{0}'.format(response_time))
     print('Solution Size: {0}'.format(len(coreset)))
@@ -67,10 +96,9 @@ def run_algo(params, dr, labels_dict):
     metric_file_name = METRIC_FILE2.format(params.dataset, params.coverage_factor, params.distribution_req, params.algo_type, params.coverage_threshold, params.model_type)
     with open(metric_file_name, 'w') as f:
         f.write(
-            'Dataset Size: {0}\nCoreset Size: {1}\nCoverage Score: {2}\nTime Taken: {3}\n'.format(
+            'Dataset Size: {0}\nCoreset Size: {1}\nTime Taken: {2}\n'.format(
                 int(params.dataset_size),
                 len(coreset),
-                cscores,
                 response_time
             )
         )
@@ -132,10 +160,11 @@ def greedyNC_nyc(coverage_factor, distribution_req, dataset_size, num_classes, l
     #         f.write('{0}\n'.format(str(p)))
     # f.close()
     print('Number of sparse points for CF:{0} is {1}'.format(coverage_factor, len(sparse_points)))
-    GC = np.array(distribution_req) # group count tracker
+    GC = np.zeros((1, num_classes))
+    GC[0] = np.array(distribution_req)  # group count tracker
     # main loop
     iters = 0
-    while ((not np.all(CC[0] <= 0)) or (not check_for_zeros(GC))) and len(solution) < len(delta):
+    while ((not np.all(CC[0] <= 0)) or (not np.all(GC[0] <= 0))) and len(solution) < len(delta):
     # while (not check_for_zeros(CC)) and len(solution) < len(delta):
         best_point, max_score = -1, float('-inf')
         # toDo: optimize this loop using scipy
@@ -205,23 +234,155 @@ def greedyNC_nyc(coverage_factor, distribution_req, dataset_size, num_classes, l
         solution.add(best_point)
         
         CC[0] = np.clip(np.subtract(CC[0], posting_list_best_point), 0, None)
-        GC = np.clip(np.subtract(GC, labels_dict_np[best_point]), 0, None)
-        if coverage_factor == 0:
-            CC[0] = np.clip(np.subtract(CC[0], posting_list_best_point), 0, None)
+        GC[0] = np.clip(np.subtract(GC, labels_dict_np[best_point]), 0, None)
+        
+        iters += 1
+    end_time = time.time()
+    print(len(solution)) 
+
+    res_time = end_time - start_time
+    if conn is not None:
+        conn.close()
+    return solution, res_time
+
+
+
+def greedyC_random_nyc(coverage_factor, distribution_req, dataset_size, num_classes, labels_dict, operatable_points, q):
+    '''
+    Computes the greedy fair set cover for the entire dataset
+    @params
+        coverage_factor : number of points needed for a point to be covered
+        distribution_req : number of points from each group
+        sp : sampling weight to get the correct posting_list directory
+    @returns
+        solution of the greedy fair set cover that satisfies the coverage and 
+        distribution requirements
+        coverage score for this solution
+        time taken 
+    '''
+    start_time = time.time()
+
+    delta_size = dataset_size
+    solution = set() # solution set 
+    # delta = [i for i in range(dataset_size)]
+    sparse_points = list()
+    conn = psycopg2.connect(database="pmundra")
+    print('database connection to find sparse points')
+    cur = conn.cursor()
+    operatable_points = tuple(operatable_points)
+    cur.execute("select * from nyc_postinglist where ARRAY_LENGTH(pl, 1)<%s and id in %s;", (coverage_factor, operatable_points, ))
+    records = cur.fetchall()
+    for rows in records:
+        p_id = rows[0]
+        id_pl = set(rows[1])
+        sparse_points.append(p_id)
+        solution.add(p_id)
+        solution = solution.union(id_pl)
+    
+    labels_dict_np = dict()
+    for key, values in labels_dict.items():
+        for p in values:
+            if p in operatable_points:
+                arr = np.zeros(num_classes)
+                arr[key] = 1
+                labels_dict_np[p] = arr
+
+    CC = np.zeros((1, delta_size)) # coverage tracker
+    CC[0][list(operatable_points)] = coverage_factor
+    CC[0][sparse_points] = 0
+    print(CC.shape)
+    # with open('nyc_sparsepoints_cf_{0}.txt'.format(coverage_factor), 'w') as f:
+    #     for p in sparse_points:
+    #         f.write('{0}\n'.format(str(p)))
+    # f.close()
+    print('Number of sparse points for CF:{0} is {1}'.format(coverage_factor, len(sparse_points)))
+    GC = np.zeros((1, num_classes))
+    GC[0] = np.array(distribution_req)  # group count tracker
+    operatable_points = set(operatable_points)
+    # main loop
+    iters = 0
+    while ((not np.all(CC[0] <= 0)) or (not np.all(GC[0] <= 0))) and len(solution) < len(operatable_points):
+    # while (not check_for_zeros(CC)) and len(solution) < len(delta):
+        best_point, max_score = -1, float('-inf')
+        # toDo: optimize this loop using scipy
+        possible_ids = list(operatable_points.difference(solution))
+        batch_size = 20000
+        progress_bar = tqdm.tqdm(total=len(possible_ids), position=0)
+        for i in range(0, len(possible_ids), batch_size):
+            batch_ids = tuple(possible_ids[i:i+batch_size])
+            
+            # parallel search for a large batch 
+            parallel_solutions = []
+            partition_size = batch_size // 20 
+            part_points = [tuple(batch_ids[j:j+partition_size]) for j in range(0, len(batch_ids), partition_size)]
+            q = multiprocessing.Queue()
+            processes = []
+            for i in range(len(part_points)):
+                p = multiprocessing.Process(
+                    target=best_point_finder,
+                    args=(part_points[i], CC, GC, labels_dict_np, delta_size, q)
+                )
+                processes.append(p)
+                p.start()
+            
+            for p in processes:
+                sol_data = q.get()
+                parallel_solutions.append(sol_data)
+            
+            for p in processes:
+                p.join()
+            
+            for s in parallel_solutions:
+                point_id = s[0]
+                p_score = s[1] 
+                if p_score > max_score:
+                    max_score = p_score
+                    best_point = point_id
+            ## sequential search for a batch
+            # posting_list = np.zeros((batch_size, delta_size))
+            # index_to_p_id = {}
+            # psql_start_time = time.time()
+            # cur.execute('select id, pl from nyc_postinglist where id in %s', (batch_ids, ))
+            # records = cur.fetchall()
+            # print('db query time: {0}'.format(time.time() - psql_start_time))
+            # for index, rows in enumerate(records):
+            #     posting_list[index][list(rows[1])] = 1
+            #     index_to_p_id[index] = rows[0]
+
+            # p_scores = np.matmul(CC, posting_list.T)
+            # max_score_index = p_scores[0].argmax()
+            # p_score = p_scores[0][max_score_index] + distritbution_score(GC, labels_dict_np[p])
+            # if p_score > max_score:
+            #     max_score = p_score
+            #     best_point = index_to_p_id[max_score_index]
+
+            progress_bar.update(batch_size)
+        if best_point == -1:
+            print("cannot find a point")
+            break
+        
+        cur.execute('select pl from nyc_postinglist where id=%s', (best_point, ))
+        row = cur.fetchall()
+        for r in row:
+            pl = list(r[0])
+            posting_list_best_point = np.zeros(delta_size)
+            posting_list_best_point[pl] = 1
+
+        solution.add(best_point)
+        
+        CC[0] = np.clip(np.subtract(CC[0], posting_list_best_point), 0, None)
+        GC[0] = np.clip(np.subtract(GC[0], labels_dict_np[best_point]), 0, None)
         
         iters += 1
     end_time = time.time()
     print(len(solution)) 
     # cscore = calculate_cscore(solution, posting_list, delta_size)
-    cscore = 0
     res_time = end_time - start_time
     if conn is not None:
         conn.close()
-    return solution, cscore, res_time
+    q.put((solution, res_time))
 
-
-
-def best_point_finder(points, CC, delta_size, q):
+def best_point_finder(points, CC, GC, labels_dict, delta_size, q):
     conn = psycopg2.connect(database="pmundra")
     cur = conn.cursor()
     posting_list = np.zeros((len(points), delta_size))
@@ -236,6 +397,7 @@ def best_point_finder(points, CC, delta_size, q):
         index_to_p_id[index] = rows[0]
     
     p_scores = np.matmul(CC, posting_list.T)
+    p_scores[0] = np.array([j + np.dot(GC[0].T, labels_dict[index_to_p_id[i]]) for i, j in enumerate(p_scores[0])])
     max_score_index = p_scores[0].argmax()
     cov_score = p_scores[0][max_score_index]
     point_id = index_to_p_id[max_score_index]
@@ -336,7 +498,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='nyc_taxicab', help='dataset to use')
     parser.add_argument('--coverage_threshold', type=float, default=1, help='coverage threshold to generate metadata')
     parser.add_argument('--partitions', type=int, default=10, help="number of partitions")
-    parser.add_argument('--algo_type', type=str, default='greedyNC', help='which algorithm to use')
+    parser.add_argument('--algo_type', type=str, default='greedyC_random', help='which algorithm to use')
     parser.add_argument('--distribution_req', type=int, default=50, help='number of samples ')
     parser.add_argument('--coverage_factor', type=int, default=5, help='defining the coverage factor')
     parser.add_argument('--model_type', type=str, default='resnet-18', help='model used to produce the feature_vector')
