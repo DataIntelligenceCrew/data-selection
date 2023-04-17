@@ -39,7 +39,7 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 		return result
 	case 1:
 		candidates := setMinus(rangeSet(n), sliceToSet(coreset))
-		result := lazyGreedy(collection, coverageTracker, groupReqs, coreset, candidates, -1, threads, print)
+		result := lazyGreedy(collection, coverageTracker, groupReqs, coreset, candidates, -1, threads, print, false)
 		return result
 	case 2:
 		result := disCover(collection, coreset, coverageTracker, groupReqs, threads, 0.5, print, coverageReq, n, dense)

@@ -16,7 +16,7 @@ func disCover(collection *mongo.Collection, coreset []int, coverageTracker []int
 
 	// Main logic loop
 	fmt.Println("Entering the main loop...")
-	cardinalityConstraint := 2
+	cardinalityConstraint := 4
 	for r := 1; notSatisfied(coverageTracker, groupTracker); r++ {
 		// Run DisCover subroutine
 		remainingBefore := sum(coverageTracker) + sum(groupTracker)
@@ -36,11 +36,12 @@ func disCover(collection *mongo.Collection, coreset []int, coverageTracker []int
 
 func greeDi(candidates map[int]bool, coverageTracker []int, groupTracker []int,
 	threads int, cardinalityConstraint int, collection *mongo.Collection) []int {
+	fmt.Println("Executing GreeDi...")
 	// Make a copy of trackers since we don't want to mess with them
-	newCoverageTracker := make([]int, len(coverageTracker))
-	newGroupTracker := make([]int, len(groupTracker))
-	copy(newCoverageTracker, coverageTracker)
-	copy(newGroupTracker, groupTracker)
+	//newCoverageTracker := make([]int, len(coverageTracker))
+	//newGroupTracker := make([]int, len(groupTracker))
+	//copy(newCoverageTracker, coverageTracker)
+	//copy(newGroupTracker, groupTracker)
 
 	// Split candidates into subsets
 	splitCandidates := splitSet(candidates, threads)
@@ -50,12 +51,14 @@ func greeDi(candidates map[int]bool, coverageTracker []int, groupTracker []int,
 	for t := 0; t < threads; t++ {
 		arg := []interface{}{
 			collection,
-			newCoverageTracker,
-			newGroupTracker,
+			coverageTracker,
+			groupTracker,
+			[]int{},
 			splitCandidates[t],
 			cardinalityConstraint,
 			1,
-			false,
+			true,
+			true,
 		}
 		args[t] = arg
 	}
@@ -75,5 +78,6 @@ func greeDi(candidates map[int]bool, coverageTracker []int, groupTracker []int,
 	}
 
 	// Run centralized greedy on the filtered candidates
-	return lazyLazyGreedy(collection, coverageTracker, groupTracker, filteredCandidates, cardinalityConstraint, threads, false, 0.1, 1.0)
+	fmt.Println("Executing centralized LazyGreedy...")
+	return lazyGreedy(collection, coverageTracker, groupTracker, []int{}, filteredCandidates, cardinalityConstraint, threads, false, false)
 }

@@ -13,9 +13,22 @@ Runs the
 
 func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
 	groupTracker []int, coreset []int, candidates map[int]bool, constraint int, threads int,
-	print bool) []int {
+	print bool, copyTrackers bool) []int {
 	report("Executing lazy greedy algorithm...\n", print)
 	report("remaining score: "+strconv.Itoa(remainingScore(coverageTracker, groupTracker)), print)
+
+	var newCoverageTracker []int
+	var newGroupTracker []int
+
+	if copyTrackers {
+		newCoverageTracker = make([]int, len(coverageTracker))
+        	newGroupTracker = make([]int, len(groupTracker))
+        	copy(newCoverageTracker, coverageTracker)
+        	copy(newGroupTracker, groupTracker)
+	} else {
+		newCoverageTracker = coverageTracker
+		newGroupTracker = groupTracker
+	}
 
 	// Initialize sets
 	n := len(candidates)
@@ -27,8 +40,8 @@ func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
 	for t := 0; t < threads; t++ {
 		arg := []interface{}{
 			collection,
-			coverageTracker,
-			groupTracker,
+			newCoverageTracker,
+			newGroupTracker,
 			splitCandidates[t],
 		}
 		args[t] = arg
@@ -52,18 +65,18 @@ func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
 	// Repeat main loop until all trackers are complete, or the candidate pool
 	// is dried out, or cardinality constraint is met
 	report("Entering the main loop...\n", print)
-	for i := 0; sum(coverageTracker)+sum(groupTracker) > 0 && len(candidatesPQ) > 1 && (constraint < 0 || len(coreset) < constraint); i++ {
+	for i := 0; sum(newCoverageTracker)+sum(newGroupTracker) > 0 && len(candidatesPQ) > 1 && (constraint < 0 || len(coreset) < constraint); i++ {
 		for j := 1; true; j++ {
 			// Get the next candidate point & its marginal gain
 			index := heap.Pop(&candidatesPQ).(*Item).value
 			point := getPointFromDB(collection, index)
-			gain := marginalGain(point, coverageTracker, groupTracker)
+			gain := marginalGain(point, newCoverageTracker, newGroupTracker)
 
 			// Optimal element found if it's the last possible option or
 			// if its marginal gain is optimal
 			if len(candidatesPQ) == 0 || gain >= PeekPriority(&candidatesPQ) {
 				coreset = append(coreset, index)
-				decrementTrackers(&point, coverageTracker, groupTracker)
+				decrementTrackers(&point, newCoverageTracker, newGroupTracker)
 				report("\rIteration "+strconv.Itoa(i)+" complete with marginal gain "+strconv.Itoa(gain)+", remaining candidates: "+strconv.Itoa(len(candidatesPQ))+", and elements reevaluated: "+strconv.Itoa(j), print)
 				break // End search
 			} else { // Add the point back to heap with updated marginal gain
