@@ -37,7 +37,7 @@ func main() {
 	elapsed := time.Since(start)
 
 	// Report resultant coreset & time taken
-	fmt.Printf("%v\n", result)
+	//fmt.Printf("%v\n", result)
 	fmt.Print("Obtained solution of size ", len(result), " in ")
 	fmt.Printf("%s\n", elapsed)
 }

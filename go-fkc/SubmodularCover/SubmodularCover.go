@@ -24,17 +24,22 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 
 	// Initialize trackers
 	n := getCollectionSize(collection)
-	coverageTracker, coreset := getCoverageTracker(collection, coverageReq, dense, n)
+	coverageTracker, groupReqs, coreset := getTrackers(collection, coverageReq, groupReqs, dense, n)
+	fmt.Println(coverageTracker, len(coverageTracker))
+	decrementAllOrderedTrackers(collection, coreset, coverageTracker, groupReqs)
+	fmt.Println(coverageTracker, len(coverageTracker))
 	//maximalGain += groupReqs[0] // Largest initial gain
 	report("initialized trackers\n", true)
 
 	// Choose algorithm to run
 	switch optimMode {
 	case 0:
-		result := classicGreedy(collection, coverageTracker, groupReqs, coreset, rangeSet(n), -1, threads, print)
+		candidates := setMinus(rangeSet(n), sliceToSet(coreset))
+		result := classicGreedy(collection, coverageTracker, groupReqs, coreset, candidates, -1, threads, print)
 		return result
 	case 1:
-		result := lazyGreedy(collection, coverageTracker, groupReqs, coreset, rangeSet(n), -1, threads, print)
+		candidates := setMinus(rangeSet(n), sliceToSet(coreset))
+		result := lazyGreedy(collection, coverageTracker, groupReqs, coreset, candidates, -1, threads, print)
 		return result
 	case 2:
 		result := disCover(collection, coreset, coverageTracker, groupReqs, threads, 0.5, print, coverageReq, n, dense)
@@ -44,14 +49,14 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 	}
 }
 
-func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense bool, n int) ([]int, []int) {
+func getTrackers(collection *mongo.Collection, coverageReq int, groupReqs []int, dense bool, n int) ([]int, []int, []int) {
 	if dense {
 		coverageTracker := make([]int, n)
 		for i := 0; i < n; i++ {
 			coverageTracker[i] = coverageReq
 		}
 		//fmt.Println(len(coverageTracker))
-		return coverageTracker, []int{}
+		return coverageTracker, groupReqs, []int{}
 	} else {
 		coverageTracker := make([]int, n)
 		coreset := make([]int, 0)
@@ -59,23 +64,18 @@ func getCoverageTracker(collection *mongo.Collection, coverageReq int, dense boo
 		defer cur.Close(context.Background())
 		for i := 0; cur.Next(context.Background()); i++ {
 			point := getEntryFromCursor(cur)
-			numNeighbors := 0
-			for i := 0; i < len(point.Neighbors); i++ {
-				if point.Neighbors[i] {
-					numNeighbors++
-				}
-			}
-			thisCoverageReq := min(numNeighbors, coverageReq)
-			if thisCoverageReq <= coverageReq { // Add to coreset automatically
+			numNeighbors := len(point.Neighbors)
+			coverageTracker[i] = min(numNeighbors, coverageReq)
+			group := point.Group
+			//thisCoverageReq := min(numNeighbors, coverageReq)
+			if numNeighbors <= coverageReq { // Add to coreset automatically
 				coreset = append(coreset, point.Index)
-				coverageTracker = append(coverageTracker, thisCoverageReq-1)
-			} else {
-				coverageTracker = append(coverageTracker, thisCoverageReq)
+				groupReqs[group] = max(0, groupReqs[group] - 1)
 			}
 			fmt.Printf("\rCoverage tracker iteration %d", i)
 		}
 		fmt.Printf("\n")
-		return coverageTracker, coreset
+		return coverageTracker, groupReqs, coreset
 	}
 }
 
@@ -113,21 +113,36 @@ func notSatisfied(coverageTracker []int, groupTracker []int) bool {
 }
 
 func decrementTrackers(point *Point, coverageTracker []int, groupTracker []int) {
-	for i := 0; i < len(point.Neighbors); i++ {
-		if point.Neighbors[i] {
-			coverageTracker[i] = max(0, coverageTracker[i]-1)
-		}
+	for neighbor := range point.Neighbors {
+		coverageTracker[neighbor] = max(0, coverageTracker[neighbor]-1)
 	}
-	gr := point.Group
-	val := groupTracker[gr]
-	groupTracker[gr] = max(0, val-1)
+	group := point.Group
+	groupTracker[group] = max(0, groupTracker[group]-1)
+}
+
+func decrementAllOrderedTrackers(collection *mongo.Collection, points []int, coverageTracker []int, groupTracker []int) {
+	cur := getFullCursor(collection)
+	defer cur.Close(context.Background())
+
+	i := 0
+	for cur.Next(context.Background()) {
+		point := getEntryFromCursor(cur)
+		if points[i] == point.Index {
+			decrementTrackers(&point, coverageTracker, groupTracker)
+			i++
+		}
+		fmt.Print("%d\r", i)
+	}
+	fmt.Println()
 }
 
 func decrementAllTrackers(collection *mongo.Collection, points []int, coverageTracker []int, groupTracker []int) {
 	for i := 0; i < len(points); i++ {
 		point := getPointFromDB(collection, points[i])
 		decrementTrackers(&point, coverageTracker, groupTracker)
+		fmt.Print("%d\r", i)
 	}
+	fmt.Println()
 }
 
 func remainingScore(coverageTracker []int, groupTracker []int) int {
