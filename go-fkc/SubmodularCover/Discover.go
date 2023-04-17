@@ -8,21 +8,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func disCover(collection *mongo.Collection, coverageTracker []int,
+func disCover(collection *mongo.Collection, coreset []int, coverageTracker []int,
 	groupTracker []int, threads int, alpha float64, print bool, k int, n int, dense bool) []int {
 	fmt.Println("Executing DisCover...")
-	coreset := make([]int, 0)
-	if !dense {
-		coreset := allBelowCovThreshold(collection, threads, k, n)
-		decrementAllTrackers(collection, coreset, coverageTracker, groupTracker)
-	}
-	candidates := make(map[int]bool) // Using map as a hashset
-	for i := 0; i < n; i++ {         // Initial points
-		candidates[i] = true
-	}
-	for i := 0; i < len(coreset); i++ {
-		candidates[coreset[i]] = false
-	}
+	candidates := setMinus(rangeSet(n), sliceToSet(coreset))
 	lambda := 1.0 / math.Sqrt(float64(threads))
 
 	// Main logic loop
@@ -39,7 +28,6 @@ func disCover(collection *mongo.Collection, coverageTracker []int,
 		if float64(remainingBefore-remainingAfter) < alpha*lambda*float64(remainingBefore) {
 			cardinalityConstraint *= 2 // Double if marginal gain is too small
 		}
-
 		report("\rRound: "+strconv.Itoa(r)+", remaining candidates: "+strconv.Itoa(len(candidates)), print)
 	}
 	fmt.Printf("\n")

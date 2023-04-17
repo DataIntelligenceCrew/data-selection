@@ -14,13 +14,13 @@ pool until all trackers are zeroed out.
 */
 
 func classicGreedy(collection *mongo.Collection, coverageTracker []int,
-	groupTracker []int, candidates map[int]bool, constraint int, threads int,
+	groupTracker []int, coreset []int, candidates map[int]bool, constraint int, threads int,
 	print bool) []int {
 	report("Executing classic greedy algorithm...\n", print)
 
 	// Initialize sets
 	n := getCollectionSize(collection)
-	coreset := make([]int, 0)
+	//coreset := make([]int, 0)
 	chunkSize := n / threads
 
 	// Repeat main loop until all requirements are met or candidate pool

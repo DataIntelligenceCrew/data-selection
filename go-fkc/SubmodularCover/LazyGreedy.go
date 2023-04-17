@@ -12,14 +12,14 @@ Runs the
 */
 
 func lazyGreedy(collection *mongo.Collection, coverageTracker []int,
-	groupTracker []int, candidates map[int]bool, constraint int, threads int,
+	groupTracker []int, coreset []int, candidates map[int]bool, constraint int, threads int,
 	print bool) []int {
 	report("Executing lazy greedy algorithm...\n", print)
 	report("remaining score: "+strconv.Itoa(remainingScore(coverageTracker, groupTracker)), print)
 
 	// Initialize sets
 	n := len(candidates)
-	coreset := make([]int, 0)
+	//coreset := make([]int, 0)
 
 	// Compute initial marginal gains
 	splitCandidates := splitSet(candidates, threads)

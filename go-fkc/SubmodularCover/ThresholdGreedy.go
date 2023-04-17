@@ -7,11 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func thresholdGreedy(collection *mongo.Collection, coverageTracker []int, groupTracker []int, candidates map[int]bool, threads int, print bool, eps float64, maximalGain int) []int {
+func thresholdGreedy(collection *mongo.Collection, coverageTracker []int, groupTracker []int, candidates map[int]bool, threads int, print bool, eps float64) []int {
 	report("Executing threshold greedy algorithm...\n", print)
 
 	// Running bucket threshold
-	threshold := float64(maximalGain) * (1.0 - eps) // Initial score threshold
+	// INTENTIONALLY BROKE MAXIMALGAIN
+	threshold := float64(100) * (1.0 - eps) // Initial score threshold
 	n := getCollectionSize(collection)
 	coreset := make([]int, 0)
 
