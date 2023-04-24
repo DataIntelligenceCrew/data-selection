@@ -15,11 +15,11 @@ func main() {
 	groupCntFlag := flag.Int("m", 5, "number of groups")
 	optimFlag := flag.Int("optim", 0, "optimization mode")
 	threadsFlag := flag.Int("t", 1, "number of threads")
+	cardinalityFlag := flag.Int("c", -1, "cardinality constraint")
 	dense := flag.Bool("dense", true, "whether the graph is denser than the k-Coverage requirement")
 	eps := flag.Float64("eps", 0.1, "parameter used for optimization algorithms")
-	objRatio := flag.Float64("objratio", 0.9, "portion of objective function to be satisfied with LazyLazy before switching to Lazy")
+	//objRatio := flag.Float64("objratio", 0.9, "portion of objective function to be satisfied with LazyLazy before switching to Lazy")
 	iterPrint := flag.Bool("iterprint", true, "whether to report each iteration's progress")
-	//batchSize := flag.Int("batch", 10000, "number of entries to query from MongoDB at once")
 
 	// Parse all flags
 	flag.Parse()
@@ -32,11 +32,12 @@ func main() {
 
 	// Run submodularCover
 	start := time.Now()
-	result := SubmodularCover(*dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *dense, *eps, *objRatio, *iterPrint)
+	coreset, funcVal := SubmodularCover(*dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
 	elapsed := time.Since(start)
 
 	// Report resultant coreset & time taken
-	//fmt.Printf("%v\n", result)
-	fmt.Print("Obtained solution of size ", len(result), " in ")
-	fmt.Printf("%s\n", elapsed)
+	fmt.Println("elapsed:", elapsed)
+	fmt.Println("size:", len(coreset))
+	fmt.Println("function value:", funcVal)
+	fmt.Println("coreset:", coreset)
 }
