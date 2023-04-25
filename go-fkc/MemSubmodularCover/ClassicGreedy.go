@@ -40,6 +40,7 @@ func classicGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 		// End-of-iteration bookkeeping
 		bestResult := getBestResult(results)
 		chosen := bestResult.index
+		coreset = append(coreset, chosen)
 		delete(candidates, chosen) // Remove chosen point from candidates pool
 		// Update trackers
 		decrementTrackers(graph, chosen, coverageTracker, groupTracker)

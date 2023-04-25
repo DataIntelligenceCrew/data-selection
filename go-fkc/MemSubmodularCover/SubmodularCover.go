@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bits-and-blooms/bitset"
 )
@@ -24,7 +25,7 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 	groupReqs []int, optimMode int, threads int, cardinality int, dense bool,
 	eps float64, print bool) ([]int, int) {
 	// Import & Initialize all stuff
-	graph, n := getGraph(dbName, collectionName)
+	graph, n := getGraph(dbName, collectionName, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
 	initialRemainingScore := remainingScore(coverageTracker, groupReqs)
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
@@ -53,7 +54,7 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 	return result, functionValue
 }
 
-func getGraph(dbName string, collectionName string) (Graph, int) {
+func getGraph(dbName string, collectionName string, print bool) (Graph, int) {
 	// Get collection
 	collection := getMongoCollection(dbName, collectionName)
 	n := getCollectionSize(collection)
@@ -71,7 +72,9 @@ func getGraph(dbName string, collectionName string) (Graph, int) {
 		graph.adjMatrix[i] = setToBitSet(point.Neighbors, n)
 		graph.groups[i] = point.Group
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
+		report("loading db to memory " + strconv.Itoa(i) + "\r", print)
 	}
+	report("\n", print)
 	return graph, n
 }
 
@@ -87,10 +90,10 @@ func getTrackers(graph Graph, coverageReq int, groupReqs []int, dense bool, n in
 		coreset := make([]int, 0)
 		for i := 0; i < n; i++ {
 			coverageTracker[i] = min(graph.numNeighbors[i], coverageReq)
-			if graph.numNeighbors[i] <= coverageReq {
-				coreset = append(coreset, i)
-				groupReqs[graph.groups[i]] = max(0, groupReqs[graph.groups[i]]-1)
-			}
+			//if graph.numNeighbors[i] <= coverageReq {
+			//	coreset = append(coreset, i)
+			//	groupReqs[graph.groups[i]] = max(0, groupReqs[graph.groups[i]]-1)
+			//}
 		}
 		return coverageTracker, groupReqs, coreset
 	}
@@ -110,15 +113,16 @@ func marginalGain(graph Graph, index int, coverageTracker []int, groupTracker []
 
 func getMarginalGains(graph Graph, coverageTracker []int,
 	groupTracker []int, candidates map[int]bool) []*Item {
-	n := len(graph.adjMatrix)
-	results := make([]*Item, n)
-	for i := 0; i < n; i++ {
-		gain := marginalGain(graph, i, coverageTracker, groupTracker)
+	results := make([]*Item, len(candidates))
+	i := 0
+	for index := range candidates {
+		gain := marginalGain(graph, index, coverageTracker, groupTracker)
 		item := &Item{
-			value:    i,
+			value:    index,
 			priority: gain,
 		}
 		results[i] = item
+		i++
 	}
 	return results
 }

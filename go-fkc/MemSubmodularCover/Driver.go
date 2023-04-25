@@ -39,5 +39,5 @@ func main() {
 	fmt.Println("elapsed:", elapsed)
 	fmt.Println("size:", len(coreset))
 	fmt.Println("function value:", funcVal)
-	fmt.Println("coreset:", coreset)
+	//fmt.Println("coreset:", coreset)
 }

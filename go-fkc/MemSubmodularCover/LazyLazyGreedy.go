@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"math"
 )
 
 func lazyLazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
@@ -26,7 +27,7 @@ func lazyLazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 
 	// Initialize sets & constants
 	n := len(candidates)
-	s := int(eps * float64(n))
+	s := int(float64(n) / float64(max(cardinality, len(graph.adjMatrix))) * math.Log(1.0 / eps))
 	objScore := 0
 
 	// Repeat main loop until all trackers are complete, or the candidate pool

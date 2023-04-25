@@ -66,7 +66,7 @@ func lazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 	for i := 0; sum(newCoverageTracker)+sum(newGroupTracker) > 0 && len(candidatesPQ) > 1 && (cardinality < 0 || len(coreset) < cardinality); i++ {
 		for j := 1; true; j++ {
 			// Get the next candidate point & its marginal gain
-			index := heap.Pop(&candidatesPQ).(Item).value
+			index := heap.Pop(&candidatesPQ).(*Item).value
 			gain := marginalGain(graph, index, coverageTracker, groupTracker)
 
 			// Optimal element found if it's the last possible option or
