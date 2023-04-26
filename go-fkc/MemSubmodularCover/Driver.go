@@ -8,6 +8,7 @@ import (
 
 func main() {
 	// Define command-line flags
+	dbType := flag.String("dbtype", "mongo", "Database software where data is stored")
 	dbFlag := flag.String("db", "dummydb", "MongoDB DB")
 	collectionFlag := flag.String("col", "n1000d3m5r20", "ollection containing points")
 	coverageFlag := flag.Int("k", 20, "k-coverage requirement")
@@ -32,7 +33,7 @@ func main() {
 
 	// Run submodularCover
 	start := time.Now()
-	coreset, funcVal := SubmodularCover(*dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
+	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
 	elapsed := time.Since(start)
 
 	// Report resultant coreset & time taken

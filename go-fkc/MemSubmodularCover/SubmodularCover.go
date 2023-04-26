@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"strconv"
+
+	"database/sql"
+
+	_ "github.com/lib/pq"
 
 	"github.com/bits-and-blooms/bitset"
 )
@@ -21,11 +25,11 @@ Optimization modes:
 3: Multilevel with lazylazy -> lazy
 2: Distributed submodular cover (DisCover) using GreeDi & lazygreedy as subroutines
 */
-func SubmodularCover(dbName string, collectionName string, coverageReq int,
-	groupReqs []int, optimMode int, threads int, cardinality int, dense bool,
-	eps float64, print bool) ([]int, int) {
+func SubmodularCover(dbType string, dbName string, collectionName string,
+	coverageReq int, groupReqs []int, optimMode int, threads int, cardinality int,
+	dense bool, eps float64, print bool) ([]int, int) {
 	// Import & Initialize all stuff
-	graph, n := getGraph(dbName, collectionName, print)
+	graph, n := getGraph(dbType, dbName, collectionName, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
 	initialRemainingScore := remainingScore(coverageTracker, groupReqs)
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
@@ -54,7 +58,18 @@ func SubmodularCover(dbName string, collectionName string, coverageReq int,
 	return result, functionValue
 }
 
-func getGraph(dbName string, collectionName string, print bool) (Graph, int) {
+func getGraph(dbType string, dbName string, collectionName string, print bool) (Graph, int) {
+	switch dbType {
+	case "mongo":
+		return getMongoGraph(dbName, collectionName, print)
+	case "psql":
+		return getPostgresGraph(dbName, collectionName, print)
+	default:
+		return Graph{}, 0
+	}
+}
+
+func getMongoGraph(dbName string, collectionName string, print bool) (Graph, int) {
 	// Get collection
 	collection := getMongoCollection(dbName, collectionName)
 	n := getCollectionSize(collection)
@@ -72,10 +87,51 @@ func getGraph(dbName string, collectionName string, print bool) (Graph, int) {
 		graph.adjMatrix[i] = setToBitSet(point.Neighbors, n)
 		graph.groups[i] = point.Group
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
-		report("loading db to memory " + strconv.Itoa(i) + "\r", print)
+		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	report("\n", print)
 	return graph, n
+}
+
+func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) {
+	// Get cursor
+	rows, n := getFullPostgresCursor(dbName, tableName)
+	defer rows.Close()
+	// Initialize results
+	graph := Graph{
+		adjMatrix:    make([]*bitset.BitSet, n),
+		groups:       make([]int, n),
+		numNeighbors: make([]int, n),
+	}
+	// Iterate over each entry
+	for i := 0; rows.Next(); i++ {
+		var (
+			id int
+			pl []int
+		)
+		err := rows.Scan(&id, &pl)
+		handleError(err)
+		graph.adjMatrix[i] = listToBitSet(pl, n)
+		graph.groups[i] = 0
+		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
+		handleError(rows.Err())
+		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
+	}
+	report("\n", print)
+	return graph, n
+}
+
+func getFullPostgresCursor(dbName string, tableName string) (*sql.Rows, int) {
+	connStr := "user=jchang38 dbname=" + dbName + " sslmode=verify-full"
+	db, err := sql.Open("postgres", connStr)
+	handleError(err)
+	// Grabbing all rows
+	rows, err := db.Query("SELECT * FROM " + tableName)
+	// Counting elements
+	var n int
+	err = db.QueryRow("SELECT COUNT(*) FROM " + tableName).Scan(&n)
+	handleError(err)
+	return rows, n
 }
 
 func getTrackers(graph Graph, coverageReq int, groupReqs []int, dense bool, n int) ([]int, []int, []int) {
