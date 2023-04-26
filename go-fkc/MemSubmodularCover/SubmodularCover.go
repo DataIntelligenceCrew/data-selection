@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"strconv"
+	//"fmt"
 
 	"database/sql"
 
@@ -107,7 +108,7 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 	for i := 0; rows.Next(); i++ {
 		var (
 			id int
-			pl []int
+			pl []uint8
 		)
 		err := rows.Scan(&id, &pl)
 		handleError(err)
@@ -122,7 +123,9 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 }
 
 func getFullPostgresCursor(dbName string, tableName string) (*sql.Rows, int) {
-	connStr := "user=jchang38 dbname=" + dbName + " sslmode=verify-full"
+	//connStr := "postgres://jchang38@localhost/imagenet_1k?sslmode=disable"
+	connStr := "host=/tmp user=jchang38 dbname=" + dbName + " sslmode=disable"
+	//fmt.Println(connStr)
 	db, err := sql.Open("postgres", connStr)
 	handleError(err)
 	// Grabbing all rows
