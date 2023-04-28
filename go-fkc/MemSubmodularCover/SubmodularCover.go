@@ -37,7 +37,6 @@ func SubmodularCover(dbType string, dbName string, collectionName string,
 	// Import & Initialize all stuff
 	graph, n := getGraph(dbType, dbName, collectionName, groupFile, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
-	fmt.Println(groupReqs)
 	initialRemainingScore := remainingScore(coverageTracker, groupReqs)
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
 	report("initialized trackers\n", print)
@@ -132,7 +131,6 @@ func getPostgresGraph(dbName string, tableName string, print bool, groupFileName
 		}
 		//graph.adjMatrix[i] = listToBitSet(pl, n)
 		graph.adjMatrix[i] = bitset
-		//fmt.Println(id, graph.adjMatrix[i])
 		graph.groups[i] = 0
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
 		handleError(rows.Err())
@@ -142,7 +140,6 @@ func getPostgresGraph(dbName string, tableName string, print bool, groupFileName
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	report("\n", print)
-	fmt.Println(n, graph.numNeighbors)
 	return graph, n
 }
 
@@ -178,7 +175,6 @@ func parseGroupLine(scanner *bufio.Reader, index int) int {
 func getFullPostgresCursor(dbName string, tableName string) (*sql.Rows, int) {
 	//connStr := "postgres://jchang38@localhost/imagenet_1k?sslmode=disable"
 	connStr := "host=/tmp user=jchang38 dbname=" + dbName + " sslmode=disable"
-	//fmt.Println(connStr)
 	db, err := sql.Open("postgres", connStr)
 	handleError(err)
 	// Grabbing all rows

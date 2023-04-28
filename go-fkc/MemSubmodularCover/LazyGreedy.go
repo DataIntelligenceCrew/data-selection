@@ -3,7 +3,6 @@ package main
 import (
 	"container/heap"
 	"strconv"
-	"fmt"
 )
 
 /*
@@ -65,8 +64,6 @@ func lazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 	// is dried out, or cardinality constraint is met
 	report("Entering the main loop...\n", print)
 	for i := 0; sum(newCoverageTracker)+sum(newGroupTracker) > 0 && len(candidatesPQ) > 1 && (cardinality < 0 || len(coreset) < cardinality); i++ {
-		fmt.Println(sum(newCoverageTracker), sum(newGroupTracker))
-		fmt.Println()
 		for j := 1; true; j++ {
 			// Get the next candidate point & its marginal gain
 			index := heap.Pop(&candidatesPQ).(*Item).value
@@ -78,7 +75,6 @@ func lazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 				coreset = append(coreset, index)
 				decrementTrackers(graph, index, newCoverageTracker, newGroupTracker)
 				report("\rIteration "+strconv.Itoa(i)+" complete with marginal gain "+strconv.Itoa(gain)+", remaining candidates: "+strconv.Itoa(len(candidatesPQ))+", and elements reevaluated: "+strconv.Itoa(j), print)
-				fmt.Println(newCoverageTracker)
 				break // End search for next coreset point
 			} else { // Add point back to heap with updated marginal gain
 				item := &Item{
