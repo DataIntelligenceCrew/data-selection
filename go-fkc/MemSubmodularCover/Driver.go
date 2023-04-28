@@ -32,7 +32,7 @@ func main() {
 	}
 
 	// Run submodularCover
-	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
+	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint, *groupFile)
 
 	// Report resultant coreset & time taken
 	//fmt.Println("elapsed:", elapsed)
