@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"reflect"
 	"sync"
+	//"encoding/binary"
 
 	"github.com/bits-and-blooms/bitset"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -230,9 +231,10 @@ func setToBitSet(set map[int]bool, n int) *bitset.BitSet {
 
 func listToBitSet(list []uint8, n int) *bitset.BitSet {
 	bitset := bitset.New(uint(n))
-	for i := 0; i < len(list); i++ {
-		bitset.Set(uint(list[i]))
-	}
+	//for i := 0; i < len(list); i++ {
+	//	neighbor = int(binary.BigEndian.Uint32(list[i * 4 : i * 4 + 4]))
+	//	bitset.Set(uint(neighbor))
+	//}
 	return bitset
 }
 

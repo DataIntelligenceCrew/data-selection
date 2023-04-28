@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"strconv"
-	//"fmt"
+	"fmt"
+	"time"
 
 	"database/sql"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 
 	"github.com/bits-and-blooms/bitset"
 )
@@ -29,12 +30,17 @@ Optimization modes:
 func SubmodularCover(dbType string, dbName string, collectionName string,
 	coverageReq int, groupReqs []int, optimMode int, threads int, cardinality int,
 	dense bool, eps float64, print bool) ([]int, int) {
+	preTime := time.Now()
 	// Import & Initialize all stuff
 	graph, n := getGraph(dbType, dbName, collectionName, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
+	fmt.Println(groupReqs)
 	initialRemainingScore := remainingScore(coverageTracker, groupReqs)
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
 	report("initialized trackers\n", print)
+	preTimeElapsed := time.Since(preTime)
+	fmt.Println("preprocessing time: ", preTimeElapsed)
+	inTime := time.Now()
 
 	// Choose algorithm to run
 	candidates := setMinus(rangeSet(n), sliceToSet(coreset))
@@ -56,6 +62,8 @@ func SubmodularCover(dbType string, dbName string, collectionName string,
 	// Compute score of the collected coreset
 	finalRemainingScore := remainingScore(coverageTracker, groupReqs)
 	functionValue := initialRemainingScore - finalRemainingScore
+	inTimeElapsed := time.Since(inTime)
+	fmt.Println("in-processing time: ", inTimeElapsed)
 	return result, functionValue
 }
 
@@ -90,7 +98,6 @@ func getMongoGraph(dbName string, collectionName string, print bool) (Graph, int
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
-	report("\n", print)
 	return graph, n
 }
 
@@ -108,17 +115,24 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 	for i := 0; rows.Next(); i++ {
 		var (
 			id int
-			pl []uint8
+			pl pq.Int64Array
 		)
 		err := rows.Scan(&id, &pl)
 		handleError(err)
-		graph.adjMatrix[i] = listToBitSet(pl, n)
+		bitset := bitset.New(uint(n))
+		for j := 0; j < len(pl); j++ {
+			bitset.Set(uint(pl[j]))
+		}
+		//graph.adjMatrix[i] = listToBitSet(pl, n)
+		graph.adjMatrix[i] = bitset
+		//fmt.Println(id, graph.adjMatrix[i])
 		graph.groups[i] = 0
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
 		handleError(rows.Err())
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	report("\n", print)
+	fmt.Println(n, graph.numNeighbors)
 	return graph, n
 }
 
@@ -129,7 +143,7 @@ func getFullPostgresCursor(dbName string, tableName string) (*sql.Rows, int) {
 	db, err := sql.Open("postgres", connStr)
 	handleError(err)
 	// Grabbing all rows
-	rows, err := db.Query("SELECT * FROM " + tableName)
+	rows, err := db.Query("SELECT * FROM " + tableName + " ORDER BY id ASC")
 	// Counting elements
 	var n int
 	err = db.QueryRow("SELECT COUNT(*) FROM " + tableName).Scan(&n)

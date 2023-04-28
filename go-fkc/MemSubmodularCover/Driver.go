@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"time"
+	//"time"
 )
 
 func main() {
@@ -32,12 +32,12 @@ func main() {
 	}
 
 	// Run submodularCover
-	start := time.Now()
+	//start := time.Now()
 	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
-	elapsed := time.Since(start)
+	//elapsed := time.Since(start)
 
 	// Report resultant coreset & time taken
-	fmt.Println("elapsed:", elapsed)
+	//fmt.Println("elapsed:", elapsed)
 	fmt.Println("size:", len(coreset))
 	fmt.Println("function value:", funcVal)
 	//fmt.Println("coreset:", coreset)

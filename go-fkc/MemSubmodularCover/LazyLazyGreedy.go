@@ -34,7 +34,7 @@ func lazyLazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 	// is dried out, or cardinality constraint is met
 	report("Entering the main loop...\n", print)
 
-	for i := 0; (cardinality < 0 || len(coreset) < cardinality) && (sum(coverageTracker)+sum(groupTracker) >= objScore); i++ {
+	for i := 0; (cardinality < 0 || len(coreset) < cardinality) && (sum(newCoverageTracker)+sum(newGroupTracker) >= objScore); i++ {
 		// Take a subsample of the candidates
 		sample := subSampleSet(candidates, s)
 		splitSample := splitSet(sample, threads)
@@ -45,8 +45,8 @@ func lazyLazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 			arg := []interface{}{
 				graph,
 				splitSample[t],
-				coverageTracker,
-				groupTracker,
+				newCoverageTracker,
+				newGroupTracker,
 			}
 			args[t] = arg
 		}
@@ -56,7 +56,7 @@ func lazyLazyGreedy(graph Graph, coverageTracker []int, groupTracker []int,
 
 		// Bookkeeping
 		coreset = append(coreset, chosen.index)
-		decrementTrackers(graph, chosen.index, coverageTracker, groupTracker)
+		decrementTrackers(graph, chosen.index, newCoverageTracker, newGroupTracker)
 		delete(candidates, chosen.index)
 		report("\rIteration "+strconv.Itoa(i)+" complete with marginal gain "+strconv.Itoa(chosen.gain)+", remaining candidates"+strconv.Itoa(len(candidates)), print)
 	}
