@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"os"
 	"strconv"
+	"strings"
+
 	//"fmt"
 
 	"database/sql"
@@ -28,9 +32,9 @@ Optimization modes:
 */
 func SubmodularCover(dbType string, dbName string, collectionName string,
 	coverageReq int, groupReqs []int, optimMode int, threads int, cardinality int,
-	dense bool, eps float64, print bool) ([]int, int) {
+	dense bool, eps float64, print bool, groupFile string) ([]int, int) {
 	// Import & Initialize all stuff
-	graph, n := getGraph(dbType, dbName, collectionName, print)
+	graph, n := getGraph(dbType, dbName, collectionName, groupFile, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
 	initialRemainingScore := remainingScore(coverageTracker, groupReqs)
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
@@ -59,7 +63,7 @@ func SubmodularCover(dbType string, dbName string, collectionName string,
 	return result, functionValue
 }
 
-func getGraph(dbType string, dbName string, collectionName string, print bool) (Graph, int) {
+func getGraph(dbType string, dbName string, collectionName string, groupFile string, print bool) (Graph, int) {
 	switch dbType {
 	case "mongo":
 		return getMongoGraph(dbName, collectionName, print)
@@ -104,8 +108,12 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 		groups:       make([]int, n),
 		numNeighbors: make([]int, n),
 	}
+	// Parse group txt file
+	groupFileScanner, groupFile := getFileScanner(*groupFileName)
+	defer groupFile.Close()
 	// Iterate over each entry
 	for i := 0; rows.Next(); i++ {
+		// Adjacent matrix
 		var (
 			id int
 			pl []uint8
@@ -113,13 +121,45 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 		err := rows.Scan(&id, &pl)
 		handleError(err)
 		graph.adjMatrix[i] = listToBitSet(pl, n)
-		graph.groups[i] = 0
+		// Numneighbors
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
 		handleError(rows.Err())
+		// group
+		gr := parseGroupLine(groupFileScanner, i)
+		graph.groups[i] = gr
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	report("\n", print)
 	return graph, n
+}
+
+func getFileScanner(fileName string) (*bufio.Reader, *os.File) {
+	file, err := os.Open(fileName)
+	handleError(err)
+	reader := bufio.NewReader(file)
+	//scanner := bufio.NewScanner(file)
+	return reader, file
+}
+
+func parseGroupLine(scanner *bufio.Reader, index int) int {
+	for {
+		line, err := scanner.ReadString('\n')
+		handleError(err)
+		line = strings.Trim(line, "\n")
+		parts := strings.Split(line, " : ")
+		if len(parts) < 2 {
+			parts = strings.Split(line, ",")
+		}
+		i, err := strconv.Atoi(parts[0])
+		if err != nil { // Skip any metadata lines
+			continue
+		}
+		if i == index {
+			gr, err := strconv.Atoi(parts[1])
+			handleError(err)
+			return gr
+		}
+	}
 }
 
 func getFullPostgresCursor(dbName string, tableName string) (*sql.Rows, int) {

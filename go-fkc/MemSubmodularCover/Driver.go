@@ -21,6 +21,7 @@ func main() {
 	eps := flag.Float64("eps", 0.1, "parameter used for optimization algorithms")
 	//objRatio := flag.Float64("objratio", 0.9, "portion of objective function to be satisfied with LazyLazy before switching to Lazy")
 	iterPrint := flag.Bool("iterprint", true, "whether to report each iteration's progress")
+	groupFile := flag.String("groupfile", "", "file where group labels are stored (for psql)")
 
 	// Parse all flags
 	flag.Parse()
@@ -33,7 +34,7 @@ func main() {
 
 	// Run submodularCover
 	start := time.Now()
-	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint)
+	coreset, funcVal := SubmodularCover(*dbType, *dbFlag, *collectionFlag, *coverageFlag, groupReqs, *optimFlag, *threadsFlag, *cardinalityFlag, *dense, *eps, *iterPrint, groupFile)
 	elapsed := time.Since(start)
 
 	// Report resultant coreset & time taken

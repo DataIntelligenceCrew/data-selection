@@ -228,14 +228,6 @@ func setToBitSet(set map[int]bool, n int) *bitset.BitSet {
 	return bitset
 }
 
-func listToBitSet(list []uint8, n int) *bitset.BitSet {
-	bitset := bitset.New(uint(n))
-	for i := 0; i < len(list); i++ {
-		bitset.Set(uint(list[i]))
-	}
-	return bitset
-}
-
 /**
 Everything required to implement priority queue.
 */
