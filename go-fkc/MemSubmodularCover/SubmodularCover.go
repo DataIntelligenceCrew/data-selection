@@ -3,16 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
 	"strconv"
-<<<<<<< HEAD
 	"strings"
-
-	//"fmt"
-=======
-	"fmt"
 	"time"
->>>>>>> 9c428ec83f132bfd24734f175febd4c86a3e2861
 
 	"database/sql"
 
@@ -37,12 +32,8 @@ Optimization modes:
 */
 func SubmodularCover(dbType string, dbName string, collectionName string,
 	coverageReq int, groupReqs []int, optimMode int, threads int, cardinality int,
-<<<<<<< HEAD
 	dense bool, eps float64, print bool, groupFile string) ([]int, int) {
-=======
-	dense bool, eps float64, print bool) ([]int, int) {
 	preTime := time.Now()
->>>>>>> 9c428ec83f132bfd24734f175febd4c86a3e2861
 	// Import & Initialize all stuff
 	graph, n := getGraph(dbType, dbName, collectionName, groupFile, print)
 	coverageTracker, groupReqs, coreset := getTrackers(graph, coverageReq, groupReqs, dense, n)
@@ -84,7 +75,7 @@ func getGraph(dbType string, dbName string, collectionName string, groupFile str
 	case "mongo":
 		return getMongoGraph(dbName, collectionName, print)
 	case "psql":
-		return getPostgresGraph(dbName, collectionName, print)
+		return getPostgresGraph(dbName, collectionName, print, groupFile)
 	default:
 		return Graph{}, 0
 	}
@@ -113,7 +104,7 @@ func getMongoGraph(dbName string, collectionName string, print bool) (Graph, int
 	return graph, n
 }
 
-func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) {
+func getPostgresGraph(dbName string, tableName string, print bool, groupFileName string) (Graph, int) {
 	// Get cursor
 	rows, n := getFullPostgresCursor(dbName, tableName)
 	defer rows.Close()
@@ -124,7 +115,7 @@ func getPostgresGraph(dbName string, tableName string, print bool) (Graph, int) 
 		numNeighbors: make([]int, n),
 	}
 	// Parse group txt file
-	groupFileScanner, groupFile := getFileScanner(*groupFileName)
+	groupFileScanner, groupFile := getFileScanner(groupFileName)
 	defer groupFile.Close()
 	// Iterate over each entry
 	for i := 0; rows.Next(); i++ {
