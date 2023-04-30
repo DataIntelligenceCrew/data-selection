@@ -42,42 +42,69 @@ func main() {
 			resultDest  string
 		)
 		if dbType, ok = config["DBType"].(string); !ok {
+			fmt.Printf("dbType parse error: %v (%T)\n", config["DBType"], config["DBType"])
 			dbType = "WrongDBType"
 		}
 		if db, ok = config["DB"].(string); !ok {
+			fmt.Printf("DB parse error: %v (%T)\n", config["DB"], config["DB"])
 			db = "WrongDB"
 		}
 		if table, ok = config["Table"].(string); !ok {
+			fmt.Printf("table parse error: %v (%T)\n", config["Table"], config["Table"])
 			table = "WrongTable"
 		}
-		if coverage, ok = config["Coverage"].(int); !ok {
+		if coverageStr, ok := config["Coverage"].(string); !ok {
+			fmt.Println("coverage parse error")
 			coverage = -1
+		} else {
+			coverage, _ = strconv.Atoi(coverageStr)
 		}
-		if groupCnt, ok = config["GroupCnt"].(int); !ok {
+		if groupCntStr, ok := config["GroupCnt"].(string); !ok {
+			fmt.Println("GroupCnt parse error")
 			groupCnt = -1
+		} else {
+			groupCnt, _ = strconv.Atoi(groupCntStr)
 		}
 		if optim, ok = config["Optim"].(string); !ok {
+			fmt.Println("Optim parse error")
 			optim = "WrongOptim"
-		}
-		if threads, ok = config["Threads"].(int); !ok {
+		} 
+		if threadsStr, ok := config["Threads"].(string); !ok {
+			fmt.Println("Threads parse error")
 			threads = -1
+		} else {
+			threads, _ = strconv.Atoi(threadsStr)
 		}
-		if cardinality, ok = config["Cardinality"].(int); !ok {
+		if cardinalityStr, ok := config["Cardinality"].(string); !ok {
+			fmt.Println("Cardinality parse error")
 			cardinality = -1
+		} else {
+			cardinality, _ = strconv.Atoi(cardinalityStr)
 		}
-		if dense, ok = config["Dense"].(bool); !ok {
+		if denseStr, ok := config["Dense"].(string); !ok {
+			fmt.Println("Dense parse error")
 			dense = false
+		} else {
+			dense, _ = strconv.ParseBool(denseStr)
 		}
-		if eps, ok = config["Eps"].(float64); !ok {
+		if epsStr, ok := config["Eps"].(string); !ok {
+			fmt.Println("Eps parse error")
 			eps = 0.1
+		} else {
+			eps, _ = strconv.ParseFloat(epsStr, 64)
 		}
-		if iterPrint, ok = config["IterPrint"].(bool); !ok {
+		if iterPrintStr, ok := config["IterPrint"].(string); !ok {
+			fmt.Println("IterPrint parse error")
 			iterPrint = true
+		} else {
+			iterPrint, _ = strconv.ParseBool(iterPrintStr)
 		}
 		if groupFile, ok = config["GroupFile"].(string); !ok {
+			fmt.Println("GroupFile parse error")
 			groupFile = ""
 		}
 		if resultDest, ok = config["ResultDest"].(string); !ok {
+			fmt.Println("ResultDest parse error")
 			resultDest = "./"
 		}
 		// Parse the GroupReq argument
@@ -143,25 +170,15 @@ func parseCSVFile(reader *csv.Reader) []map[string]interface{} {
 }
 
 func parseGroupReqs(config map[string]interface{}, groupCnt int, groupFile string, dbType string, db string, table string) ([]int, string) {
-	groupReq := config["GroupReq"]
-	var groupReqStr string
+	groupReqStr := config["GroupReq"].(string)
 	groupReqs := make([]int, groupCnt)
-	switch groupReq.(type) {
-	case int:
+	if groupReq, err := strconv.Atoi(groupReqStr); err == nil { // Integer type
 		for j := 0; j < groupCnt; j++ {
-			groupReqs[j] = groupReq.(int)
+			groupReqs[j] = groupReq
 		}
-		groupReqStr = strconv.Itoa(groupReq.(int))
-	case string:
-		totalPercentage, err := strconv.Atoi(groupReq.(string)[:len(groupReq.(string))-1])
-		handleError(err)
+	} else {
+		totalPercentage, _ := strconv.Atoi(groupReqStr[:len(groupReqStr)-1])
 		groupReqs = proportionalGroupReqs(dbType, db, table, totalPercentage, groupCnt, groupFile)
-		groupReqStr = groupReq.(string)
-	default:
-		for j := 0; j < groupCnt; j++ {
-			groupReqs[j] = 0
-		}
-		groupReqStr = "0"
 	}
 	return groupReqs, groupReqStr
 }
