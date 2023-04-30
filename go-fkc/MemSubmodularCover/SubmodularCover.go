@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -31,8 +30,8 @@ Optimization modes:
 2: Distributed submodular cover (DisCover) using GreeDi & lazygreedy as subroutines
 */
 func SubmodularCover(dbType string, dbName string, collectionName string,
-	coverageReq int, groupReqs []int, optimMode int, threads int, cardinality int,
-	dense bool, eps float64, print bool, groupFile string) ([]int, int) {
+	coverageReq int, groupReqs []int, optimMode string, threads int, cardinality int,
+	dense bool, eps float64, print bool, groupFile string) ([]int, int, time.Duration, time.Duration) {
 	preTime := time.Now()
 	// Import & Initialize all stuff
 	graph, n := getGraph(dbType, dbName, collectionName, groupFile, print)
@@ -41,22 +40,21 @@ func SubmodularCover(dbType string, dbName string, collectionName string,
 	decrementAllTrackers(graph, coreset, coverageTracker, groupReqs)
 	report("initialized trackers\n", print)
 	preTimeElapsed := time.Since(preTime)
-	fmt.Println("preprocessing time: ", preTimeElapsed)
 	inTime := time.Now()
 
 	// Choose algorithm to run
 	candidates := setMinus(rangeSet(n), sliceToSet(coreset))
 	var result []int
 	switch optimMode {
-	case 0:
+	case "Classic":
 		result = classicGreedy(graph, coverageTracker, groupReqs, coreset, candidates, cardinality, threads, print)
-	case 1:
+	case "Lazy":
 		result = lazyGreedy(graph, coverageTracker, groupReqs, coreset, candidates, cardinality, threads, print, false)
-	case 2:
+	case "LazyLazy":
 		result = lazyLazyGreedy(graph, coverageTracker, groupReqs, coreset, candidates, cardinality, threads, print, false, eps)
-	case 3:
+	case "GreeDiLazy":
 		result = greeDi(graph, coverageTracker, groupReqs, coreset, candidates, cardinality, threads, print, 0, eps)
-	case 4:
+	case "GreeDiLazyLazy":
 		result = greeDi(graph, coverageTracker, groupReqs, coreset, candidates, cardinality, threads, print, 1, eps)
 	default:
 		result = []int{}
@@ -65,8 +63,7 @@ func SubmodularCover(dbType string, dbName string, collectionName string,
 	finalRemainingScore := remainingScore(coverageTracker, groupReqs)
 	functionValue := initialRemainingScore - finalRemainingScore
 	inTimeElapsed := time.Since(inTime)
-	fmt.Println("in-processing time: ", inTimeElapsed)
-	return result, functionValue
+	return result, functionValue, preTimeElapsed, inTimeElapsed
 }
 
 func getGraph(dbType string, dbName string, collectionName string, groupFile string, print bool) (Graph, int) {
@@ -129,9 +126,7 @@ func getPostgresGraph(dbName string, tableName string, print bool, groupFileName
 		for j := 0; j < len(pl); j++ {
 			bitset.Set(uint(pl[j]))
 		}
-		//graph.adjMatrix[i] = listToBitSet(pl, n)
 		graph.adjMatrix[i] = bitset
-		graph.groups[i] = 0
 		graph.numNeighbors[i] = int(graph.adjMatrix[i].Count())
 		handleError(rows.Err())
 		// group
@@ -198,10 +193,6 @@ func getTrackers(graph Graph, coverageReq int, groupReqs []int, dense bool, n in
 		coreset := make([]int, 0)
 		for i := 0; i < n; i++ {
 			coverageTracker[i] = min(graph.numNeighbors[i], coverageReq)
-			//if graph.numNeighbors[i] <= coverageReq {
-			//	coreset = append(coreset, i)
-			//	groupReqs[graph.groups[i]] = max(0, groupReqs[graph.groups[i]]-1)
-			//}
 		}
 		return coverageTracker, groupReqs, coreset
 	}
