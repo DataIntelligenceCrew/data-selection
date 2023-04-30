@@ -25,21 +25,63 @@ func main() {
 	for i := 0; i < len(configs); i++ {
 		config := configs[i]
 		// Grab all the arguments
-		dbType, _ := config["DBType"].(string)
-		db, _ := config["DB"].(string)
-		table, _ := config["Table"].(string)
-		coverage, _ := config["Coverage"].(int)
-		groupCnt, _ := config["GroupCnt"].(int)
-		optim, _ := config["Optim"].(string)
-		threads, _ := config["Threads"].(int)
-		cardinality, _ := config["Cardinality"].(int)
-		dense, _ := config["Dense"].(bool)
-		eps, _ := config["Eps"].(float64)
-		iterPrint, _ := config["IterPrint"].(bool)
-		groupFile, _ := config["GroupFile"].(string)
-		resultDest, _ := config["ResultDest"].(string)
+		var (
+			ok          bool
+			dbType      string
+			db          string
+			table       string
+			coverage    int
+			groupCnt    int
+			optim       string
+			threads     int
+			cardinality int
+			dense       bool
+			eps         float64
+			iterPrint   bool
+			groupFile   string
+			resultDest  string
+		)
+		if dbType, ok = config["DBType"].(string); !ok {
+			dbType = "WrongDBType"
+		}
+		if db, ok = config["DB"].(string); !ok {
+			db = "WrongDB"
+		}
+		if table, ok = config["Table"].(string); !ok {
+			table = "WrongTable"
+		}
+		if coverage, ok = config["Coverage"].(int); !ok {
+			coverage = -1
+		}
+		if groupCnt, ok = config["GroupCnt"].(int); !ok {
+			groupCnt = -1
+		}
+		if optim, ok = config["Optim"].(string); !ok {
+			optim = "WrongOptim"
+		}
+		if threads, ok = config["Threads"].(int); !ok {
+			threads = -1
+		}
+		if cardinality, ok = config["Cardinality"].(int); !ok {
+			cardinality = -1
+		}
+		if dense, ok = config["Dense"].(bool); !ok {
+			dense = false
+		}
+		if eps, ok = config["Eps"].(float64); !ok {
+			eps = 0.1
+		}
+		if iterPrint, ok = config["IterPrint"].(bool); !ok {
+			iterPrint = true
+		}
+		if groupFile, ok = config["GroupFile"].(string); !ok {
+			groupFile = ""
+		}
+		if resultDest, ok = config["ResultDest"].(string); !ok {
+			resultDest = "./"
+		}
 		// Parse the GroupReq argument
-		groupReqs, groupReqStr := parseGroupReqs(config["GroupReq"], groupCnt, groupFile, dbType, db, table)
+		groupReqs, groupReqStr := parseGroupReqs(config, groupCnt, groupFile, dbType, db, table)
 
 		fmt.Println(dbType, db, table, coverage, groupCnt, optim, threads, cardinality, dense, eps, iterPrint, groupFile, resultDest, groupReqs, groupReqStr)
 
@@ -100,7 +142,8 @@ func parseCSVFile(reader *csv.Reader) []map[string]interface{} {
 	return result
 }
 
-func parseGroupReqs(groupReq interface{}, groupCnt int, groupFile string, dbType string, db string, table string) ([]int, string) {
+func parseGroupReqs(config map[string]interface{}, groupCnt int, groupFile string, dbType string, db string, table string) ([]int, string) {
+	groupReq := config["GroupReq"]
 	var groupReqStr string
 	groupReqs := make([]int, groupCnt)
 	switch groupReq.(type) {

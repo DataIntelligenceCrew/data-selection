@@ -1,6 +1,6 @@
 DBType, DB, Table, Coverage, GroupReq, GroupCnt, Optim, Threads, Cardinality, Dense, Eps, IterPrint, GroupFile, ResultDest
-mongo, ds, taxicab, 30, 5%, 10, 1, 4, 50000, false, 0.1, false, , /localdisk2/data-selection/taxicab
-mongo, ds, taxicab, 30, 10%, 10, 1, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
-mongo, ds, taxicab, 30, 15%, 10, 1, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
-mongo, ds, taxicab, 30, 20%, 10, 1, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
-mongo, ds, taxicab, 30, 30%, 10, 1, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
+mongo, ds, taxicab, 30, 5%, 10, Lazy, 4, 50000, false, 0.1, false, , /localdisk2/data-selection/taxicab
+mongo, ds, taxicab, 30, 10%, 10, Lazy, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
+mongo, ds, taxicab, 30, 15%, 10, Lazy, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
+mongo, ds, taxicab, 30, 20%, 10, Lazy, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
+mongo, ds, taxicab, 30, 30%, 10, Lazy, 4, -1, false, 0.1, false, , /localdisk2/data-selection/taxicab
