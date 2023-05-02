@@ -109,7 +109,8 @@ func main() {
 		}
 		// Parse the GroupReq argument
 		groupReqs, groupReqStr := parseGroupReqs(config, groupCnt, groupFile, dbType, db, table)
-
+		
+		// Report the configs to stdout
 		fmt.Println(dbType, db, table, coverage, groupCnt, optim, threads, cardinality, dense, eps, iterPrint, groupFile, resultDest, groupReqs, groupReqStr)
 
 		// Run SubmodularCover
@@ -122,15 +123,13 @@ func main() {
 		result += "InprocessingTimeSecs: " + strconv.Itoa(int(inTime.Seconds())) + "\n"
 		result += "CoresetSize: " + strconv.Itoa(len(coreset)) + "\n"
 		result += "FunctionValue: " + strconv.Itoa(funcVal) + "\n"
-		if !iterPrint {
-			result += "Coreset: "
-			for j := 0; j < len(coreset); j++ {
-				result += strconv.Itoa(coreset[j]) + ", "
-			}
-		}
 
 		// Report result to stdout and/or file
 		fmt.Println(result)
+		result += "Coreset: "
+		for j := 0; j < len(coreset); j++ {
+			result += strconv.Itoa(coreset[j]) + ", "
+		}
 		if resultDest != "stdout" {
 			fileName := db + "_" + table + "_" + optim + "_k" + strconv.Itoa(coverage) + "_f" + groupReqStr + "_t" + strconv.Itoa(threads) + "_c" + strconv.Itoa(cardinality) + "_eps" + strconv.FormatFloat(eps, 'f', -1, 64)
 			writeToFile(result, resultDest+"/"+fileName)

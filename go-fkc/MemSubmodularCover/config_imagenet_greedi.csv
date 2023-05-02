@@ -1,0 +1,7 @@
+DBType,DB,Table,Coverage,GroupReq,GroupCnt,Optim,Threads,Cardinality,Dense,Eps,IterPrint,GroupFile,ResultDest
+psql,imagenet_1k,postinglist,30,1%,1000,GreeDiLazy,32,12800,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
+psql,imagenet_1k,postinglist,30,5%,1000,GreeDiLazy,32,64000,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
+psql,imagenet_1k,postinglist,30,10%,1000,GreeDiLazy,32,128000,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
+psql,imagenet_1k,postinglist,30,15%,1000,GreeDiLazy,32,192000,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
+psql,imagenet_1k,postinglist,30,20%,1000,GreeDiLazy,32,256000,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
+psql,imagenet_1k,postinglist,30,30%,1000,GreeDiLazy,32,384000,false,0.1,true,/localdisk2/imagenet_1k_metadata/labels.txt,/localdisk2/data-selection/imagenet
