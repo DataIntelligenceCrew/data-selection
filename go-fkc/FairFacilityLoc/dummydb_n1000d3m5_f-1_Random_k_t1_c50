@@ -1,0 +1,43 @@
+PreprocessingTimeHuman: 194.39949ms
+InprocessingTimeHuman: 21.56µs
+PreprocessingTimeSecs: 0
+InprocessingTimeSecs: 0
+CoresetSize: 36
+FunctionValue: 1559.973165
+Coreset:
+31
+106
+112
+113
+114
+122
+131
+144
+180
+181
+208
+223
+230
+248
+269
+272
+281
+286
+357
+374
+377
+466
+486
+499
+510
+512
+579
+592
+728
+752
+763
+817
+818
+846
+905
+924

@@ -20,7 +20,7 @@ Utility related to reasoning about the result of a marginal gain evaluation
 
 type Result struct {
 	index int
-	gain  int
+	gain  float64
 }
 
 func setEmptyResult() *Result {
@@ -49,10 +49,10 @@ The type of a database entry.
 */
 
 type Point struct {
-	ID        primitive.ObjectID `bson:"_id"`
-	Index     int                `bson:"index"`
-	Group     int                `bson:"group"`
-	Neighbors map[int]bool       `bson:"neighbors"`
+	ID         primitive.ObjectID `bson:"_id"`
+	Index      int                `bson:"index"`
+	Group      int                `bson:"group"`
+	Affinities []float64          `bson:"neighbors"`
 }
 
 /**
@@ -236,14 +236,14 @@ Everything required to implement priority queue.
 
 type Item struct {
 	value    int
-	priority int
+	priority float64
 	index    int
 }
 
 func getEmptyItem() *Item {
 	return &Item{
 		value:    -1,
-		priority: -1,
+		priority: -1.0,
 		index:    0,
 	}
 }
@@ -281,14 +281,13 @@ func (pq *PriorityQueue) Pop() any {
 }
 
 // update modifies the priority and value of an Item in the queue.
-func (pq *PriorityQueue) update(item *Item, value int, priority int) {
+func (pq *PriorityQueue) update(item *Item, value int, priority float64) {
 	item.value = value
 	item.priority = priority
 	heap.Fix(pq, item.index)
 }
 
-func PeekPriority(pq *PriorityQueue) int {
-	//return (*pq)[len(*pq)-1].priority
+func PeekPriority(pq *PriorityQueue) float64 {
 	return (*pq)[0].priority
 }
 
