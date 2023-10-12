@@ -14,17 +14,26 @@ type Graph struct {
 
 /*
 Client syntax:
-coreset, funcVal, preTime, inTime := SubmodularCover(db, collection, groupReq, 
+coreset, funcVal, preTime, inTime := SubmodularCover(db, collection, groupReq,
+
 	groupCnt, optim, threads, cardinality, iterPrint)
 */
-func SubmodularCover(dbName string, collectionName string, groupReq int, 
-					groupCnt int, optimMode string, threads int, cardinality int,
-					print bool) ([]int, float64, time.Duration, time.Duration) {
+func SubmodularCover(dbName string, collectionName string, groupReq int,
+	groupCnt int, optimMode string, threads int, cardinality int,
+	print bool, partialGraph bool, slices []int, ssSize int) ([]int, float64, time.Duration, time.Duration) {
 	preTime := time.Now()
 	// Import & Initialize all stuff
-	graph := getGraph(dbName, collectionName, print)
+
+	var graph Graph
+
+	if partialGraph {
+		graph = getPartialGraph(dbName, collectionName, print, ssSize, slices)
+	} else {
+		graph = getGraph(dbName, collectionName, print)
+	}
+
 	groupReqTracker := make([]int, groupCnt) // Remaining group cnt reqs
-	for i := range groupReqTracker { // Initialize with groupReq
+	for i := range groupReqTracker {         // Initialize with groupReq
 		if groupReq >= 0 {
 			groupReqTracker[i] = groupReq
 		} else {
@@ -64,8 +73,8 @@ func getGraph(dbName string, collectionName string, print bool) Graph {
 	// Initialize results
 	graph := Graph{
 		affinityMatrix: make([][]float64, n),
-		groups: make([]int, n),
-		n: n,
+		groups:         make([]int, n),
+		n:              n,
 	}
 	for i := 0; i < n; i++ {
 		graph.affinityMatrix[i] = make([]float64, n)
@@ -74,6 +83,29 @@ func getGraph(dbName string, collectionName string, print bool) Graph {
 	cur := getFullCursor(collection)
 	defer cur.Close(context.Background())
 	// Fill out the graph
+	for i := 0; cur.Next(context.Background()); i++ {
+		point := getEntryFromCursor(cur)
+		graph.affinityMatrix[i] = point.Affinities
+		graph.groups[i] = point.Group
+		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
+	}
+	return graph
+}
+
+func getPartialGraph(dbName string, collectionName string, print bool, ssSize int, slices []int) Graph {
+
+	collection := getMongoCollection(dbName, collectionName)
+
+	graph := Graph{
+		affinityMatrix: make([][]float64, ssSize),
+		groups:         make([]int, ssSize),
+		n:              ssSize,
+	}
+
+	cur := getSliceCursor(collection, slices)
+
+	defer cur.Close(context.Background())
+
 	for i := 0; cur.Next(context.Background()); i++ {
 		point := getEntryFromCursor(cur)
 		graph.affinityMatrix[i] = point.Affinities

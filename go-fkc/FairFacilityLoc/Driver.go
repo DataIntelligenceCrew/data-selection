@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -24,17 +25,21 @@ func main() {
 		config := configs[i]
 		// Grab all the arguments
 		var (
-			ok          bool
-			db          string
-			collection  string
-			groupReq    int
-			groupCnt    int
-			optim       string
-			threads     int
-			cardinality int
-			iterPrint   bool
-			resultDest  string
+			ok           bool
+			db           string
+			collection   string
+			groupReq     int
+			groupCnt     int
+			optim        string
+			threads      int
+			cardinality  int
+			iterPrint    bool
+			resultDest   string
+			partialGraph bool
+			slices       []int
+			ssSize       int
 		)
+
 		if db, ok = config["DB"].(string); !ok {
 			fmt.Printf("DB parse error: %v (%T)\n", config["DB"], config["DB"])
 			db = "WrongDB"
@@ -58,7 +63,7 @@ func main() {
 		if optim, ok = config["Optim"].(string); !ok {
 			fmt.Println("Optim parse error")
 			optim = "WrongOptim"
-		} 
+		}
 		if threadsStr, ok := config["Threads"].(string); !ok {
 			fmt.Println("Threads parse error")
 			threads = -1
@@ -81,14 +86,34 @@ func main() {
 			fmt.Println("ResultDest parse error")
 			resultDest = "./"
 		}
+		if partialGraphStr, ok := config["partialGraph"].(string); !ok {
+			fmt.Println("partial graph parse error")
+			partialGraph = false
+		} else {
+			partialGraph, _ = strconv.ParseBool(partialGraphStr)
+		}
+
+		if ssSizeStr, ok := config["ssSize"].(string); !ok {
+			fmt.Println("Subset size parse error")
+			ssSize = 0
+		} else {
+			ssSize, _ = strconv.Atoi(ssSizeStr)
+		}
+		if slicesStr, ok := config["slices"].(string); !ok {
+			fmt.Println("Slices parse error")
+			slices = make([]int, 0)
+		} else {
+			slices = parseSlices(slicesStr, ssSize)
+		}
 
 		// Report the configs to stdout
-		fmt.Println(db, collection, groupReq, groupCnt, optim, threads, 
-			cardinality, iterPrint, resultDest)
+		fmt.Println(db, collection, groupReq, groupCnt, optim, threads,
+			cardinality, iterPrint, resultDest, partialGraph, ssSize, slices)
+
+		coreset, funcVal, preTime, inTime := SubmodularCover(db, collection,
+			groupReq, groupCnt, optim, threads, cardinality, iterPrint, partialGraph, slices, ssSize)
 
 		// Run SubmodularCover
-		coreset, funcVal, preTime, inTime := SubmodularCover(db, collection, 
-			groupReq, groupCnt, optim, threads, cardinality, iterPrint)
 
 		// Turn result into string
 		result := "PreprocessingTimeHuman: " + preTime.String() + "\n"
@@ -105,10 +130,26 @@ func main() {
 			result += strconv.Itoa(coreset[j]) + "\n"
 		}
 		if resultDest != "stdout" {
-			fileName := db + "_" + collection + "_f" + strconv.Itoa(groupReq) + "_"  + optim + "_k" + "_t" + strconv.Itoa(threads) + "_c" + strconv.Itoa(cardinality)
+			fileName := db + "_" + collection + "_f" + strconv.Itoa(groupReq) + "_" + optim + "_k" + "_t" + strconv.Itoa(threads) + "_c" + strconv.Itoa(cardinality)
 			writeToFile(result, resultDest+"/"+fileName)
 		}
 	}
+}
+
+func parseSlices(slices string, ssSize int) []int {
+
+	slicesArr := strings.Split(slices, " ")
+
+	slicesIntArr := make([]int, ssSize)
+
+	for i := 0; i < ssSize; i++ {
+
+		slicesIntArr[i], _ = strconv.Atoi(slicesArr[i])
+
+	}
+
+	return slicesIntArr
+
 }
 
 func readCSVFile(filename string) *csv.Reader {
