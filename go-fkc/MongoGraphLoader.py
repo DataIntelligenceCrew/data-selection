@@ -7,6 +7,8 @@
 
 
 from MongoTools import MongoCollection
+import numpy as np
+from numpy.linalg import norm
 
 class MongoGraphLoader:
 
@@ -43,11 +45,21 @@ class MongoGraphLoader:
         print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))
         print("num keys in adj matrix:  " + str(len(adjMatrix.keys())))
 
+
+        print("writing graph to mongo")
         for i in adjMatrix.keys():
             self.collection.insertIntoCollection(int(i), int(groupLabels[i]), adjMatrix[i])
 
     def getCollection(self):
+    
         return self.collection
+    
+        #cosine similarity between feature vectors a and b
+    def sim(self, a, b):
+        cos_similarity = np.dot(a, b)/(norm(a)*norm(b))
+        if cos_similarity == 1:
+            return 1.0
+        return float(cos_similarity)
     
 
 

@@ -1,6 +1,6 @@
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from numpy.linalg import norm
+
 from MongoTools import MongoCollection
 from MongoGraphLoader import MongoGraphLoader
 import random
@@ -8,7 +8,8 @@ import os
 
 class FairFacilityLocation:
     def __init__(self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize, slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False):
-        print("Fair facility DSET SIZE IS: " + str(len(dset)))
+
+
         self.dbName = mongoDBname
         self.colName = mongoColName
         self.groupReq = groupReq
@@ -19,13 +20,19 @@ class FairFacilityLocation:
         self.coresetSize = coresetSize
         self.iterPrint = iterPrint
         self.ExperimentID = ExperimentID
-        self.slices = slices
-        self.partialGraph = True if slices != None else False
+
+        if slice == None:
+            self.partialGraph = False
+        else:
+            self.partialGraph = True
+        #self.partialGraph = True if slices != None else False
 
         if not self.partialGraph:
             self.slices = []
+        else:
+            self.slices = slices
         
-        self.ssSize = len(slices)
+        self.ssSize = len(self.slices)
         self.coresetIndicies = []
         self.CSVLocation = os.path.join(os.getcwd(), "configs", "facilityConfigs", str(self.ExperimentID) + ".csv")
 
@@ -33,9 +40,10 @@ class FairFacilityLocation:
 
         #prepare mongo database
         if not reuseMongo:
-
+            print("creating new collection")
             collection = MongoGraphLoader(dset, groupLabels, mongoDBname, mongoColName).getCollection()
         else:
+            print("re-using collection with or without slices")
             collection = MongoCollection(mongoDBname, mongoColName)
             if not collection.hasElements():
                 print("ERROR: wanted to reuse collection but collection specified is empty")
@@ -72,9 +80,19 @@ class FairFacilityLocation:
                 "," + str(self.optimization) + "," + str(self.numThreads) + \
                 "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() + \
                 "," + str(self.SAVE_TO_LOCATION) + "," + str(self.ExperimentID) + \
-                "," + str(self.partialGraph).lower() + "," + str(self.slices) + "," + str(self.ssSize) + "\n"
+                "," + str(self.partialGraph).lower() + "," + self.prettySlices(self.slices) + "," + str(self.ssSize) + "\n"
         with open(self.CSVLocation, 'w+') as file:
             file.write(fileText)
+
+    def prettySlices(self, slices):
+        string = "["
+
+        for slice in slices:
+            string += str(slice) + ", "
+        
+        string = string[0:len(string)-2]
+        string += "]"
+        return string
         
     def preformDataSelection(self):
 
@@ -84,12 +102,7 @@ class FairFacilityLocation:
         os.system(changeToDirectory + ";" + process)
 
 
-    #cosine similarity between feature vectors a and b
-    def sim(self, a, b):
-        cos_similarity = np.dot(a, b)/(norm(a)*norm(b))
-        if cos_similarity == 1:
-            return 1.0
-        return float(cos_similarity)
+
     
     def utility(self, D, S):
 
