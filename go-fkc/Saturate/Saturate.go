@@ -2,30 +2,39 @@ package main
 
 import (
 	"context"
-	"strconv"
-	"time"
+	"fmt"
 	"math"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Graph struct {
 	affinityMatrix [][]float64
 	groups         []int
-	groupCnts []int
+	groupCnts      []int
 	n              int
 }
 
 /*
 Client syntax:
-coreset, funcVal, preTime, inTime := Saturate(db, collection, 
+coreset, funcVal, preTime, inTime := Saturate(db, collection,
+
 	groupCnt, optim, threads, cardinality, iterPrint, alpha)
 */
-func Saturate(dbName string, collectionName string, groupCnt int, optimMode string, 
-				threads int, cardinality int, print bool, alpha float64) ([]int, 
-				[]float64, time.Duration, time.Duration, int) {
+func Saturate(dbName string, collectionName string, groupCnt int, optimMode string,
+	threads int, cardinality int, print bool, alpha float64, partialGraph bool, slices []int, ssSize int) ([]int,
+	[]float64, time.Duration, time.Duration, int) {
 	preTime := time.Now()
+
 	// Import & Initialize all stuff
 	// Graph contains affinityMatrix float[][], groups []int, groupCnts []int, and n int
-	graph := getGraph(dbName, collectionName, groupCnt, print)
+	var graph Graph
+	if partialGraph {
+		graph = getPartialGraph(dbName, collectionName, groupCnt, print, ssSize, slices)
+	} else {
+		graph = getGraph(dbName, collectionName, groupCnt, print)
+	}
 
 	// Function F_g for each group is the mean of similarities b/w each pt in a
 	// group and its closest medoid
@@ -50,8 +59,8 @@ func Saturate(dbName string, collectionName string, groupCnt int, optimMode stri
 
 	// The main while loop for binary search
 	i := 0
-	for ; c_max - c_min >= 1.0 / float64(groupCnt); i++ {
-		c := (c_min + c_max) / 2.0 // Binary search the middle c
+	for ; c_max-c_min >= 1.0/float64(groupCnt); i++ {
+		c := (c_min + c_max) / 2.0                                                  // Binary search the middle c
 		a_hat, covered, closestInCoreset := GPC(graph, inner_cardinality, c, print) // Greedy Partial Cover Subroutine
 		if !covered {
 			c_max = c
@@ -75,9 +84,9 @@ func getGraph(dbName string, collectionName string, groupCnt int, print bool) Gr
 	// Initialize results
 	graph := Graph{
 		affinityMatrix: make([][]float64, n),
-		groups: make([]int, n),
-		groupCnts: make([]int, groupCnt),
-		n: n,
+		groups:         make([]int, n),
+		groupCnts:      make([]int, groupCnt),
+		n:              n,
 	}
 	for i := 0; i < n; i++ {
 		graph.affinityMatrix[i] = make([]float64, n)
@@ -96,7 +105,57 @@ func getGraph(dbName string, collectionName string, groupCnt int, print bool) Gr
 	return graph
 }
 
-// Function F^bar is the average across all groups, avg of min(average similarity 
+func getPartialGraph(dbName string, collectionName string, groupCnt int, print bool, ssSize int, slices []int) Graph {
+
+	collection := getMongoCollection(dbName, collectionName)
+
+	graph := Graph{
+		affinityMatrix: make([][]float64, ssSize),
+		groups:         make([]int, ssSize),
+		groupCnts:      make([]int, groupCnt),
+		n:              ssSize,
+	}
+
+	cur := getSliceCursor(collection, slices)
+
+	defer cur.Close(context.Background())
+
+	for i := 0; cur.Next(context.Background()); i++ {
+		point := getEntryFromCursor(cur)
+		graph.affinityMatrix[i] = getSSAffinities(slices, point.Affinities, ssSize)
+
+		report("point index: "+strconv.Itoa(point.Index)+"\n", print)
+		report("Points affinities: "+listString(getSSAffinities(slices, point.Affinities, ssSize), ssSize), print)
+		graph.groups[i] = point.Group
+		graph.groupCnts[point.Group]++
+		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
+	}
+	return graph
+}
+
+func listString(list []float64, size int) string {
+
+	sList := make([]string, len(list))
+	for i := 0; i < size; i++ {
+		sList[i] = fmt.Sprintf("%.2f", list[i])
+
+	}
+
+	result := strings.Join(sList, ", ")
+	return result
+}
+func getSSAffinities(slices []int, affinities []float64, ssSize int) []float64 {
+
+	ssAffinities := make([]float64, ssSize)
+
+	for i := 0; i < ssSize; i++ {
+		ssAffinities[i] = affinities[slices[i]]
+	}
+
+	return ssAffinities
+}
+
+// Function F^bar is the average across all groups, avg of min(average similarity
 // b/w a pt and its medoid, c)
 // To compute marginal gain per group, sum marginal gain in the min function
 // Then per group, divide the sum by the size of the group
