@@ -1,4 +1,4 @@
 DB,Collection,GroupReq,GroupCnt,Optim,Threads,Cardinality,IterPrint,ResultDest,partialGraph,slices,ssSize
-dummydb,n1000d3m5,10,5,Lazy,1,50,true,./
-dummydb,n1000d3m5,-1,5,Lazy,1,50,true,./
-dummydb,n1000d3m5,-1,5,Random,1,50,true,./
+dummydb,n1000d3m5,10,5,Lazy,1,50,true,./,
+dummydb,n1000d3m5,-1,5,Lazy,1,50,true,./,
+dummydb,n1000d3m5,-1,5,Random,1,50,true,./,

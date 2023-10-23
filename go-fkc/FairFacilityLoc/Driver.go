@@ -35,6 +35,7 @@ func main() {
 			cardinality  int
 			iterPrint    bool
 			resultDest   string
+			ID           string
 			partialGraph bool
 			slices       []int
 			ssSize       int
@@ -63,6 +64,10 @@ func main() {
 		if optim, ok = config["Optim"].(string); !ok {
 			fmt.Println("Optim parse error")
 			optim = "WrongOptim"
+		}
+		if ID, ok = config["ID"].(string); !ok {
+			fmt.Println("ID parse error")
+			ID = "InvalidID"
 		}
 		if threadsStr, ok := config["Threads"].(string); !ok {
 			fmt.Println("Threads parse error")
@@ -130,7 +135,7 @@ func main() {
 			result += strconv.Itoa(coreset[j]) + "\n"
 		}
 		if resultDest != "stdout" {
-			fileName := db + "_" + collection + "_f" + strconv.Itoa(groupReq) + "_" + optim + "_k" + "_t" + strconv.Itoa(threads) + "_c" + strconv.Itoa(cardinality)
+			fileName := ID + ".txt"
 			writeToFile(result, resultDest+"/"+fileName)
 		}
 	}

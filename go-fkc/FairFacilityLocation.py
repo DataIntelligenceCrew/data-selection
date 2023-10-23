@@ -2,11 +2,12 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from numpy.linalg import norm
 from MongoTools import MongoCollection
+from MongoGraphLoader import MongoGraphLoader
 import random
 import os
 
 class FairFacilityLocation:
-    def __init__(self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize, dset=None, labels=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False):
+    def __init__(self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize, slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False):
         print("Fair facility DSET SIZE IS: " + str(len(dset)))
         self.dbName = mongoDBname
         self.colName = mongoColName
@@ -18,6 +19,13 @@ class FairFacilityLocation:
         self.coresetSize = coresetSize
         self.iterPrint = iterPrint
         self.ExperimentID = ExperimentID
+        self.slices = slices
+        self.partialGraph = True if slices != None else False
+
+        if not self.partialGraph:
+            self.slices = []
+        
+        self.ssSize = len(slices)
         self.coresetIndicies = []
         self.CSVLocation = os.path.join(os.getcwd(), "configs", "facilityConfigs", str(self.ExperimentID) + ".csv")
 
@@ -26,38 +34,12 @@ class FairFacilityLocation:
         #prepare mongo database
         if not reuseMongo:
 
-            print("creating mongoDB")
-            print("Checking if specified collection is empty")
-            collection = MongoCollection(mongoDBname, mongoColName)
-            if collection.hasElements():
-                collection.empty()
-
-                print("Collection not found")
-                print("Creating adjacecny matrix")
-                #construct adjacencyMatrix
-                adjMatrix = dict()
-
-                for i in range(len(dset)):
-                    adjMatrix.update({i: []})
-                    for j in range(len(dset)):
-
-                        #print(type(dset))
-                        adjMatrix[i].append(self.sim(dset[i, :], dset[j, :]))
-                
-                self.adjMatrix = adjMatrix
-
-                print("adjacency matrix constructed")
-                print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))
-                print("num keys in adj matrix:  " + str(len(adjMatrix.keys())))
-
-                for i in adjMatrix.keys():
-                    collection.insertIntoCollection(int(i), int(groupLabels[i]), adjMatrix[i])
-
+            collection = MongoGraphLoader(dset, groupLabels, mongoDBname, mongoColName).getCollection()
         else:
+            collection = MongoCollection(mongoDBname, mongoColName)
+            if not collection.hasElements():
+                print("ERROR: wanted to reuse collection but collection specified is empty")
 
-        
-        
-        #make a call to FairFacilityLocation, passing it hyperparmeters and mongo collection
 
         print("writing csv file for submdoular cover")
         self.writeCSV()
@@ -83,9 +65,14 @@ class FairFacilityLocation:
 
 
     def writeCSV(self):
-        prefix = "DB,Collection,GroupReq,GroupCnt,Optim,Threads,Cardinality,IterPrint,ResultDest,ID\n"
+        prefix = "DB,Collection,GroupReq,GroupCnt,Optim,Threads,Cardinality,IterPrint,ResultDest,ID,partialGraph,slices,ssSize\n"
 
-        fileText = str(prefix) + self.dbName + "," + self.colName + "," + str(self.groupReq) + "," + str(self.groupCount) + "," + str(self.optimization) + "," + str(self.numThreads) + "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() + "," + str(self.SAVE_TO_LOCATION) + "," + str(self.ExperimentID) + "\n"
+        fileText = str(prefix) + self.dbName + "," + self.colName + \
+                "," + str(self.groupReq) + "," + str(self.groupCount) + \
+                "," + str(self.optimization) + "," + str(self.numThreads) + \
+                "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() + \
+                "," + str(self.SAVE_TO_LOCATION) + "," + str(self.ExperimentID) + \
+                "," + str(self.partialGraph).lower() + "," + str(self.slices) + "," + str(self.ssSize) + "\n"
         with open(self.CSVLocation, 'w+') as file:
             file.write(fileText)
         
