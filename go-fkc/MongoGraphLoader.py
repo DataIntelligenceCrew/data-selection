@@ -19,7 +19,8 @@ class MongoGraphLoader:
 
         if self.collection.hasElements():
             print("The collection you specified is non-empty, empty it?")
-            x = input("yes/no")
+            x = "yes"
+
             if x == "yes":
                 print("emptying collection")
                 self.collection.empty()

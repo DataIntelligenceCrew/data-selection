@@ -27,8 +27,11 @@ func SubmodularCover(dbName string, collectionName string, groupReq int,
 	var graph Graph
 
 	if partialGraph {
+		report("getting partial graph\n", print)
 		graph = getPartialGraph(dbName, collectionName, print, ssSize, slices)
 	} else {
+		report("getting full graph\n", print)
+
 		graph = getGraph(dbName, collectionName, print)
 	}
 

@@ -21,7 +21,7 @@ class FairFacilityLocation:
         self.iterPrint = iterPrint
         self.ExperimentID = ExperimentID
 
-        if slice == None:
+        if slices == None:
             self.partialGraph = False
         else:
             self.partialGraph = True
@@ -85,21 +85,27 @@ class FairFacilityLocation:
             file.write(fileText)
 
     def prettySlices(self, slices):
-        string = "["
+        string = ""
 
         for slice in slices:
-            string += str(slice) + ", "
+            string += str(slice) + " "
         
-        string = string[0:len(string)-2]
-        string += "]"
+        string = string[0:len(string)-1]
         return string
         
     def preformDataSelection(self):
 
-        changeToDirectory = "cd " + os.path.join(os.getcwd(), "FairFacilityLocation", "FairFacilityLoc") 
-        process = "go run *.go -config=" + self.CSVLocation
+        #for server experiments
+        #changeToDirectory = "cd " + os.path.join(os.getcwd(), "FairFacilityLocation", "FairFacilityLoc") 
+
+        changeToDirectory = "cd " + os.path.join(os.getcwd(), "data-selection", "go-fkc")
+        process = "go build ./FairFacilityLoc"
+        run = "FairFacilityLoc -config=" + self.CSVLocation
     
-        os.system(changeToDirectory + ";" + process)
+        print("CD: " + changeToDirectory)
+        print("process: " + process)
+        print("run: " + run)
+        os.system(changeToDirectory + ";" + process + ";" + run)
 
 
 

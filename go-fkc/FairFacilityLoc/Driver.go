@@ -136,7 +136,7 @@ func main() {
 		}
 		if resultDest != "stdout" {
 			fileName := ID + ".txt"
-			writeToFile(result, resultDest+"/"+fileName)
+			writeToFile(result, resultDest+"\\"+fileName)
 		}
 	}
 }
