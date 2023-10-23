@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -88,6 +90,7 @@ func getGraph(dbName string, collectionName string, print bool) Graph {
 	// Fill out the graph
 	for i := 0; cur.Next(context.Background()); i++ {
 		point := getEntryFromCursor(cur)
+
 		graph.affinityMatrix[i] = point.Affinities
 		graph.groups[i] = point.Group
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
@@ -111,11 +114,36 @@ func getPartialGraph(dbName string, collectionName string, print bool, ssSize in
 
 	for i := 0; cur.Next(context.Background()); i++ {
 		point := getEntryFromCursor(cur)
-		graph.affinityMatrix[i] = point.Affinities
+		graph.affinityMatrix[i] = getSSAffinities(slices, point.Affinities, ssSize)
+
+		report("point index: "+strconv.Itoa(point.Index)+"\n", print)
+		report("Points affinities: "+listString(getSSAffinities(slices, point.Affinities, ssSize), ssSize), print)
 		graph.groups[i] = point.Group
 		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	return graph
+}
+
+func listString(list []float64, size int) string {
+
+	sList := make([]string, len(list))
+	for i := 0; i < size; i++ {
+		sList[i] = fmt.Sprintf("%.2f", list[i])
+
+	}
+
+	result := strings.Join(sList, ", ")
+	return result
+}
+func getSSAffinities(slices []int, affinities []float64, ssSize int) []float64 {
+
+	ssAffinities := make([]float64, ssSize)
+
+	for i := 0; i < ssSize; i++ {
+		ssAffinities[i] = affinities[slices[i]]
+	}
+
+	return ssAffinities
 }
 
 func marginalGain(graph Graph, index int, closestInCoreset []int) float64 {

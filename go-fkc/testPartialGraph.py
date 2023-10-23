@@ -19,11 +19,23 @@ class PartialGraphTester:
         #1) load the full data adj matrix into mongo DONE
 
         #2) get a coreset using only slices of the full adj matrix
-        #selector1 = FairFacilityLocation(colName, -1, 10, "testing123", 10, slices=slice_train, reuseMongo=True, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
+        #selector1 = FairFacilityLocation(colName, -1, 10, "testing123", 10, slices=sorted(slice_train), reuseMongo=True, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
+        #print(selector1.getCoreset())
+        # 
+        partialGResults = [27, 48, 68, 36, 71, 22, 19, 63, 47, 2]
+        newMongoResults = [37, 55, 10, 43, 68, 0, 67, 9, 8, 61]
+
+        #? are these actually the same if I take the first from full dataset but second from X_train
+        
+        for i in range(10):
+            print("X[partialGraph]: " + str(X[partialGResults[i]]))
+            print("X[new mongo]: " + str(X_train[newMongoResults[i]]))
 
 
+        #selector2 = FairFacilityLocation("testing45678910", -1, 10, "testing456789", 10, dset=X_train, groupLabels=Y_train, reuseMongo=False, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
+        #print(selector2.getCoreset())
 
-        selector2 = FairFacilityLocation("testing4567", -1, 10, "testing4567", 10, dset=X_train, groupLabels=Y_train, reuseMongo=False, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
+
 
 
 

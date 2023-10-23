@@ -21,7 +21,7 @@ class FairFacilityLocation:
         self.iterPrint = iterPrint
         self.ExperimentID = ExperimentID
 
-        if slices == None:
+        if slices is None:
             self.partialGraph = False
         else:
             self.partialGraph = True
@@ -60,12 +60,16 @@ class FairFacilityLocation:
         coresetLocation = os.path.join(self.SAVE_TO_LOCATION, str(self.ExperimentID) + ".txt")
         with open(coresetLocation, 'r+') as file:
             lines = file.read().split("\n")
-            coresetLine = lines[len(lines)-1]
-            numbers = coresetLine.split(": ")[1].split(",")
-            numbers = numbers[0:len(numbers)-1]
+            print(lines)
+            numbers = lines[7:len(lines)-1]
+            print(numbers)
 
             for number in range(len(numbers)):
-                numbers[number] = int(numbers[number])
+                if not self.partialGraph:
+                    numbers[number] = int(numbers[number])
+                else:
+                    numbers[number] = sorted(self.slices)[int(numbers[number])]
+
 
         self.coresetIndicies = numbers
         return numbers
@@ -98,14 +102,18 @@ class FairFacilityLocation:
         #for server experiments
         #changeToDirectory = "cd " + os.path.join(os.getcwd(), "FairFacilityLocation", "FairFacilityLoc") 
 
-        changeToDirectory = "cd " + os.path.join(os.getcwd(), "data-selection", "go-fkc")
-        process = "go build ./FairFacilityLoc"
-        run = "FairFacilityLoc -config=" + self.CSVLocation
+        changeToDirectory = os.path.join(os.getcwd(), "data-selection", "go-fkc")
+        process = "go build .\FairFacilityLoc"
+        run = "FairFacilityLoc.exe -config=" + self.CSVLocation
     
         print("CD: " + changeToDirectory)
         print("process: " + process)
         print("run: " + run)
-        os.system(changeToDirectory + ";" + process + ";" + run)
+
+        os.chdir(changeToDirectory)
+        os.system(process)
+        os.system(run)
+        print("done")
 
 
 
