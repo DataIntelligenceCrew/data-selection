@@ -137,8 +137,8 @@ func main() {
 			result += strconv.Itoa(coreset[j]) + "\n"
 		}
 		if resultDest != "stdout" {
-			fileName := db + "_" + collection + "_" + optim + "_k" + "_t" + strconv.Itoa(threads) + "_c" + strconv.Itoa(cardinality)
-			writeToFile(result, resultDest+"/"+fileName)
+			fileName := ID + ".txt"
+			writeToFile(result, resultDest+"\\"+fileName)
 		}
 	}
 }

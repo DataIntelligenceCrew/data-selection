@@ -85,7 +85,7 @@ class FairFacilityLocation:
                 "," + str(self.optimization) + "," + str(self.numThreads) + \
                 "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() + \
                 "," + str(self.SAVE_TO_LOCATION) + "," + str(self.ExperimentID) + \
-                "," + str(self.partialGraph).lower() + "," + self.prettySlices(self.slices) + "," + str(self.ssSize) + "\n"
+                "," + str(self.partialGraph).lower() + "," + self.prettySlices(sorted(self.slices)) + "," + str(self.ssSize) + "\n"
         with open(self.CSVLocation, 'w+') as file:
             file.write(fileText)
 

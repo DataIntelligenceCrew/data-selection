@@ -1,3 +1,4 @@
+from MongoGraphLoader import MongoGraphLoader
 from sklearn.model_selection import train_test_split
 from FairFacilityLocation import FairFacilityLocation
 from Saturate import Saturate
@@ -22,14 +23,37 @@ class PartialGraphTester:
         #selector1 = FairFacilityLocation(colName, -1, 10, "testing123", 10, slices=sorted(slice_train), reuseMongo=True, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
         #print(selector1.getCoreset())
         # 
-        partialGResults = [27, 48, 68, 36, 71, 22, 19, 63, 47, 2]
-        newMongoResults = [37, 55, 10, 43, 68, 0, 67, 9, 8, 61]
+
+
+
+
+
+
+
+        #selector1 = Saturate("saturateTest", -1, 10, "fullX_train", 10, dset=X_train, groupLabels=Y_train, reuseMongo=False)
+        #print("Coreset from X_train graph: " + str(selector1.getCoreset())) #[37, 27, 30, 43, 0, 8, 68, 19, 61, 36]
+
+        #MongoGraphLoader(X, Y, "MichaelFlynn", "partialGraphTestSaturate")
+        #selector2 = Saturate("partialGraphTestSaturate", -1, 10, "partialGraph", 10, slices=slice_train, reuseMongo=True) 
+        #print("Coreset from partial graph: " + str(selector2.getCoreset()))
+        #partialGResults = [27, 48, 68, 36, 71, 22, 19, 63, 47, 2]
+        #newMongoResults = [37, 55, 10, 43, 68, 0, 67, 9, 8, 61]
+
+
+        partialGResults = [27, 39, 41, 36, 22, 47, 71, 7, 2, 28]
+        newMongoResults = [37, 27, 30, 43, 0, 8, 68, 19, 61, 36]
 
         #? are these actually the same if I take the first from full dataset but second from X_train
         
-        for i in range(10):
-            print("X[partialGraph]: " + str(X[partialGResults[i]]))
-            print("X[new mongo]: " + str(X_train[newMongoResults[i]]))
+        
+        partialGResults = X[partialGResults]
+        newMongoResults = X_train[newMongoResults]
+
+        for item in partialGResults:
+            if item not in newMongoResults:
+                print("error")
+            else:
+                print("success")
 
 
         #selector2 = FairFacilityLocation("testing45678910", -1, 10, "testing456789", 10, dset=X_train, groupLabels=Y_train, reuseMongo=False, iterPrint=True) # mongoDBname=dbName, slices=slice_train)

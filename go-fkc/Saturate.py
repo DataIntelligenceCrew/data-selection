@@ -1,3 +1,4 @@
+from MongoGraphLoader import MongoGraphLoader
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from numpy.linalg import norm
@@ -6,7 +7,9 @@ import random
 import os
 
 class Saturate:
-    def __init__(self, dset, groupLabels, numGroups, ExperimentID, coresetSize, mongoColName, mongoDBname, alpha=1.0, optim="Lazy", numThreads=4, iterPrint=False, reuseMongo=False):
+    def __init__(self, mongoColName, groupReq, numGroups, ExperimentID, coresetSize, slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo=True, alpha=1.0, optim="Lazy", numThreads=4, iterPrint=True):
+
+        #self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize, slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False)
         
         self.dbName = mongoDBname
         self.colName = mongoColName
@@ -16,6 +19,16 @@ class Saturate:
         self.coresetSize = coresetSize
         self.iterPrint = iterPrint
 
+        if slices is None:
+            self.partialGraph = False
+        else:
+            self.partialGraph = True
+        if not self.partialGraph:
+            self.slices = []
+        else:
+            self.slices = slices
+    
+        self.ssSize = len(self.slices)
         self.alpha = alpha
         self.ExperimentID = ExperimentID
         self.CSVLocation = os.path.join(os.getcwd(), "configs", "saturate", str(self.ExperimentID) + ".csv")
@@ -25,79 +38,82 @@ class Saturate:
         #prepare mongo database
         if not reuseMongo:
 
-            print("Finding/creating mongoDB")
+            print("creating new collection")
+            collection = MongoGraphLoader(dset, groupLabels, mongoDBname, mongoColName).getCollection()
 
-            print("Checking if adjMatrix already found")
+        else:
+            print("re-using collection with or without slices")
             collection = MongoCollection(mongoDBname, mongoColName)
             if not collection.hasElements():
-            
-                print("Creating adjacecny matrix")
-                #construct adjacencyMatrix
-                adjMatrix = dict()
-
-                for i in range(len(dset)):
-                    adjMatrix.update({i: []})
-                    for j in range(len(dset)):
-
-                        #print(type(dset))
-                        adjMatrix[i].append(self.sim(dset[i, :], dset[j, :]))
-                
-                self.adjMatrix = adjMatrix
-
-                print("adjacency matrix constructed")
-                print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))
-                print("num keys in adj matrix:  " + str(len(adjMatrix.keys())))
-
-                for i in adjMatrix.keys():
-                    collection.insertIntoCollection(int(i), int(groupLabels[i]), adjMatrix[i])
-            else:
-                print("Resuing already created mongo db")
-            print("mongoDB loaded")
+                print("ERROR: wanted to reuse collection but collection specified is empty")
 
         self.writeCSV()
         self.preformDataSelection()
+
+    def prettySlices(self, slices):
+        string = ""
+
+        for slice in slices:
+            string += str(slice) + " "
+        
+        string = string[0:len(string)-1]
+        return string
 
     
     def getCoreset(self):
 
         coresetLocation = os.path.join(self.SAVE_TO_LOCATION, str(self.ExperimentID) + ".txt")
         indicies = []
+        sortedSlices = sorted(self.slices)
 
         with open(coresetLocation, 'r+') as file:
             lines = file.read().split("\n")
             print(lines)
 
             for i in range(8, len(lines)-1):
-                indicies.append(int(lines[i]))
+                if self.partialGraph:
+                    indicies.append(sortedSlices[int(lines[i])])
+                else:
+                    indicies.append(int(lines[i]))
+                    
 
         return indicies
 
-    
-
     def preformDataSelection(self):
 
-        changeToDirectory = "cd " + os.path.join(os.getcwd(), "SATURATE") 
-        process = "go run *.go -config=" + self.CSVLocation
+        #changeToDirectory = "cd " + os.path.join(os.getcwd(), "SATURATE") 
+        #process = "go run *.go -config=" + self.CSVLocation
     
-        os.system(changeToDirectory + ";" + process)
+        #os.system(changeToDirectory + ";" + process)
+        changeToDirectory = os.path.join(os.getcwd(), "data-selection", "go-fkc")
+        process = "go build .\Saturate"
+        run = "Saturate.exe -config=" + self.CSVLocation
+    
+        print("CD: " + changeToDirectory)
+        print("process: " + process)
+        print("run: " + run)
+
+        os.chdir(changeToDirectory)
+        os.system(process)
+        os.system(run)
+        print("done")
 
     def writeCSV(self):
-        prefix = "DB,Collection,GroupCnt,Optim,Threads,Cardinality,IterPrint,ResultDest,Alpha,ID\n"
+        prefix = "DB,Collection,GroupCnt,Optim,Threads,Cardinality,IterPrint,ResultDest,Alpha,ID,partialGraph,slices,ssSize\n"
 
-        fileText = str(prefix) + self.dbName + "," + self.colName + "," + str(self.groupCount) + "," + str(self.optimization) + "," + str(self.numThreads) + "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() + "," + str(self.SAVE_TO_LOCATION) + "," + str(self.alpha) + "," + str(self.ExperimentID) + "\n"
+        fileText = str(prefix) + self.dbName + \
+            "," + self.colName + "," + str(self.groupCount) +\
+            "," + str(self.optimization) + "," + str(self.numThreads) +\
+            "," + str(self.coresetSize) + "," + str(self.iterPrint).lower() +\
+            "," + str(self.SAVE_TO_LOCATION) + "," + str(self.alpha) +\
+            "," + str(self.ExperimentID) +  "," + str(self.partialGraph).lower() +\
+            "," + self.prettySlices(sorted(self.slices)) + "," + str(self.ssSize) + "\n"
+        
+
         with open(self.CSVLocation, 'w+') as file:
             file.write(fileText)
 
-    #cosine similarity between feature vectors a and b
-    def sim(self, a, b):
-        cos_similarity = np.dot(a, b)/(norm(a)*norm(b))
-        if cos_similarity == 1:
-            return 1.0
-        return float(cos_similarity)
 
 
-    def adjMatrix(self, dset):
 
-        adjMatrix = [[0 for i in range(len(dset))] for i in range(len(dset))]
-        print(len(adjMatrix))
 
