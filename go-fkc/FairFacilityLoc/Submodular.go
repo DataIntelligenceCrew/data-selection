@@ -14,6 +14,17 @@ type Graph struct {
 	n              int
 }
 
+func (this Graph) getSim(i int, j int) float64 {
+
+	if i < j {
+		return this.affinityMatrix[i][j]
+	} else if i > j {
+		return this.affinityMatrix[j][i]
+	} else {
+		return 1.0
+	}
+}
+
 /*
 Client syntax:
 coreset, funcVal, preTime, inTime := SubmodularCover(db, collection, groupReq,
@@ -150,14 +161,14 @@ func marginalGain(graph Graph, index int, closestInCoreset []int) float64 {
 	if closestInCoreset[0] < 0 { // Coreset is empty
 		gain := 0.0
 		for i := 0; i < graph.n; i++ { // New point is always closest
-			gain += graph.affinityMatrix[index][i]
+			gain += graph.getSim(index, i)
 		}
 		return gain
 	} else {
 		gain := 0.0
 		for i := 0; i < graph.n; i++ {
-			new_sim := graph.affinityMatrix[index][i]
-			old_sim := graph.affinityMatrix[closestInCoreset[i]][i]
+			new_sim := graph.getSim(index, i)
+			old_sim := graph.getSim(closestInCoreset[i], i)
 			if new_sim > old_sim {
 				gain += new_sim - old_sim
 			}
@@ -171,8 +182,8 @@ func updateTracker(graph Graph, index int, closestInCoreset []int, groupReqTrack
 		if closestInCoreset[i] < 0 {
 			closestInCoreset[i] = index
 		} else {
-			new_sim := graph.affinityMatrix[index][i]
-			old_sim := graph.affinityMatrix[closestInCoreset[i]][i]
+			new_sim := graph.getSim(index, i)
+			old_sim := graph.getSim(closestInCoreset[i], i)
 			if new_sim > old_sim {
 				closestInCoreset[i] = index
 			}
@@ -188,14 +199,14 @@ func computeScore(graph Graph, coreset []int, closestInCoreset []int) float64 {
 		if closestInCoreset[i] < 0 {
 			best_sim := 0.0
 			for j := 0; j < len(coreset); j++ {
-				sim := graph.affinityMatrix[i][j]
+				sim := graph.getSim(i, j)
 				if sim > best_sim {
 					best_sim = sim
 				}
 			}
 			score += best_sim
 		} else {
-			score += graph.affinityMatrix[closestInCoreset[i]][i]
+			score += graph.getSim(closestInCoreset[i], i)
 		}
 	}
 	return score
