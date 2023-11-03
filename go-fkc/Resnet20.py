@@ -18,17 +18,20 @@ from keras.models import Model
 import keras
 
 
+import cifar10_web
+
+
 
 class Resnet20:
 
-    def __init__(self, depth, numClasses, X_train, Y_train, X_test, Y_test):
+    def __init__(self, modelDepth, X_train, Y_train, X_test, Y_test, imgWidth, imgHeight, imgChannels, numClasses):
 
 
 
-        self.X_train, self.X_test, self.Y_train, self.Y_test = self.prepData(X_train, X_test, Y_train, Y_test)
-
+        self.X_train, self.X_test, self.Y_train, self.Y_test = self.prepData(X_train, X_test, Y_train, Y_test, imgWidth, imgHeight, imgChannels, numClasses)
+    
         
-        self.model = self.resnet_v1(X_train.shape[1:], depth=depth, num_classes=numClasses)
+        self.model = self.resnet_v1(X_train.shape[1:], depth=modelDepth, num_classes=numClasses)
         optimizer = optimizers.RMSprop(lr=1e-3)
 
         self.model.compile(optimizer = optimizer , loss = "categorical_crossentropy", metrics=["accuracy"])
@@ -190,12 +193,14 @@ class Resnet20:
     def prepData(self, X_train, X_test, Y_train, Y_test, width, height, channels, numClasses): 
 
 
-        # We need to reshape X as (num_samples, width, heigh, channel)
-        X_train = X_train.reshape(len(X_train),width,height,channels)
-        X_test = X_test.reshape(len(X_test),width,height,channels)
+        # reshape X to (num_samples, width, heigh, channel)
+        X_train = X_train.reshape(-1,channels, width,height).transpose(0, 2, 3, 1)
+        X_test = X_test.reshape(-1,channels, width,height).transpose(0, 2, 3, 1)
 
+        print(X_train.shape)
+        print(X_test.shape)
 
-        # We need to one-hot encode trainY
+        #one-hot encode Y
         Y_train = np.eye(numClasses)[Y_train]
         Y_test = np.eye(numClasses)[Y_test]
 
@@ -209,6 +214,11 @@ class Resnet20:
 
 
 
-X, Y = loadDataset()
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=0.8, random_state=1)
-foo = Resnet20(20, 10, X_train, Y_train, X_test, Y_test)
+
+
+X_train, Y_train, X_test, Y_test = cifar10_web.cifar10()
+
+#X_train, X_test, Y_train, Y_test = train_test_split(X_train, Y_train, train_size=0.8, random_state=1)
+
+
+foo = Resnet20(20, X_train, Y_train, X_test, Y_test, 32, 32, 3, 10)
