@@ -27,11 +27,12 @@ class Resnet20:
     def __init__(self, modelDepth, X_train, Y_train, X_test, Y_test, imgWidth, imgHeight, imgChannels, numClasses):
 
 
+        #TODO: more than3 filters
 
         self.X_train, self.X_test, self.Y_train, self.Y_test = self.prepData(X_train, X_test, Y_train, Y_test, imgWidth, imgHeight, imgChannels, numClasses)
     
         
-        self.model = self.resnet_v1(X_train.shape[1:], depth=modelDepth, num_classes=numClasses)
+        self.model = self.resnet_v1(self.X_train.shape[1:], depth=modelDepth, num_classes=numClasses)
         optimizer = optimizers.RMSprop(lr=1e-3)
 
         self.model.compile(optimizer = optimizer , loss = "categorical_crossentropy", metrics=["accuracy"])
@@ -55,13 +56,13 @@ class Resnet20:
             vertical_flip=False)  # randomly flip images
 
 
-        datagen.fit(X_train)
+        datagen.fit(self.X_train)
 
         epochs = 30
         batch_size = 128
 
-        history = self.model.fit_generator(datagen.flow(X_train,Y_train, batch_size=batch_size),
-                              epochs = epochs, validation_data = (X_test,Y_test),
+        history = self.model.fit_generator(datagen.flow(self.X_train,self.Y_train, batch_size=batch_size),
+                              epochs = epochs, validation_data = (self.X_test,self.Y_test),
                               verbose = 1, steps_per_epoch=X_train.shape[0] // batch_size
                               ,callbacks=[learning_rate_reduction])
         
@@ -71,9 +72,9 @@ class Resnet20:
         self.plot_loss(history, ax[0])
         self.plot_accuracy(history, ax[1])
         plt.figure(figsize=(8,8))
-        val_preds = self.model.predict(X_test)
+        val_preds = self.model.predict(self.X_test)
         val_preds = np.argmax(val_preds,axis=-1)
-        Y_val_classes = np.argmax(Y_test,axis=-1)
+        Y_val_classes = np.argmax(self.Y_test,axis=-1)
         cm = confusion_matrix(val_preds,Y_val_classes)
         cm = cm / np.sum(cm,axis=-1)[:,np.newaxis]
         ax = sns.heatmap(cm,annot=True)
@@ -86,7 +87,7 @@ class Resnet20:
 
 
 
-    def resnet_layer(self, inputs, num_filters=16, kernel_size=3, strides=1, activation='relu', batch_normalization=True, conv_first=True):
+    def resnet_layer(self, inputs, num_filters=3, kernel_size=3, strides=1, activation='relu', batch_normalization=True, conv_first=True):
     
         conv = Conv2D(num_filters,
             kernel_size=kernel_size,
@@ -114,10 +115,12 @@ class Resnet20:
 
 
     def resnet_v1(self, input_shape, depth, num_classes=10):
+
+        print(input_shape)
         if (depth - 2) % 6 != 0:
             raise ValueError('depth should be 6n+2 (eg 20, 32, 44 in [a])')
         # Start model definition.
-        num_filters = 16
+        num_filters = 3 #some multiple of num channels
         num_res_blocks = int((depth - 2) / 6)
 
         inputs = Input(shape=input_shape)
