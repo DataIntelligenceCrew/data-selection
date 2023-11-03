@@ -16,17 +16,17 @@ type Graph struct {
 
 func (this Graph) getSim(i int, j int) float64 {
 
-	print("i, j sim = ")
+	//print("i, j sim = ")
 
 	// if i=0 and j=0 return 1.0
 	// if i=0 and j=1 return matrix[i][j-1]
 
 	//if i=1 and j=0 return matrix[]
 	if i < j {
-		print(fmt.Sprintf("%f", this.affinityMatrix[i][j-1-i]) + "\n")
+		//print(fmt.Sprintf("%f", this.affinityMatrix[i][j-1-i]) + "\n")
 		return this.affinityMatrix[i][j-1-i]
 	} else if i > j {
-		print(fmt.Sprintf("%f", this.affinityMatrix[j][i-1-j]) + "\n")
+		//print(fmt.Sprintf("%f", this.affinityMatrix[j][i-1-j]) + "\n")
 		return this.affinityMatrix[j][i-1-j]
 	} else {
 		return 1.0
@@ -41,7 +41,7 @@ coreset, funcVal, preTime, inTime := SubmodularCover(db, collection, groupReq,
 */
 func SubmodularCover(dbName string, collectionName string, groupReq int,
 	groupCnt int, optimMode string, threads int, cardinality int,
-	print bool, partialGraph bool, slices []int, ssSize int) ([]int, float64, time.Duration, time.Duration) {
+	print bool, partialGraph bool, slices []int, ssSize int) ([]int, []float64, float64, time.Duration, time.Duration) {
 	preTime := time.Now()
 	// Import & Initialize all stuff
 
@@ -75,19 +75,23 @@ func SubmodularCover(dbName string, collectionName string, groupReq int,
 
 	// Choose algorithm to run
 	var result []int
+	var weights []float64
+
 	switch optimMode {
 	case "Lazy":
-		result = lazyGreedy(graph, groupReqTracker, cardinality, closestInCoreset, print)
+		result, weights = lazyGreedy(graph, groupReqTracker, cardinality, closestInCoreset, print)
 	case "Random":
 		result = subSampleRange(graph.n, cardinality)
+		weights = []float64{}
 	default:
 		result = []int{}
+		weights = []float64{}
 	}
 
 	// Return result
 	inTimeElapsed := time.Since(inTime)
 	finalScore := computeScore(graph, result, closestInCoreset)
-	return result, finalScore, preTimeElapsed, inTimeElapsed
+	return result, weights, finalScore, preTimeElapsed, inTimeElapsed
 }
 
 func getGraph(dbName string, collectionName string, print bool) Graph {
@@ -112,7 +116,7 @@ func getGraph(dbName string, collectionName string, print bool) Graph {
 
 		graph.affinityMatrix[i] = point.Affinities
 		graph.groups[i] = point.Group
-		report("loading db to memory "+strconv.Itoa(i)+"\r", print)
+		//report("loading db to memory "+strconv.Itoa(i)+"\r", print)
 	}
 	return graph
 }
@@ -169,7 +173,7 @@ func marginalGain(graph Graph, index int, closestInCoreset []int) float64 {
 	if closestInCoreset[0] < 0 { // Coreset is empty
 		gain := 0.0
 		for i := 0; i < graph.n; i++ { // New point is always closest
-			print("i, j: " + strconv.Itoa(index) + ", " + strconv.Itoa(i) + "\n")
+			//print("i, j: " + strconv.Itoa(index) + ", " + strconv.Itoa(i) + "\n")
 			gain += graph.getSim(index, i)
 		}
 		return gain

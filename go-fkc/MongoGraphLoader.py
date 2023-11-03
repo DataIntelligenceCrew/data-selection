@@ -44,15 +44,16 @@ class MongoGraphLoader:
         self.adjMatrix = adjMatrix
         #print(adjMatrix)
 
-        print("SIM 50, 4" + str(self.sim(dset[50, :], dset[4, :])))
+        #print("SIM 50, 4" + str(self.sim(dset[50, :], dset[4, :])))
         #print(adjMatrix)
 
-        print("adjacency matrix constructed")
-        print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))
-        print("num keys in adj matrix:  " + str(len(adjMatrix.keys())))
+        #print("adjacency matrix constructed")
+        #print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))
+        #print("num keys in adj matrix:  " + str(len(adjMatrix.keys())))
 
 
-        print("writing graph to mongo")
+        #print("writing graph to mongo")
+        
         for i in adjMatrix.keys():
             self.collection.insertIntoCollection(int(i), int(groupLabels[i]), adjMatrix[i])
 

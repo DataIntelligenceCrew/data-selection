@@ -115,7 +115,7 @@ func main() {
 		fmt.Println(db, collection, groupReq, groupCnt, optim, threads,
 			cardinality, iterPrint, resultDest, partialGraph, ssSize, slices)
 
-		coreset, funcVal, preTime, inTime := SubmodularCover(db, collection,
+		coreset, weights, funcVal, preTime, inTime := SubmodularCover(db, collection,
 			groupReq, groupCnt, optim, threads, cardinality, iterPrint, partialGraph, slices, ssSize)
 
 		// Run SubmodularCover
@@ -134,6 +134,12 @@ func main() {
 		for j := 0; j < len(coreset); j++ {
 			result += strconv.Itoa(coreset[j]) + "\n"
 		}
+
+		result += "Weights:\n"
+		for j := 0; j < len(coreset); j++ {
+			result += strconv.FormatFloat(weights[j], 'f', -1, 64) + "\n"
+		}
+
 		if resultDest != "stdout" {
 			fileName := ID + ".txt"
 			writeToFile(result, resultDest+"\\"+fileName)
