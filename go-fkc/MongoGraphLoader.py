@@ -33,14 +33,19 @@ class MongoGraphLoader:
         #construct adjacencyMatrix
         adjMatrix = dict()
 
+
         for i in range(len(dset)):
             adjMatrix.update({i: []})
             for j in range(len(dset)):
 
-                #print(type(dset))
-                adjMatrix[i].append(self.sim(dset[i, :], dset[j, :]))
+                if i < j:
+                    adjMatrix[i].append(self.sim(dset[i, :], dset[j, :]))
         
         self.adjMatrix = adjMatrix
+        #print(adjMatrix)
+
+        print("SIM 50, 4" + str(self.sim(dset[50, :], dset[4, :])))
+        #print(adjMatrix)
 
         print("adjacency matrix constructed")
         print("ADJ MATRIX SIZE: " + str(len(adjMatrix)))

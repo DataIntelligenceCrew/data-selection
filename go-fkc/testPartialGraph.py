@@ -15,12 +15,12 @@ class PartialGraphTester:
         #1) make sure the csv file is getting written correctly
         slices = np.arange(0, len(X), dtype=int)
         X_train, X_test, Y_train, Y_test, slice_train, slice_test = train_test_split(X, Y, slices, train_size=0.8)
-        print(X_train.shape)
+        #print(X_train.shape)
         #self.prettySlices(slice_test)
         #1) load the full data adj matrix into mongo DONE
 
         #2) get a coreset using only slices of the full adj matrix
-        #selector1 = FairFacilityLocation(colName, -1, 10, "testing123", 10, slices=sorted(slice_train), reuseMongo=True, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
+        selector1 = FairFacilityLocation(colName, -1, 10, "halfMAtrix", 10, dset=X_train, groupLabels=Y_train, reuseMongo=False, iterPrint=True) # mongoDBname=dbName, slices=slice_train)
         #print(selector1.getCoreset())
         # 
 
@@ -72,7 +72,7 @@ np.random.seed(seed_value)
 
 fullData = np.random.random((100, 10))
 groupLabels = np.random.randint(0, 10, size=(100))
-x = PartialGraphTester("testing1234", fullData, groupLabels)
+x = PartialGraphTester("halfMAtrix", fullData, groupLabels)
 
 
 

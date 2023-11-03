@@ -7,10 +7,13 @@ import random
 import os
 
 class FairFacilityLocation:
-    def __init__(self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize, slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False):
+    def __init__(self, mongoColName, groupReq, groupCount, ExperimentID, coresetSize,  slices=None, dset=None, groupLabels=None, mongoDBname="MichaelFlynn", reuseMongo = True, numThreads = 1, optimization = "Lazy", iterPrint = False):
 
         #IMPORTANT: if you load a new mongo database, it will return the indicies in X_train to use
         #If you use a partial graph with slices, it will return the indicies in X to use
+
+
+
         self.dbName = mongoDBname
         self.colName = mongoColName
         self.groupReq = groupReq

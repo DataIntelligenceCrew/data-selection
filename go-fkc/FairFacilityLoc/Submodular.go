@@ -16,10 +16,18 @@ type Graph struct {
 
 func (this Graph) getSim(i int, j int) float64 {
 
+	print("i, j sim = ")
+
+	// if i=0 and j=0 return 1.0
+	// if i=0 and j=1 return matrix[i][j-1]
+
+	//if i=1 and j=0 return matrix[]
 	if i < j {
-		return this.affinityMatrix[i][j]
+		print(fmt.Sprintf("%f", this.affinityMatrix[i][j-1-i]) + "\n")
+		return this.affinityMatrix[i][j-1-i]
 	} else if i > j {
-		return this.affinityMatrix[j][i]
+		print(fmt.Sprintf("%f", this.affinityMatrix[j][i-1-j]) + "\n")
+		return this.affinityMatrix[j][i-1-j]
 	} else {
 		return 1.0
 	}
@@ -161,6 +169,7 @@ func marginalGain(graph Graph, index int, closestInCoreset []int) float64 {
 	if closestInCoreset[0] < 0 { // Coreset is empty
 		gain := 0.0
 		for i := 0; i < graph.n; i++ { // New point is always closest
+			print("i, j: " + strconv.Itoa(index) + ", " + strconv.Itoa(i) + "\n")
 			gain += graph.getSim(index, i)
 		}
 		return gain
